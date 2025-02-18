@@ -19,5 +19,5 @@ const loadHomepage = async (req,res)=>{
 
 module.exports={
     loadHomepage,
-    pageNotFound
+    pageNotFound,
 }
