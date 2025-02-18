@@ -15,16 +15,16 @@ const userSchema = new Schema({
         type:String,
         required:false,
         unique : true,
-        sparse:true,
-        default:null
+        // sparse:true,
+        // default:null
     },
     googleId:{
         type:String,
-        required:true
+        // required:true
     },
     password:{
         type:String,
-        required:false,
+        required:true,
     },
     isBlocked:{
         type:Boolean,
@@ -39,8 +39,8 @@ const userSchema = new Schema({
         ref : "Cart"
     }],
     wallet:{
-        type:Number,
-        default:0,
+        type:Schema.Types.ObjectId,
+        
     },
     wishlist:[{
         type : Schema.Types.ObjectId,
@@ -55,15 +55,17 @@ const userSchema = new Schema({
         default:Date.now,
     },
     referalCode:{
-        type:String
+        type:String,
+        //required : true
     },
     redeemed:{
         type:Boolean,
-        default:false,
+        // default:false,
     },
     redeemedUsers:[{
         type : Schema.Types.ObjectId,
-        ref:"User"
+        ref:"User",
+        //required:true
     }],
     searchHistory:[{
         category:{
