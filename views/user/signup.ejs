@@ -31,6 +31,11 @@
       padding: 30px;
       width: 60%;
     }
+    .error-message {
+      color: red;
+      font-size: 0.75rem;
+      display: none;
+    }
     h2 {
       margin-bottom: 20px;
       color: #333;
@@ -75,12 +80,17 @@
     <div class="image-section"></div>
     <div class="form-section">
       <h2>Create Your Account</h2>
-      <form method="post" action="/signup">
+      <form id="signForm" method="post" action="/signup">
         <input type="text" name="name" id="name" placeholder="Full Name" required>
+        <div id="error1" class="error-message"></div>
         <input type="email" name="email" id="email" placeholder="Email" required>
+        <div id="error2" class="error-message"></div>
         <input type="tel" name="phone" id="phone" placeholder="Phone Number" required>
+        <div id="error3" class="error-message"></div>
         <input type="password" name="password" id="password" placeholder="Password" required>
+        <div id="error4" class="error-message"></div>
         <input type="password" name="cPassword" id="confirm-password" placeholder="Confirm Password" required>
+        <div id="error5" class="error-message"></div>
         <button type="submit">Sign Up</button>
       </form>
       <div class="google-signup">
@@ -89,5 +99,145 @@
       </div>
     </div>
   </div>
+
+  <script>
+
+    const nameId = document.getElementById('name');
+    const emailId = document.getElementById('email');
+    const phoneId = document.getElementById('phone');
+    const passId = document.getElementById('password');
+    const cPassId = document.getElementById('confirm-password');
+    const error1 = document.getElementById('error1');
+    const error2 = document.getElementById('error2');
+    const error3 = document.getElementById('error3');
+    const error4 = document.getElementById('error4');
+    const error5 = document.getElementById('error5');
+    const signform = document.getElementById("signForm")
+
+
+    function nameValidateChecking(e){
+      const nameVal = nameId.value;
+      const namePattern = /^[A-Za-z\s]+$/;
+
+      if(nameVal.trim()===''){
+        error1.style.display="block";
+        error1.innerHTML = 'Please enter a valid name';
+      }else if(!namePattern.test(nameVal)){
+        error1.style.display="block";
+        error1.innerHTML="Name can only contain alphabets and spaces"
+      }else{
+        error1.style.display="none"
+        error1.innerHTML='';
+      }
+
+    }
+
+
+    function emailValidateChecking(e){
+      const emailVal = emailId.value;
+      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+      if(!emailPattern.test(emailVal)){
+        error2.style.display='block';
+        error2.innerHTML="Invalid format";
+      }else{
+        error2.style.display='none';
+        error2.innerHTML="";
+      }
+    }
+
+    function phoneValidateChecking(e){
+      const phoneVal = phoneId.value;
+
+      if(phoneVal.trim()===''){
+        error3.style.display='block';
+        error3.innerHTML="Enter valid phone number"
+      }else if(phone.length<10 || phone.length>10){
+        error3.style.display='block';
+        error3.innerHTML="Enter 10 digit"
+      }else{
+        error2.style.display='none';
+        error2.innerHTML="";
+      }
+
+    }
+
+    function passValidateChecking(e){
+      const passVal = passId.value;
+      const cPassVal = cPassId.value;
+      const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+      if (passVal.length < 8) {
+        error4.style.display = 'block';
+        error4.innerHTML = 'Password should contain at least 8 characters.';
+      } else if (!/[A-Z]/.test(passVal)) {
+        error4.style.display = 'block';
+        error4.innerHTML = 'Password should contain at least one uppercase letter (A-Z).';
+      } else if (!/[a-z]/.test(passVal)) {
+        error4.style.display = 'block';
+        error4.innerHTML = 'Password should contain at least one lowercase letter (a-z).';
+      } else if (!/\d/.test(passVal)) {
+        error4.style.display = 'block';
+        error4.innerHTML = 'Password should contain at least one number (0-9).';
+      } else if (!/[@$!%*?&]/.test(passVal)) {
+        error4.style.display = 'block';
+         error4.innerHTML = 'Password should contain at least one special character (@$!%*?&).';
+      }else{
+        error4.style.display='none';
+        error4.innerHTML="";
+      }
+
+
+      if(passVal !== cPassVal){
+        error5.style.display='block';
+        error5.innerHTML="Password do not match"
+      }else{
+        error5.style.display='none';
+        error5.innerHTML="";
+      }
+
+    }
+
+
+    document.addEventListener('DOMContentLoaded',function(){
+      signForm.addEventListener('submit',function(e){
+
+        nameValidateChecking();
+        emailValidateChecking();
+        phoneValidateChecking();
+        passValidateChecking();
+
+        if(
+          !nameId ||
+          !emailId ||
+          !phoneId ||
+          !passId ||
+          !error1 ||
+          !error2 ||
+          !error3 ||
+          !error4 ||
+          !error5 ||
+          !signform
+        ){
+          console.error('one or more elements is missing');
+        }
+
+        if(
+          error1.innerHTML ||
+          error2.innerHTML ||
+          error3.innerHTML ||
+          error4.innerHTML ||
+          error5.innerHTML
+        ){
+          e.preventDefault();
+        }
+
+      })
+    })
+
+  </script>
+
 </body>
 </html>
+
+
