@@ -81,15 +81,15 @@
     <div class="form-section">
       <h2>Create Your Account</h2>
       <form id="signForm" method="post" action="/signup">
-        <input type="text" name="name" id="name" placeholder="Full Name" required>
+        <input type="text" name="name" id="name" placeholder="Full Name">
         <div id="error1" class="error-message"></div>
-        <input type="email" name="email" id="email" placeholder="Email" required>
+        <input type="email" name="email" id="email" placeholder="Email" >
         <div id="error2" class="error-message"></div>
-        <input type="tel" name="phone" id="phone" placeholder="Phone Number" required>
+        <input type="tel" name="phone" id="phone" placeholder="Phone Number" >
         <div id="error3" class="error-message"></div>
-        <input type="password" name="password" id="password" placeholder="Password" required>
+        <input type="password" name="password" id="password" placeholder="Password" >
         <div id="error4" class="error-message"></div>
-        <input type="password" name="cPassword" id="confirm-password" placeholder="Confirm Password" required>
+        <input type="password" name="cPassword" id="confirm-password" placeholder="Confirm Password" >
         <div id="error5" class="error-message"></div>
         <button type="submit">Sign Up</button>
       </form>
@@ -152,7 +152,7 @@
       if(phoneVal.trim()===''){
         error3.style.display='block';
         error3.innerHTML="Enter valid phone number"
-      }else if(phone.length<10 || phone.length>10){
+      }else if(phoneVal.length<10 || phone.length>10){
         error3.style.display='block';
         error3.innerHTML="Enter 10 digit"
       }else{
