@@ -601,8 +601,21 @@ h3.cart-title {
 .navbar-nav .nav-item a.nav-link.active, 
 .navbar-nav .nav-item a.nav-link:focus, 
 .navbar-nav .nav-item a.nav-link:hover {
+  
     color: var(--primary-color);
 }
+.nav-item1{
+  margin-left: 210px;
+}
+.nav-item2{
+  margin-right: 150px;
+}
+
+.sign-in-link {
+  margin-left: 210px;
+  margin-right: 150px;
+}
+
 
 /*------------ Offcanvas -------------- */
 #header-nav .navbar-toggler:focus {
@@ -1019,3 +1032,44 @@ figure.instagram-item img.insta-image {
 .post-navigation:focus svg {
     fill: var(--primary-color);
 }
+
+.logo{
+  width: 100px;
+  margin-left: 50px;
+}
+
+
+/* dropdown Homepage */
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1000;
+  right: 0;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  width: 100%;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+

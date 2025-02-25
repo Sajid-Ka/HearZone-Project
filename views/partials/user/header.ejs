@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ministore</title>
+    <title>HearZone</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -91,7 +91,7 @@
       </symbol>
     </svg>  
 
-    <div class="search-popup">
+    <!-- <div class="search-popup">
         <div class="search-popup-container">
 
           <form role="search" method="get" class="search-form" action="">
@@ -126,7 +126,7 @@
           </ul>
 
         </div>
-    </div>
+    </div> -->
     
     <header id="header" class="site-header header-scrolled position-fixed text-black bg-light">
       <nav id="header-nav" class="navbar navbar-expand-lg px-3 mb-3">
@@ -152,56 +152,40 @@
                   <a class="nav-link me-4 active" href="#billboard">Home</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-4" href="#company-services">Services</a>
+                  <a class="nav-link me-4" href="#company-services">Headphones</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-4" href="#mobile-products">Products</a>
+                  <a class="nav-link me-4" href="#mobile-products">Neckbands</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-4" href="#smart-watches">Watches</a>
+                  <a class="nav-link me-4" href="#smart-watches">Earbuds</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link me-4" href="#yearly-sale">Sale</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link me-4" href="#latest-blog">Blog</a>
-                </li>
-                <li class="nav-item dropdown">
-                  <a class="nav-link me-4 dropdown-toggle link-dark" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">Pages</a>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a href="about.html" class="dropdown-item">About</a>
-                    </li>
-                    <li>
-                      <a href="blog.html" class="dropdown-item">Blog</a>
-                    </li>
-                    <li>
-                      <a href="shop.html" class="dropdown-item">Shop</a>
-                    </li>
-                    <li>
-                      <a href="cart.html" class="dropdown-item">Cart</a>
-                    </li>
-                    <li>
-                      <a href="checkout.html" class="dropdown-item">Checkout</a>
-                    </li>
-                    <li>
-                      <a href="single-post.html" class="dropdown-item">Single Post</a>
-                    </li>
-                    <li>
-                      <a href="single-product.html" class="dropdown-item">Single Product</a>
-                    </li>
-                    <li>
-                      <a href="contact.html" class="dropdown-item">Contact</a>
-                    </li>
-                  </ul>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link me-4" href="/signup">Sign Up</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link me-4" href="/login">Log in</a>
-                </li>
-                <li class="nav-item">
+                
+
+                
+                <% if (locals.user) { %>
+                  <div class="dropdown">
+                    <a href="#" class="sign-in-link"><%= locals.user.name %></a>
+                    <div class="dropdown-content">
+                      <a href="/userProfile">Profile</a>
+                      <a href="/logout">Logout</a>
+                    </div>
+                  </div>
+                <% } else { %>
+                  <li class="nav-item1">
+                    <a class="login-signup" href="/login">Login/</a>
+                  </li>
+                  <li class="nav-item2">
+                    <a class="login-signup" href="/signup">Signup</a>
+                  </li>
+                <% } %>
+
+             
+                
+
+                <!-- Profile-search-cart -->
+
+                <!-- <li class="nav-item1">
                   <div class="user-items ps-5">
                     <ul class="d-flex justify-content-end list-unstyled">
                       <li class="search-item pe-3">
@@ -227,7 +211,7 @@
                       </li>
                     </ul>
                   </div>
-                </li>
+                </li> -->
               </ul>
             </div>
           </div>

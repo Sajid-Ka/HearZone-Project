@@ -2,6 +2,7 @@ const User = require('../../models/userSchema');
 const bcrypt = require('bcrypt');
 const env = require('dotenv').config();
 const nodemailer = require('nodemailer');
+const mongoose = require("mongoose");
 
 const pageNotFound = async (req,res)=>{
     try{
@@ -11,14 +12,53 @@ const pageNotFound = async (req,res)=>{
     }
 }
 
-const loadHomepage = async (req,res)=>{
-    try{
-        return res.render('home');
-    }catch(err){
-        console.log('Homepage Not found');
+
+
+// const loadHomepage = async (req,res)=>{
+//     try{
+//         const user = req.session.user;
+//         console.log("Session User:", user);
+//         if(user){
+//             const userData = await User.findOne({_id:user._id})
+//             res.render("home",{user:userData})
+//             console.log(userData)
+//         }
+        
+//         else{
+//             return res.render('home');
+//         }
+        
+//     }catch(err){
+//         console.log('Homepage Not found');
+//         res.status(500).send("Server error");
+//     }
+// }
+
+const loadHomepage = async (req, res) => {
+    try {
+        const user = req.session.user;
+        if (user) {
+            const userId = new mongoose.mongo.ObjectId(user.id);
+            const userData = await User.findOne({ _id: userId });
+
+            if (!userData) {
+                console.log("User not found in database!");
+                return res.render("home", { user: null });
+            }
+
+            return res.render("home", { user: userData });
+        } else {
+            console.log("No user in session.");
+            return res.render("home", { user: null });
+        }
+    } catch (err) {
+        console.error("Error loading homepage:", err);
         res.status(500).send("Server error");
     }
-}
+};
+
+
+
 
 const loadSignup = async (req,res)=>{
     try{
@@ -187,9 +227,11 @@ const loadLogin = async (req,res)=>{
 
         
         if(req.session.user){
-            return res.render('login');
+            console.log("Session User:", req.session.user);
+            return res.redirect('/');
+            
         }else{
-            res.redirect('/')
+            res.render('login')
         }
 
     } catch (error) {
@@ -212,14 +254,20 @@ const login = async (req,res) => {
         if(findUser.isBlocked){
             return res.render("login",{message:"User is Blocked by Admin"})
         }
-
+        
         const passwordMatch = await bcrypt.compare(password,findUser.password);
+        
 
         if(!passwordMatch){
             return res.render("login",{message:"Incorrect Password"})
         }
 
-        req.session.user = findUser.id;
+        req.session.user = {
+            id: findUser._id.toString(),
+            name: findUser.name,   // Store name for UI display
+            email: findUser.email
+        };
+        console.log(req.session.user);
         res.redirect('/');
 
     } catch (error) {
@@ -227,6 +275,23 @@ const login = async (req,res) => {
         console.error("Log in error",error);
         res.render('login',{message:"Login Failed. Please try again Later"})
 
+    }
+}
+
+const logout = async(req,res)=>{
+    try {
+        
+        req.session.destroy((err)=>{
+            if(err){
+                console.log("session destroying error",err.message);
+                return res.redirect('/pageNotFound')
+            }
+            return res.redirect('/login')
+        })
+
+    } catch (error) {
+        console.log("Logout error",error);
+        res.redirect('/pageNotFound')
     }
 }
 
@@ -239,5 +304,6 @@ module.exports={
     verifyOtp,
     resendOtp,
     loadLogin,
-    login
+    login,
+    logout,
 }
