@@ -264,7 +264,7 @@ const login = async (req,res) => {
 
         req.session.user = {
             id: findUser._id.toString(),
-            name: findUser.name,   // Store name for UI display
+            name: findUser.name,   
             email: findUser.email
         };
         console.log(req.session.user);
