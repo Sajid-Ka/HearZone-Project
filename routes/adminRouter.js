@@ -1,30 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
+const {userAuth,adminAuth} = require('../middlewares/auth');
 
 
+router.get('/pageError',adminController.pageError);
 
 
-
-//admin login
 router.get('/login',adminController.loadLogin);
 router.post('/login',adminController.login);
 
 
-//admin dashboard
-router.get('/dashboard', adminController.loadDashboard);
+router.get('/dashboard',adminAuth, adminController.loadDashboard);
 
 
-// router.get("/dashboard", (req, res) => {
-//     res.render("dashboard"); // Ensure you have admin-dashboard.ejs in views/admin
-// });
+router.get('/logout',adminController.logout)
+
+
+
 
 module.exports = router;
 
 
-
-
-
-
-
-module.exports=router;
