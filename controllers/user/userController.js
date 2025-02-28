@@ -64,7 +64,7 @@ const loadSignup = async (req,res)=>{
     try{
         return res.render('signup');
     }catch(err){
-        console.log('Homepage not loading',err.message);
+        console.log('signup page not loading',err.message);
         res.status(500).send('Server Error')
         
     }
@@ -167,32 +167,75 @@ const securePassword = async (password)=>{
     }
 }
 
-const verifyOtp = async (req,res)=>{
-    try {
+// const verifyOtp = async (req,res)=>{
+//     try {
         
-        const {otp:otpNum} = req.body;
+//         const {otp:otpNum} = req.body;
 
-        if(otpNum===req.session.userOtp){
+//         if(otpNum===req.session.userOtp){
+//             const user = req.session.userData;
+//             const passwordHash = await securePassword(user.password);
+//             const saveUserData = new User({
+//                 name:user.name,
+//                 email:user.email,
+//                 phone:user.phone,
+//                 password:passwordHash
+//             })
+//             await saveUserData.save();
+//             req.session.user = saveUserData._id;
+//             // res.json({success:true, redirectUrl:"/login"})
+//             return res.status(200).json({success:true, message:"Email verified successfully"})
+//         }else{
+//             res.status(400).json({success:false, message:"Invalid OTP, Please try again"})
+//         }
+
+//     } catch (error) {
+//         console.error("Error Verify OTP",error);
+//         res.status(500).json({success:false, message:"An error occured"})
+//     }
+// }
+
+
+const verifyOtp = async (req, res) => {
+    try {
+        const { otp: otpNum } = req.body;
+
+        // Verify OTP
+        if (otpNum === req.session.userOtp) {
             const user = req.session.userData;
-            const passwordHash = await securePassword(user.password);
-            const saveUserData = new User({
-                name:user.name,
-                email:user.email,
-                phone:user.phone,
-                password:passwordHash
-            })
-            await saveUserData.save();
-            req.session.user = saveUserData._id;
-            res.json({success:true, redirectUrl:"/"})
-        }else{
-            res.status(400).json({success:false, message:"Invalid OTP, Please try again"})
-        }
 
+            // Hash the password
+            const passwordHash = await securePassword(user.password);
+
+            // Save user data
+            const saveUserData = new User({
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                password: passwordHash
+            });
+
+            await saveUserData.save();
+
+            // Set session data
+            req.session.user = {
+                id: saveUserData._id.toString(),
+                name: saveUserData.name,
+                email: saveUserData.email
+            };
+
+            console.log("Session data after OTP verification:", req.session.user);
+
+            // Redirect or send response
+            res.json({ success: true, redirectUrl: "/" });
+        } else {
+            res.status(400).json({ success: false, message: "Invalid OTP, Please try again" });
+        }
     } catch (error) {
-        console.error("Erroe Verify OTP",error);
-        res.status(500).json({success:false, message:"An error occured"})
+        console.error("Error in verifyOtp:", error);
+        res.status(500).json({ success: false, message: "An error occurred" });
     }
-}
+};
 
 
 const resendOtp = async (req,res)=>{
