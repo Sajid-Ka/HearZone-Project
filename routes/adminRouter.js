@@ -23,6 +23,8 @@ router.get('/category',adminAuth,categoryController.categoryInfo);
 router.post('/category',adminAuth,categoryController.addCategory);
 router.get('/listCategory',adminAuth,categoryController.getListCategory);
 router.get('/unlistCategory',adminAuth,categoryController.getUnlistCategory);
+router.get('/editCategory',adminAuth,categoryController.getEditCategory);
+router.post('/editCategory/:id',adminAuth,categoryController.editCategory);
 
 
 
