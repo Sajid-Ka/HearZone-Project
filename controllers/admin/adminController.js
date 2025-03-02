@@ -17,7 +17,7 @@ const loadLogin = async (req, res) => {
         res.render("admin-login", { message: null }); 
     } catch (error) {
         console.error("Error loading admin login page:", error);
-        res.redirect("/pageError");
+        res.redirect("/admin/pageError");
     }
 };
 
