@@ -1072,4 +1072,11 @@ figure.instagram-item img.insta-image {
   display: block;
 }
 
-
+.dropdown-menu {
+  display: none;
+}
+.dropdown-menu.show {
+  display: block;
+  position: absolute;
+  z-index: 1000;
+}

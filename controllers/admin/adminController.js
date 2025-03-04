@@ -23,34 +23,6 @@ const loadLogin = async (req, res) => {
 
 
 
-//  const login = async (req, res) => {
-//     try {
-//        const { email, password } = req.body;
-       
-//        const admin = await User.findOne({ email, isAdmin: true });
- 
-//        if (admin) {
-//            const passwordMatch = await bcrypt.compare(password, admin.password);
-//            if (passwordMatch) {
-//                req.session.admin = true; 
-//                return res.redirect('/admin/dashboard'); 
-//            } 
-//            else if(!email || !password){
-//                return res.render('admin-login', { message: 'Please enter email and password' });
- 
-//            }
-//            else {
-//                return res.render('admin-login', { message: 'Incorrect password' }); 
-//            }
-//        } else {
-//            return res.render('admin-login', { message: 'Please enter valid email and password' }); 
-//        }
-//    } catch (error) {
-//        console.log("Login error:", error);
-//        return res.render('admin-login', { message: 'An error occurred, please try again' }); 
-//    }
-//  }
-
 
 const login = async (req, res) => {
     try {
@@ -82,7 +54,7 @@ const loadDashboard = async (req, res) => {
             res.render("dashboard");  
         } catch (error) {
             console.error("Error loading Dashboard:", error);
-            return res.redirect("/pageError");
+            return res.redirect("/admin/pageError");
         }
     } else {
         return res.redirect("/admin/login");

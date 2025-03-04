@@ -38,5 +38,3 @@ router.get('/brands',adminAuth,brandController.getBrandPage);
 
 
 module.exports = router;
-
-
