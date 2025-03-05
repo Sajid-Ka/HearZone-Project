@@ -32,8 +32,11 @@ router.get('/deleteCategory', adminAuth, categoryController.deleteCategory);
 
 
 //brand
-router.get('/brands',adminAuth,brandController.getBrandPage);
-
+router.get('/brands', brandController.getAllBrands);
+router.post('/brands/add', uploads.single('brandImage'), brandController.addBrand);
+router.post('/brands/update', uploads.single('brandImage'), brandController.updateBrand);
+router.post('/brands/toggle', brandController.toggleBrandStatus);
+router.post('/brands/delete', brandController.deleteBrand);
 
 
 

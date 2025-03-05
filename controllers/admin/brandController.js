@@ -1,30 +1,84 @@
-const Brand = require('../../models/brandSchema');
-const Product = require('../../models/productSchema');
+const Brand = require('../../models/brandSchema'); 
+const path = require('path');
 
-
-const getBrandPage = async (req,res)=>{
+// Get all brands
+const getAllBrands = async (req, res) => {
     try {
-
-        const page = parseInt(req.query.page) || 1;
-        const limit = 4;
-        const skip =  (page-1)*limit;
-        const brandData = await Brand.find({}).sort({createdAt:-1}).skip(skip).limit(limit);
-        const totalBrands = await Brand.countDocuments();
-        const totalPages = await Math.ceil(totalBrands/limit);
-        const reverseBrand = await brandData.reverse();
-        res.render('brands',{
-            data:reverseBrand,
-            currentPage:page,
-            totalPages:totalPages,
-            totalBrands:totalBrands,
-        })
-        
-    } catch (error) {
-        res.redirect("/admin/pageError");
+        const brands = await Brand.find();
+        res.render('brand', { brands, error: null, success: null }); 
+    } catch (err) {
+        console.error(err);
+        res.render('brand', { brands: [], error: 'Failed to load brands', success: null });
     }
-}
+};
 
+// Add a new brand
+const addBrand = async (req, res) => {
+    try {
+        const { brandName } = req.body;
+        const brandImage = req.file ? `/public/uploads/${req.file.filename}` : null; 
+
+        const newBrand = new Brand({
+            brandName,
+            brandImage: brandImage ? [brandImage] : []
+        });
+        await newBrand.save();
+        res.redirect('/admin/brands');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/admin/brands');
+    }
+};
+
+// Update a brand
+const updateBrand = async (req, res) => {
+    try {
+        const { brandId, brandName } = req.body;
+        const brandImage = req.file ? `/public/uploads/${req.file.filename}` : undefined;
+
+        const updateData = { brandName };
+        if (brandImage) {
+            updateData.brandImage = [brandImage];
+        }
+
+        await Brand.findByIdAndUpdate(brandId, updateData);
+        res.redirect('/admin/brands');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/admin/brands');
+    }
+};
+
+// Block/unblock a brand
+const toggleBrandStatus = async (req, res) => {
+    try {
+        const { brandId } = req.body;
+        const brand = await Brand.findById(brandId);
+        brand.isBlocked = !brand.isBlocked;
+        await brand.save();
+        res.redirect('/admin/brands');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/admin/brands');
+    }
+};
+
+// Delete a brand
+const deleteBrand = async (req, res) => {
+    try {
+        const { brandId } = req.body;
+        await Brand.findByIdAndDelete(brandId);
+        res.redirect('/admin/brands');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/admin/brands');
+    }
+};
 
 module.exports = {
-    getBrandPage,
+    getAllBrands,
+    addBrand,
+    updateBrand,
+    toggleBrandStatus,
+    deleteBrand
 }
