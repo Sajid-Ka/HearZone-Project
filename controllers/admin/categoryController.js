@@ -49,38 +49,6 @@ const getListCategory = async (req, res) => {
         const id = req.query.id;
         const updatedCategory = await Category.findByIdAndUpdate(
             id,
-            { $set: { isListed: false } },
-            { new: true }
-        );
-
-        if (!updatedCategory) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Category not found'
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            message: 'Category unlisted successfully',
-            category: updatedCategory
-        });
-    } catch (error) {
-        console.error("Category unlist error", error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error unlisting category'
-        });
-    }
-};
-
-
-
-const getUnlistCategory = async (req, res) => {
-    try {
-        const id = req.query.id;
-        const updatedCategory = await Category.findByIdAndUpdate(
-            id,
             { $set: { isListed: true } },
             { new: true }
         );
@@ -102,6 +70,38 @@ const getUnlistCategory = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error listing category'
+        });
+    }
+};
+
+
+
+const getUnlistCategory = async (req, res) => {
+    try {
+        const id = req.query.id;
+        const updatedCategory = await Category.findByIdAndUpdate(
+            id,
+            { $set: { isListed: false } },
+            { new: true }
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Category not found'
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Category unlisted successfully',
+            category: updatedCategory
+        });
+    } catch (error) {
+        console.error("Category unlist error", error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error unlisting category'
         });
     }
 };

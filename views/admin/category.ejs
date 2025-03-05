@@ -152,7 +152,7 @@
 
         // List/Unlist Category
         function handleListUnlist(categoryId, isListed) {
-    const action = isListed ? 'unlistCategory' : 'listCategory'; // Match route names
+    const action = isListed ? 'unlistCategory' : 'listCategory';
     const actionText = isListed ? 'Unlist' : 'List';
 
     Swal.fire({
@@ -171,7 +171,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire(`${actionText}ed!`, data.message, 'success').then(() => {
+                    Swal.fire(`${actionText}d!`, data.message, 'success').then(() => {
                         updateCategoryRow(categoryId, data.category);
                     });
                 } else {
