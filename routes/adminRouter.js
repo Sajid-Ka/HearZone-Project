@@ -23,12 +23,13 @@ router.get('/blockCustomer',adminAuth,customerController.customerBlocked);
 router.get('/unblockCustomer',adminAuth,customerController.customerUnblocked);
 
 //category
-router.get('/category',adminAuth,categoryController.categoryInfo);
-router.post('/category',adminAuth,categoryController.addCategory);
-router.get('/listCategory',adminAuth,categoryController.getListCategory);
-router.get('/unlistCategory',adminAuth,categoryController.getUnlistCategory);
-router.get('/editCategory',adminAuth,categoryController.getEditCategory);
-router.post('/editCategory/:id',adminAuth,categoryController.editCategory);
+router.get('/category', adminAuth, categoryController.categoryInfo);
+router.post('/category', adminAuth, categoryController.addCategory);
+router.get('/listCategory', adminAuth, categoryController.getListCategory);
+router.get('/unlistCategory', adminAuth, categoryController.getUnlistCategory);
+router.post('/editCategory/:id', adminAuth, categoryController.editCategory);
+router.get('/deleteCategory', adminAuth, categoryController.deleteCategory); 
+
 
 //brand
 router.get('/brands',adminAuth,brandController.getBrandPage);
