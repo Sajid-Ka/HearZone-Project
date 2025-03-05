@@ -16,7 +16,8 @@ const getAllBrands = async (req, res) => {
 const addBrand = async (req, res) => {
     try {
         const { brandName } = req.body;
-        const brandImage = req.file ? `/public/uploads/${req.file.filename}` : null; 
+        const brandImage = req.file ? `/uploads/re-image/${req.file.filename}` : null;
+
 
         const newBrand = new Brand({
             brandName,
