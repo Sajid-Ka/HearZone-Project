@@ -39,8 +39,8 @@
                                     Block
                                 </button>
                             <% } else { %>
-                                <button class="btn btn-success" style="width: 80px;">
-                                    <a href="/admin/unblockCustomer?id=<%= data[i]._id %>" class="text-white" style="text-decoration: none;">Unblock</a>
+                                <button class="btn btn-success unblock-btn" style="width: 80px;" data-id="<%= data[i]._id %>">
+                                    Unblock
                                 </button>
                             <% } %>
                         </td>
@@ -63,10 +63,10 @@
 </div>
 
 <script>
+    // Block confirmation
     document.querySelectorAll('.block-btn').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
-
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to block this customer?",
@@ -78,6 +78,26 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = `/admin/blockCustomer?id=${userId}`;
+                }
+            });
+        });
+    });
+
+    // Unblock confirmation
+    document.querySelectorAll('.unblock-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you want to unblock this customer?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, unblock it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `/admin/unblockCustomer?id=${userId}`;
                 }
             });
         });
