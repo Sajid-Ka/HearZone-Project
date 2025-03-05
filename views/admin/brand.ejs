@@ -41,16 +41,10 @@
                             </span>
                         </td>
                         <td class="action-buttons">
-                            <form action="/admin/brands/toggle" method="POST" style="display:inline;">
-                                <input type="hidden" name="brandId" value="<%= brand._id %>">
-                                <button type="submit" class="btn <%= brand.isBlocked ? 'btn-success' : 'btn-danger' %>">
-                                    <%= brand.isBlocked ? 'Unblock' : 'Block' %>
-                                </button>
-                            </form>
-                            <form action="/admin/brands/delete" method="POST" style="display:inline;">
-                                <input type="hidden" name="brandId" value="<%= brand._id %>">
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                            </form>
+                            <button onclick="toggleBrand('<%= brand._id %>', <%= brand.isBlocked %>)" class="btn <%= brand.isBlocked ? 'btn-success' : 'btn-danger' %>">
+                                <%= brand.isBlocked ? 'Unblock' : 'Block' %>
+                            </button>
+                            <button onclick="deleteBrand('<%= brand._id %>')" class="btn btn-danger">Delete</button>
                         </td>
                     </tr>
                 <% }) %>
@@ -58,4 +52,48 @@
         </table>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function toggleBrand(brandId, isBlocked) {
+        Swal.fire({
+            title: isBlocked ? "Unblock Brand?" : "Block Brand?",
+            text: "Are you sure you want to " + (isBlocked ? "unblock" : "block") + " this brand?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, " + (isBlocked ? "Unblock" : "Block")
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/brands/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brandId })
+                }).then(() => location.reload());
+            }
+        });
+    }
+
+    function deleteBrand(brandId) {
+        Swal.fire({
+            title: "Delete Brand?",
+            text: "This action cannot be undone!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, Delete"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/brands/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brandId })
+                }).then(() => location.reload());
+            }
+        });
+    }
+</script>
+
 <%- include("../../views/partials/admin/footer") %>
