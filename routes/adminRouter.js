@@ -5,6 +5,7 @@ const {userAuth,adminAuth} = require('../middlewares/auth');
 const customerController = require('../controllers/admin/customerController');
 const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
+const productController = require('../controllers/admin/productController');
 const multer = require('multer');
 const storage = require('../helpers/multer');
 const uploads = multer({storage:storage});
@@ -32,11 +33,11 @@ router.get('/deleteCategory', adminAuth, categoryController.deleteCategory);
 
 
 //brand
-router.get('/brands', brandController.getAllBrands);
-router.post('/brands/add', uploads.single('brandImage'), brandController.addBrand);
-router.post('/brands/update', uploads.single('brandImage'), brandController.updateBrand);
-router.post('/brands/toggle', brandController.toggleBrandStatus);
-router.post('/brands/delete', brandController.deleteBrand);
+router.get('/brands',adminAuth, brandController.getAllBrands);
+router.post('/brands/add',adminAuth, uploads.single('brandImage'), brandController.addBrand);
+router.post('/brands/update',adminAuth, uploads.single('brandImage'), brandController.updateBrand);
+router.post('/brands/toggle',adminAuth, brandController.toggleBrandStatus);
+router.post('/brands/delete',adminAuth, brandController.deleteBrand);
 
 
 
