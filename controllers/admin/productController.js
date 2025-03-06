@@ -6,23 +6,19 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
-
-const getProductAddPage = async (req,res)=>{
+const getProductAddPage = async (req, res) => {
     try {
-
-        const category = await Category.find({isListed:true});
-        const brand = await Brand.find({isBlocked:false});
-        res.render('product-add',{
-            cat:category,
-            brand:brand,
-        })
-        
+        const category = await Category.find({ isListed: true });
+        const brand = await Brand.find({ isBlocked: false });
+        res.render('product-add', {
+            cat: category,
+            brand: brand,
+        });
     } catch (error) {
         console.error("addproductPage error");
         res.redirect('/admin/pageError');
     }
-}
-
+};
 
 const addProducts = async (req, res) => {
     try {
@@ -50,7 +46,6 @@ const addProducts = async (req, res) => {
                 return res.status(400).json("Invalid Category name");
             }
 
-            
             const brandDoc = await Brand.findOne({ brandName: products.brand });
             if (!brandDoc) {
                 return res.status(400).json("Invalid Brand name");
@@ -59,7 +54,7 @@ const addProducts = async (req, res) => {
             const newProduct = new Product({
                 productName: products.productName,
                 description: products.description,
-                brand: brandDoc._id, 
+                brand: brandDoc._id,
                 category: categoryId._id,
                 regularPrice: products.regularPrice,
                 salePrice: products.salePrice,
@@ -73,20 +68,67 @@ const addProducts = async (req, res) => {
 
             await newProduct.save();
             return res.redirect('/admin/addProducts');
-
         } else {
             return res.status(400).json("Product Already Exists, Please try with another name");
         }
-
     } catch (error) {
         console.error("Error saving product", error);
         return res.redirect('/admin/pageError');
     }
 };
 
+const getAllProducts = async (req, res) => {
+    try {
+        const search = req.query.search || "";
+        const page = req.query.page || 1;
+        const limit = 4;
 
+        const matchingBrands = await Brand.find({
+            brandName: { $regex: search, $options: "i" }
+        }).select("_id");
 
-module.exports ={
+        const brandIds = matchingBrands.map(brand => brand._id);
+
+        const productData = await Product.find({
+            $or: [
+                { productName: { $regex: search, $options: "i" } },
+                { brand: { $in: brandIds } }
+            ]
+        })
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+            .populate("category")
+            .exec();
+
+        const count = await Product.countDocuments({
+            $or: [
+                { productName: { $regex: search, $options: "i" } },
+                { brand: { $in: brandIds } }
+            ]
+        });
+
+        const category = await Category.find({ isListed: true });
+        const brand = await Brand.find({ isBlocked: false });
+
+        if (category.length > 0 && brand.length > 0) {
+            res.render("products", {
+                data: productData,
+                currentPage: page,
+                totalPages: Math.ceil(count / limit),
+                cat: category,
+                brand: brand,
+            });
+        } else {
+            res.render("page-404");
+        }
+    } catch (error) {
+        console.error("Error all product page", error);
+        return res.redirect("/admin/pageError");
+    }
+};
+
+module.exports = {
     getProductAddPage,
     addProducts,
-}
+    getAllProducts,
+};
