@@ -39,7 +39,9 @@ router.post('/brands/update',adminAuth, uploads.single('brandImage'), brandContr
 router.post('/brands/toggle',adminAuth, brandController.toggleBrandStatus);
 router.post('/brands/delete',adminAuth, brandController.deleteBrand);
 
-
+//product 
+router.get('/addProducts',adminAuth,productController.getProductAddPage);
+router.post('/addProducts',adminAuth,uploads.array("images",4),productController.addProducts);
 
 
 module.exports = router;

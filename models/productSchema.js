@@ -21,6 +21,10 @@ const productSchema = new Schema({
     salePrice: { 
         type: Number, 
         required: true },
+    createdOn:{
+        type:Date,
+        default:Date.now,
+        required:true},
     quantity: { 
         type: Number, 
         default: 0 },
