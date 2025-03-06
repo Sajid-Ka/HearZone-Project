@@ -127,8 +127,36 @@ const getAllProducts = async (req, res) => {
     }
 };
 
+
+const blockProduct = async (req,res)=>{
+    try {
+        
+        let id = req.query.id;
+        await Product.updateOne({_id:id},{$set:{isBlocked:true}});
+        res.redirect(`/admin/products?success=blocked`);
+
+    } catch (error) {
+        console.error(" product blocking Error", error);
+        return res.redirect("/admin/pageError");
+    }
+}
+
+
+const unblockProduct = async (req,res)=>{
+    try {
+        let id = req.query.id;
+        await Product.updateOne({_id:id},{$set:{isBlocked:false}});
+        res.redirect(`/admin/products?success=unblocked`);
+    } catch (error) {
+        console.error(" product unblocking Error", error);
+        return res.redirect("/admin/pageError");
+    }
+}
+
 module.exports = {
     getProductAddPage,
     addProducts,
     getAllProducts,
+    blockProduct,
+    unblockProduct
 };
