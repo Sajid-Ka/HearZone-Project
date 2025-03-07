@@ -1,10 +1,12 @@
 const User = require('../../models/userSchema');
+const Category = require('../../models/categorySchema');
+const Product = require('../../models/productSchema');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Cleaner syntax
+require('dotenv').config();
 
-// Utility Functions
+
 const securePassword = async (password) => {
     try {
         return await bcrypt.hash(password, 10);
@@ -49,7 +51,7 @@ const sendVerificationEmail = async (email, otp) => {
 
 const pageNotFound = async (req, res) => {
     try {
-      console.log('Rendering 404 page'); // Debug
+      console.log('Rendering 404 page'); 
       res.status(404).render('page-404');
     } catch (err) {
       console.error('Page not found error:', err);
@@ -59,9 +61,20 @@ const pageNotFound = async (req, res) => {
 
 const loadHomepage = async (req, res) => {
     try {
-      const user = req.session.user;
-      console.log('Session User in controller:', user);
-      res.render('home', { user: user || null });
+      const userData = req.session.user;
+      const categories = await Category.find({ isListed: true });
+        let productData = await Product.find({
+            isBlocked:false,category:{$in:categories.map(category=>category._id)},
+            quantity:{$gt:0}
+        })
+
+        productData.sort((a,b)=>new Date(b.createdOn)-new Date(a.createdOn));
+        productData = productData.slice(0,4);
+      
+      res.render('home', { user: userData, products: productData || null });
+      if(!userData){
+        res.render('home',{products: productData});
+      }
     } catch (err) {
       console.error('Homepage load error:', err);
       res.status(500).render('error', { message: 'Server error' });
@@ -196,7 +209,7 @@ const login = async (req, res) => {
         name: findUser.name,
         email: findUser.email
       };
-      console.log('Session set after login:', req.session.user);
+      
       res.redirect('/');
     } catch (error) {
       console.error('Login error:', error);
