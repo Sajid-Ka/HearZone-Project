@@ -97,6 +97,11 @@
   <script src="/js/jquery.min.js"></script>
   <script src="/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Add this before your existing script
+    if (sessionStorage.getItem('adminLoggedIn')) {
+      window.location.href = '/admin/dashboard';
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       const adminLoginForm = document.getElementById("adminLoginForm");
       const emailField = document.getElementById("adminEmail");
@@ -118,6 +123,10 @@
           isValid = false;
         } else {
           passwordError.textContent = "";
+        }
+
+        if (isValid) {
+          sessionStorage.setItem('adminLoggedIn', 'true');
         }
 
         if (!isValid) {

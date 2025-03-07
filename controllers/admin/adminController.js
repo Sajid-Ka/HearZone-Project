@@ -2,7 +2,6 @@ const User = require('../../models/userSchema');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-
 const pageError = async (req,res)=>{
     try {
         res.render('admin-error');
@@ -11,18 +10,15 @@ const pageError = async (req,res)=>{
     }
 }
 
-
 const loadLogin = async (req, res) => {
     try {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.render("admin-login", { message: null }); 
     } catch (error) {
         console.error("Error loading admin login page:", error);
         res.redirect("/admin/pageError");
     }
 };
-
-
-
 
 const login = async (req, res) => {
     try {
@@ -46,8 +42,6 @@ const login = async (req, res) => {
     }
 };
 
-
-
 const loadDashboard = async (req, res) => {
     if (req.session.admin) {
         try {
@@ -61,23 +55,21 @@ const loadDashboard = async (req, res) => {
     }
 };
 
-
-const logout = async (req,res)=>{
+const logout = async (req, res) => {
     try {
-        req.session.destroy(err=>{
-            if(err){
-                console.log("Error destroying session",err);
-                return res.redirect('/pageError')
+        req.session.destroy(err => {
+            if(err) {
+                console.log("Error destroying session", err);
+                return res.redirect('/pageError');
             }
+            res.setHeader('Clear-Site-Data', '"storage"');
             res.redirect('/admin/login');
-        })
-
+        });
     } catch (error) {
-        console.log("Admin logout Error",error);
-        res.redirect("/pageError")
+        console.log("Admin logout Error", error);
+        res.redirect("/pageError");
     }
 }
-
 
 module.exports = {
     loadLogin,
