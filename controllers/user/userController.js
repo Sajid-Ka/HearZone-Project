@@ -61,25 +61,28 @@ const pageNotFound = async (req, res) => {
 
 const loadHomepage = async (req, res) => {
     try {
-      const userData = req.session.user;
-      const categories = await Category.find({ isListed: true });
+        const userData = req.session.user;
+        const categories = await Category.find({ isListed: true });
         let productData = await Product.find({
-            isBlocked:false,category:{$in:categories.map(category=>category._id)},
-            quantity:{$gt:0}
-        })
+            isBlocked: false,
+            category: { $in: categories.map(category => category._id) },
+            quantity: { $gt: 0 }
+        });
 
-        productData.sort((a,b)=>new Date(b.createdOn)-new Date(a.createdOn));
-        productData = productData.slice(0,4);
-      
-      res.render('home', { user: userData, products: productData || null });
-      if(!userData){
-        res.render('home',{products: productData});
-      }
+        productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
+        productData = productData.slice(0, 4);
+
+        // Single render with conditional data
+        res.render('home', { 
+            user: userData || null, 
+            products: productData || [] 
+        });
+
     } catch (err) {
-      console.error('Homepage load error:', err);
-      res.status(500).render('error', { message: 'Server error' });
+        console.error('Homepage load error:', err);
+        res.status(500).render('error', { message: 'Server error' });
     }
-  };
+};
 
 
 

@@ -16,7 +16,7 @@ const getProductAddPage = async (req, res) => {
         });
     } catch (error) {
         console.error("addproductPage error");
-        res.redirect('/admin/pageError');
+        return res.redirect('/admin/pageError');
     }
 };
 
@@ -80,7 +80,7 @@ const addProducts = async (req, res) => {
 const getAllProducts = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const page = req.query.page || 1;
+        const page = parseInt(req.query.page) || 1;
         const limit = 4;
 
         const matchingBrands = await Brand.find({
@@ -89,41 +89,43 @@ const getAllProducts = async (req, res) => {
 
         const brandIds = matchingBrands.map(brand => brand._id);
 
-        const productData = await Product.find({
-            $or: [
-                { productName: { $regex: search, $options: "i" } },
-                { brand: { $in: brandIds } }
-            ]
-        })
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .populate("category")
-            .exec();
+        const [productData, count, category, brand] = await Promise.all([
+            Product.find({
+                $or: [
+                    { productName: { $regex: search, $options: "i" } },
+                    { brand: { $in: brandIds } }
+                ]
+            })
+                .limit(limit)
+                .skip((page - 1) * limit)
+                .populate("category")
+                .populate("brand")
+                .exec(),
+            
+            Product.countDocuments({
+                $or: [
+                    { productName: { $regex: search, $options: "i" } },
+                    { brand: { $in: brandIds } }
+                ]
+            }),
+            
+            Category.find({ isListed: true }),
+            Brand.find({ isBlocked: false })
+        ]);
 
-        const count = await Product.countDocuments({
-            $or: [
-                { productName: { $regex: search, $options: "i" } },
-                { brand: { $in: brandIds } }
-            ]
+        // Single render with all data
+        res.render("products", {
+            data: productData,
+            currentPage: page,
+            totalPages: Math.ceil(count / limit),
+            cat: category,
+            brand: brand,
+            search: search
         });
 
-        const category = await Category.find({ isListed: true });
-        const brand = await Brand.find({ isBlocked: false });
-
-        if (category.length > 0 && brand.length > 0) {
-            res.render("products", {
-                data: productData,
-                currentPage: page,
-                totalPages: Math.ceil(count / limit),
-                cat: category,
-                brand: brand,
-            });
-        } else {
-            res.render("page-404");
-        }
     } catch (error) {
         console.error("Error all product page", error);
-        return res.redirect("/admin/pageError");
+        res.redirect("/admin/pageError");
     }
 };
 
@@ -133,7 +135,7 @@ const blockProduct = async (req,res)=>{
         
         let id = req.query.id;
         await Product.updateOne({_id:id},{$set:{isBlocked:true}});
-        res.redirect(`/admin/products?success=blocked`);
+        return res.redirect(`/admin/products?success=blocked`);
 
     } catch (error) {
         console.error(" product blocking Error", error);
@@ -146,7 +148,7 @@ const unblockProduct = async (req,res)=>{
     try {
         let id = req.query.id;
         await Product.updateOne({_id:id},{$set:{isBlocked:false}});
-        res.redirect(`/admin/products?success=unblocked`);
+        return res.redirect(`/admin/products?success=unblocked`);
     } catch (error) {
         console.error(" product unblocking Error", error);
         return res.redirect("/admin/pageError");
