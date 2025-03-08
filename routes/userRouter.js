@@ -16,10 +16,27 @@ router.post('/verify-otp',userController.verifyOtp);
 router.post('/resend-otp',userController.resendOtp);
 
 //signup with google
-router.get('/auth/google',passport.authenticate('google',{scope:['profile','email']}));
-router.get('/auth/google/callback',passport.authenticate('google',{failureRedirect:'/signup'}),(req,res)=>{
-    res.redirect('/');
-});
+router.get('/auth/google',
+    passport.authenticate('google', { 
+        scope: ['profile', 'email'],
+        prompt: 'select_account'
+    })
+);
+
+router.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+        failureRedirect: '/login',
+        failureFlash: true
+    }),
+    (req, res) => {
+        req.session.user = {
+            id: req.user._id,
+            name: req.user.name,
+            email: req.user.email
+        };
+        res.redirect('/');
+    }
+);
 
 //login 
 router.get('/login',userController.loadLogin);

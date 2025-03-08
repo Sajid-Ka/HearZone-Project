@@ -17,27 +17,28 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
 app.use(session({
-    secret:process.env.SESSION_SECRET,
-    resave:false,
-    saveUninitialized:true,
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
     store: MongoStore.create({ 
-        mongoUrl: process.env.MONGODB_URI, 
+        mongoUrl: process.env.MONGODB_URI,
         collectionName: "sessions"
     }),
-    cookie:{
-        secure:false,
-        httpOnly:true,
-        maxAge:72*60*60*1000
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 72 * 60 * 60 * 1000
     }
-}))
-
-
-
-
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Add this middleware to make user data available in templates
+app.use((req, res, next) => {
+    res.locals.user = req.user;
+    next();
+});
 
 app.use((req,res,next)=>{
     res.set('cache-control','no-store');
