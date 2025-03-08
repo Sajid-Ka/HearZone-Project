@@ -43,12 +43,12 @@ const addProducts = async (req, res) => {
 
             const categoryId = await Category.findOne({ name: products.category });
             if (!categoryId) {
-                return res.status(400).json("Invalid Category name");
+                return res.status(400).json({ success: false, message: "Invalid Category name" });
             }
 
             const brandDoc = await Brand.findOne({ brandName: products.brand });
             if (!brandDoc) {
-                return res.status(400).json("Invalid Brand name");
+                return res.status(400).json({ success: false, message: "Invalid Brand name" });
             }
 
             const newProduct = new Product({
@@ -67,13 +67,24 @@ const addProducts = async (req, res) => {
             });
 
             await newProduct.save();
-            return res.redirect('/admin/products');
+            
+            // Return success JSON response instead of redirect
+            return res.status(200).json({ 
+                success: true, 
+                message: "Product added successfully" 
+            });
         } else {
-            return res.status(400).json("Product Already Exists, Please try with another name");
+            return res.status(400).json({ 
+                success: false, 
+                message: "Product Already Exists, Please try with another name" 
+            });
         }
     } catch (error) {
         console.error("Error saving product", error);
-        return res.redirect('/admin/pageError');
+        return res.status(500).json({ 
+            success: false, 
+            message: "An error occurred while adding the product" 
+        });
     }
 };
 
