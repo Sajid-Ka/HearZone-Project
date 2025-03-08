@@ -67,7 +67,7 @@ const addProducts = async (req, res) => {
             });
 
             await newProduct.save();
-            return res.redirect('/admin/addProducts');
+            return res.redirect('/admin/products');
         } else {
             return res.status(400).json("Product Already Exists, Please try with another name");
         }
@@ -155,10 +155,109 @@ const unblockProduct = async (req,res)=>{
     }
 }
 
+
+const getEditProduct = async (req,res)=>{
+    try {
+
+        const id = req.query.id;
+        const product = await Product.findOne({_id:id});
+        const category = await Category.find({});
+        const brand = await Brand.find({});
+
+        res.render('edit-product',{
+            product : product,
+            cat : category,
+            brand : brand,
+        })
+
+        
+    } catch (error) {
+        console.error(" Getting EditProduct Error", error);
+        return res.redirect("/admin/pageError");
+    }
+}
+
+
+const editProduct = async (req,res)=>{
+    try {
+
+        const id = req.params.id;
+        const product = await Product.findOne({_id:id});
+        const data = req.body;
+        const existingProduct = await Product.findOne({
+            productName:data.productName,
+            _id:{$ne:id},
+        });
+
+        if(existingProduct){
+            res.status(400).json({error:"This name alredy Exist, please Choose another Name"})
+        }
+
+        const images = [];
+
+        if(req.files && req.files.length>0){
+            for(let i=0;i<req.files.length;i++){
+                images.push(req.files[i].filename);
+            }
+        }
+
+        const updateFields = {
+            productName:data.productName,
+            description:data.description,
+            brand:data.brand._id,
+            category:product.category,
+            regularPrice:data.regularPrice,
+            salePrice:data.salePrice,
+            quantity:data.quantity,
+            size:data.size,
+            color:data.color,
+        }
+
+        if(req.files.length>0){
+            updateFields.$push = {productImage:{$each:images}};
+        }
+
+        await Product.findByIdAndUpdate(id,updateFields,{new:true});
+        return res.redirect('/admin/products');
+        
+    } catch (error) {
+        console.error("Error Editing product", error);
+        return res.redirect('/admin/pageError');
+    }
+}
+
+
+const deleteSingleImage = async (req,res)=>{
+    try {
+
+        const {imageNameToServer,productIdToServer} = req.body;
+        const product = await Product.findByIdAndUpdate(productIdToServer,{$pull:{productImage:imageNameToServer}});
+        const imagePath = path.join("public","uploads","re-image",imageNameToServer);
+
+        if(fs.existsSync(imagePath)){
+            await fs.unlinkSync(imagePath)
+            console.log(`Image ${imageNameToServer} Delete Successfully`)
+        }else{
+            console.log(`Imgae ${imageNameToServer} Not Found`);
+        }
+
+        res.send({status:true});
+
+        
+    } catch (error) {
+        console.error("Error Deleting ProductImage", error);
+        return res.redirect('/admin/pageError');
+    }
+}
+
+
 module.exports = {
     getProductAddPage,
     addProducts,
     getAllProducts,
     blockProduct,
-    unblockProduct
+    unblockProduct,
+    getEditProduct,
+    editProduct,
+    deleteSingleImage
 };

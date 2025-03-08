@@ -24,8 +24,8 @@
                 <th scope="col"><b>Category</b></th>
                 <th scope="col"><b>Sale Price</b></th>
                 <th scope="col"><b>Offer Price</b></th>
-                <th scope="col"><b>Offer</b></th>
                 <th scope="col"><b>Quantity</b></th>
+                <th scope="col"><b>Offer</b></th>
                 <th scope="col"><b>Action</b></th>
                 <th scope="col"><b>Edit</b></th>
             </tr>
@@ -38,12 +38,12 @@
                 <td><%= data[i].category.name %></td>
                 <td><%= data[i].regularPrice %></td>
                 <td><%= data[i].salePrice %></td>
+                <td><%= data[i].quantity%></td>
                 <td>
                     <button class="btn btn-info" onclick="" style="width: 100px;">
                         <a href="#" class="text-white">Add Offer</a>
                     </button>
                 </td>
-                <td></td>
                 <td>
                     <%if(data[i].isBlocked===false){%>
                     <button class="btn btn-danger block-btn" style="width: 80px;" 
@@ -61,7 +61,7 @@
                 </td>
                 <td>
                     <button class="btn btn-info" style="width: 80px;">
-                        <a href="" class="text-white" style="text-decoration: none;">Edit</a>
+                        <a href="/admin/editProduct?id=<%=data[i]._id%>" class="text-white" style="text-decoration: none;">Edit</a>
                     </button>
                 </td>
             </tr>
