@@ -189,77 +189,101 @@ const getEditProduct = async (req,res)=>{
 }
 
 
-const editProduct = async (req,res)=>{
+const editProduct = async (req, res) => {
     try {
-
         const id = req.params.id;
-        const product = await Product.findOne({_id:id});
+        const product = await Product.findOne({ _id: id });
         const data = req.body;
+
+        // Check for unique product name
         const existingProduct = await Product.findOne({
-            productName:data.productName,
-            _id:{$ne:id},
+            productName: data.productName,
+            _id: { $ne: id },
         });
 
-        if(existingProduct){
-            res.status(400).json({error:"This name alredy Exist, please Choose another Name"})
+        if (existingProduct) {
+            return res.status(400).json({
+                success: false,
+                message: "This product name already exists, please choose another name"
+            });
         }
 
         const images = [];
-
-        if(req.files && req.files.length>0){
-            for(let i=0;i<req.files.length;i++){
+        if (req.files && req.files.length > 0) {
+            for (let i = 0; i < req.files.length; i++) {
+                const originalImagePath = req.files[i].path;
+                const resizedImagePath = path.join('public', 'uploads', 'product-images', req.files[i].filename);
+                await sharp(originalImagePath).resize({
+                    width: 440,
+                    height: 440,
+                }).toFile(resizedImagePath);
                 images.push(req.files[i].filename);
             }
         }
 
         const updateFields = {
-            productName:data.productName,
-            description:data.description,
-            brand:data.brand._id,
-            category:product.category,
-            regularPrice:data.regularPrice,
-            salePrice:data.salePrice,
-            quantity:data.quantity,
-            size:data.size,
-            color:data.color,
+            productName: data.productName,
+            description: data.description,
+            brand: data.brand.id,
+            category: product.category,
+            regularPrice: data.regularPrice,
+            salePrice: data.salePrice,
+            quantity: data.quantity,
+            size: data.size,
+            color: data.color,
+        };
+
+        if (images.length > 0) {
+            updateFields.productImage = [...product.productImage, ...images];
         }
 
-        if(req.files.length>0){
-            updateFields.$push = {productImage:{$each:images}};
-        }
+        await Product.findByIdAndUpdate(id, updateFields, { new: true });
+        return res.status(200).json({
+            success: true,
+            message: "Product updated successfully"
+        });
 
-        await Product.findByIdAndUpdate(id,updateFields,{new:true});
-        return res.redirect('/admin/products');
-        
     } catch (error) {
         console.error("Error Editing product", error);
-        return res.redirect('/admin/pageError');
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while updating the product"
+        });
     }
-}
+};
 
 
-const deleteSingleImage = async (req,res)=>{
+const deleteSingleImage = async (req, res) => {
     try {
+        const { imageNameToServer, productIdToServer } = req.body;
+        const product = await Product.findByIdAndUpdate(
+            productIdToServer,
+            { $pull: { productImage: imageNameToServer } },
+            { new: true }
+        );
 
-        const {imageNameToServer,productIdToServer} = req.body;
-        const product = await Product.findByIdAndUpdate(productIdToServer,{$pull:{productImage:imageNameToServer}});
-        const imagePath = path.join("public","uploads","re-image",imageNameToServer);
+        const imagePath = path.join(__dirname, '../../public/uploads/product-images', imageNameToServer);
 
-        if(fs.existsSync(imagePath)){
-            await fs.unlinkSync(imagePath)
-            console.log(`Image ${imageNameToServer} Delete Successfully`)
-        }else{
-            console.log(`Imgae ${imageNameToServer} Not Found`);
+        if (fs.existsSync(imagePath)) {
+            await fs.promises.unlink(imagePath);
+            console.log(`Image ${imageNameToServer} Deleted Successfully`);
+        } else {
+            console.log(`Image ${imageNameToServer} Not Found`);
         }
 
-        res.send({status:true});
+        return res.status(200).json({ 
+            success: true,
+            message: "Image deleted successfully"
+        });
 
-        
     } catch (error) {
         console.error("Error Deleting ProductImage", error);
-        return res.redirect('/admin/pageError');
+        return res.status(500).json({
+            success: false,
+            message: "Error deleting image"
+        });
     }
-}
+};
 
 
 module.exports = {
