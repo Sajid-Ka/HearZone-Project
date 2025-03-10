@@ -25,17 +25,21 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const admin = await User.findOne({ email, isAdmin: true });
 
-        if (admin) {
-            const passwordMatch = await bcrypt.compare(password, admin.password);
-            if (passwordMatch) {
-                req.session.admin = admin._id;  
-                return res.redirect('/admin/dashboard'); 
-            } else {
-                return res.render('admin-login', { message: 'Incorrect password' });
-            }
-        } else {
+        // Set no-cache headers
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        
+        if (!admin) {
             return res.render('admin-login', { message: 'Invalid email or password' });
         }
+
+        const passwordMatch = await bcrypt.compare(password, admin.password);
+        if (!passwordMatch) {
+            return res.render('admin-login', { message: 'Incorrect password' });
+        }
+
+        req.session.admin = admin._id;
+        return res.redirect('/admin/dashboard');
+
     } catch (error) {
         console.log("Login error:", error);
         return res.render('admin-login', { message: 'An error occurred, please try again' });

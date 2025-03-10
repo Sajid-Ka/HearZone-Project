@@ -97,11 +97,6 @@
   <script src="/js/jquery.min.js"></script>
   <script src="/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Add this before your existing script
-    if (sessionStorage.getItem('adminLoggedIn')) {
-      window.location.href = '/admin/dashboard';
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
       const adminLoginForm = document.getElementById("adminLoginForm");
       const emailField = document.getElementById("adminEmail");
@@ -111,22 +106,28 @@
 
       adminLoginForm.addEventListener("submit", function (event) {
         let isValid = true;
+        
+        // Clear previous error messages
+        emailError.textContent = "";
+        passwordError.textContent = "";
+
+        // Email validation
         const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-        if (!emailPattern.test(emailField.value)) {
+        if (!emailField.value.trim()) {
+          emailError.textContent = "Email is required";
+          isValid = false;
+        } else if (!emailPattern.test(emailField.value)) {
           emailError.textContent = "Invalid email format";
           isValid = false;
-        } else {
-          emailError.textContent = "";
-        }
-        if (passwordField.value.length < 8) {
-          passwordError.textContent = "Password should contain at least 8 characters";
-          isValid = false;
-        } else {
-          passwordError.textContent = "";
         }
 
-        if (isValid) {
-          sessionStorage.setItem('adminLoggedIn', 'true');
+        // Password validation
+        if (!passwordField.value.trim()) {
+          passwordError.textContent = "Password is required";
+          isValid = false;
+        } else if (passwordField.value.length < 8) {
+          passwordError.textContent = "Password should contain at least 8 characters";
+          isValid = false;
         }
 
         if (!isValid) {
