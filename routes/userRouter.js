@@ -48,6 +48,9 @@ router.get('/logout',userController.logout);
 
 //profile-management
 router.get('/forgot-password',profileController.getForgotPassPage);
+router.post('/forgot-email-valid',profileController.forgotEmailValid);
+router.post('/verify-passForgot-otp',profileController.verifyForgotPassOtp);
+router.get('/reset-password',profileController.getResetPassPage);
 
 
 module.exports = router;
