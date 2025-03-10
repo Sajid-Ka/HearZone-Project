@@ -150,7 +150,7 @@ position: relative;
                                     <img src="" alt="" id="imgView1">
                                     <input class="form-control" type="file" name="images" id="input1"
                                         accept="image/png, image/jpeg, image/jpg"
-                                        onchange="viewImage1(event), viewImage(event, 1)">
+                                        onchange="viewImage1(event), autoCropImage(event, 1)">
                                         <div id="images-error" class="error-message"></div>
                                 </div>
                                 <div class="image-cropper d-flex align-items-center"
@@ -163,7 +163,7 @@ position: relative;
                                         <img src="" alt="" id="imgView2">
                                         <input class="form-control" type="file" name="images" id="input2"
                                             accept="image/png, image/jpeg, image/jpg"
-                                            onchange="viewImage2(event),viewImage(event, 2)">
+                                            onchange="viewImage2(event), autoCropImage(event, 2)">
                                     </div>
                                     <div class="image-cropper d-flex align-items-center"
                                         style="display:none; width: 300px; height: 200px; margin-bottom: 20px;">
@@ -177,7 +177,7 @@ position: relative;
                                         <img src="" alt="" id="imgView3">
                                         <input class="form-control" type="file" name="images" id="input3"
                                             accept="image/png, image/jpeg, image/jpg"
-                                            onchange="viewImage3(event),viewImage(event, 3)">
+                                            onchange="viewImage3(event), autoCropImage(event, 3)">
                                     </div>
                                     <div class="image-cropper d-flex align-items-center"
                                         style="display:none; width: 300px; height: 200px; margin-bottom: 20px;">
@@ -191,7 +191,7 @@ position: relative;
                                         <img src="" alt="" id="imgView4">
                                         <input class="form-control" type="file" name="images" id="input4"
                                             accept="image/png, image/jpeg, image/jpg"
-                                            onchange="viewImage4(event),viewImage(event, 4)">
+                                            onchange="viewImage4(event), autoCropImage(event, 4)">
                                     </div>
                                     <div class="image-cropper d-flex align-items-center"
                                         style="display:none; width: 300px; height: 200px; margin-bottom: 20px;">
@@ -477,6 +477,37 @@ function validateAndSubmit() {
                         });
                     }
                 });
+            }
+
+            function autoCropImage(event, index) {
+                let input = event.target;
+                let reader = new FileReader();
+                reader.onload = function () {
+                    let dataURL = reader.result;
+                    let image = document.getElementById('imgView' + index);
+                    image.src = dataURL;
+                    let cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        guides: true,
+                        background: false,
+                        autoCropArea: 1,
+                        zoomable: true,
+                        ready: function() {
+                            // Auto crop and update input when cropper is ready
+                            let croppedCanvas = cropper.getCroppedCanvas();
+                            croppedCanvas.toBlob(blob => {
+                                let timestamp = new Date().getTime();
+                                let fileName = `cropped-img-${timestamp}-${index}.png`;
+                                let imgFile = new File([blob], fileName, { type: 'image/png' });
+                                const fileList = new DataTransfer();
+                                fileList.items.add(imgFile);
+                                input.files = fileList.files;
+                            });
+                        }
+                    });
+                };
+                reader.readAsDataURL(input.files[0]);
             }
            
        </script>
