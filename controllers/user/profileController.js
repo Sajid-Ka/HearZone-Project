@@ -43,6 +43,20 @@ const sendVerificationEmail = async (email, otp) => {
     }
 };
 
+
+
+const securePassword = async (password)=>{
+    try {
+
+        const passwordHash = await bcrypt.hash(password,10);
+        return passwordHash;
+        
+    } catch (error) {
+        console.error("password Securing Error",error);
+    }
+}
+
+
 const getForgotPassPage = async (req, res) => {
     try {
         res.render('forgot-password');
@@ -130,10 +144,34 @@ const resendOtp = async (req, res) => {
     }
 };
 
+
+const postNewPassword = async (req,res)=>{
+    try {
+
+        const {newPass1,newPass2} = req.body;
+        const email = req.session.email;
+        if(newPass1===newPass2){
+            const passwordHash = await securePassword(newPass1);
+            await User.updateOne(
+                {email:email},
+                {$set:{password:passwordHash}}
+            )
+            res.redirect('/login');
+        }else{
+            res.render('reset-password',{message:"Passwords Do not matched"})
+        }
+        
+    } catch (error) {
+        res.redirect('/pageNotFound');
+    }
+}
+
+
 module.exports = {
     getForgotPassPage,
     forgotEmailValid,
     verifyForgotPassOtp,
     getResetPassPage,
     resendOtp,
+    postNewPassword,
 };
