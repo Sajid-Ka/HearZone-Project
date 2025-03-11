@@ -312,7 +312,7 @@ const filterProduct = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const itemsPerPage = 9;
 
-        // Build query
+       
         const query = {
             isBlocked: false,
             quantity: { $gt: 0 }
@@ -326,11 +326,11 @@ const filterProduct = async (req, res) => {
             query.brand = new mongoose.Types.ObjectId(brandId);
         }
 
-        // Get total count for pagination
+       
         const totalProducts = await Product.countDocuments(query);
         const totalPages = Math.ceil(totalProducts / itemsPerPage);
         
-        // Fetch products with pagination and populate brand
+       
         const products = await Product.find(query)
             .populate('brand')
             .populate('category')
@@ -339,11 +339,11 @@ const filterProduct = async (req, res) => {
             .limit(itemsPerPage)
             .lean();
 
-        // Fetch categories and brands
+        
         const categories = await Category.find({ isListed: true }).lean();
         const brands = await Brand.find({ isBlocked: false }).lean();
 
-        // Get user data if logged in
+        
         let userData = null;
         if (user) {
             userData = await User.findById(user.id);
@@ -376,6 +376,49 @@ const filterProduct = async (req, res) => {
 };
 
 
+const filterByPrice = async (req,res)=>{
+    try {
+
+        const user = req.session.user;
+        const userData = await User.findOne({_id:user.id});
+        const brands = await Brand.find({}).lean()
+        const categories = await Category.find({isListed:true}).lean();
+
+        let findProducts = await Product.find({
+            salePrice:{$gt:req.query.gt,$lt:req.query.lt},
+            isBlocked:false,
+            quantity:{$gt:0},
+        }).lean();
+
+        findProducts.sort((a,b)=>new Date(b.createdOn)-new Date(a.createdOn));
+
+        let itemsPerPage = 6;
+        let currentPage = parseInt(req.query.page) || 1;
+
+        let startIndex = (currentPage-1)*itemsPerPage;
+        let endIndex = startIndex+itemsPerPage;
+        let totalPages = Math.ceil(findProducts.length/itemsPerPage);
+        const currentProduct = findProducts.slice(startIndex,endIndex);
+        req.session.filteredProducts = findProducts;
+
+        res.render('shop',{
+            user: userData,
+            products: currentProduct,
+            category: categories,
+            brand: brands,
+            totalPages,
+            currentPage,
+            selectedCategory: req.query.category || null,
+            selectedBrand: req.query.brand || null
+        });
+        
+    } catch (error) {
+        console.error(error);
+        res.redirect('/pageNotFound');
+    }
+}
+
+
 module.exports = {
     loadHomepage,
     pageNotFound,
@@ -388,4 +431,5 @@ module.exports = {
     logout,
     loadShoppingPage,
     filterProduct,
+    filterByPrice,
 };
