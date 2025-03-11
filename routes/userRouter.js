@@ -10,7 +10,9 @@ router.get('/pageNotFound',userController.pageNotFound);
 
 //home page
 router.get('/',userController.loadHomepage);
-router.get('/shop',userAuth,userController.loadShoppingPage)
+router.get('/shop',userAuth,userController.loadShoppingPage);
+router.get('/filter',userAuth,userController.filterProduct);
+router.get('/shop/filter', userController.filterProduct); // Add this line to handle filter URLs
 
 //signup
 router.get('/signup',userController.loadSignup);
