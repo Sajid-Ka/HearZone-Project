@@ -1,6 +1,7 @@
 const User = require('../../models/userSchema');
 const Category = require('../../models/categorySchema');
 const Product = require('../../models/productSchema');
+const Brand = require('../../models/brandSchema');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
@@ -237,7 +238,7 @@ const logout = async (req, res) => {
     }
 };
 
-// Environment Validation
+
 const validateEnv = () => {
     const required = ['NODEMAILER_EMAIL', 'NODEMAILER_PASSWORD'];
     required.forEach((key) => {
@@ -249,6 +250,58 @@ const validateEnv = () => {
 
 validateEnv();
 
+
+const loadShoppingPage = async (req, res) => {
+    try {
+        const user = req.session.user;
+        let userData = null;
+        if (user && user.id) {
+            userData = await User.findOne({ _id: user.id });
+        }
+        const categories = await Category.find({ isListed: true });
+        const categoryIds = categories.map((category) => category._id.toString());
+        const page = parseInt(req.query.page) || 1;
+        const limit = 9;
+        const skip = (page - 1) * limit;
+        const products = await Product.find({
+            isBlocked: false,
+            category: { $in: categoryIds },
+            quantity: { $gt: 0 }
+        })
+            .populate('brand')  // Add this line to populate brand details
+            .sort({ createdOn: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const totalProducts = await Product.countDocuments({
+            isBlocked: false,
+            category: { $in: categoryIds },
+            quantity: { $gt: 0 }
+        });
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        const brands = await Brand.find({ isBlocked: false });
+        const categoriesWithIds = categories.map((category) => ({
+            _id: category._id,
+            name: category.name
+        }));
+
+        res.render('shop', {
+            user: userData, // Will be null if no user or invalid session
+            products: products,
+            category: categoriesWithIds,
+            brand: brands,
+            totalProducts: totalProducts,
+            currentPage: page,
+            totalPages: totalPages,
+        });
+    } catch (error) {
+        console.error("shopping page loading error", error);
+        res.redirect('/pageNotFound');
+    }
+};
+
+
 module.exports = {
     loadHomepage,
     pageNotFound,
@@ -258,5 +311,6 @@ module.exports = {
     resendOtp,
     loadLogin,
     login,
-    logout
+    logout,
+    loadShoppingPage,
 };

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require("../controllers/user/userController");
 const profileController = require('../controllers/user/profileController');
+const {userAuth,adminAuth} = require('../middlewares/auth');
 const passport = require('passport');
 
 
@@ -9,6 +10,7 @@ router.get('/pageNotFound',userController.pageNotFound);
 
 //home page
 router.get('/',userController.loadHomepage);
+router.get('/shop',userAuth,userController.loadShoppingPage)
 
 //signup
 router.get('/signup',userController.loadSignup);
