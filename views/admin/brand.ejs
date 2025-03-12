@@ -81,7 +81,23 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ brandId })
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: "Success!",
+                            text: data.message,
+                            icon: "success"
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            title: "Error!",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
+                });
             }
         });
     }
@@ -101,7 +117,23 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ brandId })
-                }).then(() => location.reload());
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: "Success!",
+                            text: data.message,
+                            icon: "success"
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            title: "Error!",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
+                });
             }
         });
     }

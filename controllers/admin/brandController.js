@@ -57,10 +57,10 @@ const toggleBrandStatus = async (req, res) => {
         const brand = await Brand.findById(brandId);
         brand.isBlocked = !brand.isBlocked;
         await brand.save();
-        res.redirect('/admin/brands');
+        res.json({ success: true, message: `Brand ${brand.isBlocked ? 'blocked' : 'unblocked'} successfully` });
     } catch (err) {
         console.error(err);
-        res.redirect('/admin/brands');
+        res.json({ success: false, message: 'Failed to update brand status' });
     }
 };
 
@@ -69,10 +69,10 @@ const deleteBrand = async (req, res) => {
     try {
         const { brandId } = req.body;
         await Brand.findByIdAndDelete(brandId);
-        res.redirect('/admin/brands');
+        res.json({ success: true, message: 'Brand deleted successfully' });
     } catch (err) {
         console.error(err);
-        res.redirect('/admin/brands');
+        res.json({ success: false, message: 'Failed to delete brand' });
     }
 };
 
