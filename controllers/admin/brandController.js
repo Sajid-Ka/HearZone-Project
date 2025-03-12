@@ -18,16 +18,15 @@ const addBrand = async (req, res) => {
         const { brandName } = req.body;
         const brandImage = req.file ? `/uploads/re-image/${req.file.filename}` : null;
 
-
         const newBrand = new Brand({
             brandName,
             brandImage: brandImage ? [brandImage] : []
         });
         await newBrand.save();
-        res.redirect('/admin/brands');
+        res.json({ success: true, message: 'Brand added successfully' });
     } catch (err) {
         console.error(err);
-        res.redirect('/admin/brands');
+        res.json({ success: false, message: 'Failed to add brand' });
     }
 };
 
