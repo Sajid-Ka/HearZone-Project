@@ -226,7 +226,7 @@
  <section class="shop-page container">
    <div class="shop-topbar">
      <div class="search-bar">
-       <form action="" method="POST" class="search-form">
+       <form action="/search" method="POST" class="search-form">
          <input type="text" name="query" placeholder="Search items..." class="search-input" />
          <button type="submit" class="search-button">Search</button>
        </form>
@@ -241,7 +241,7 @@
            <ul>
             <%for(let i=0;i<category.length;i++){%>
                <li class="filter-item">
-                 <a href="/filter?category=<%=category[i]._id%><%= selectedBrand ? '&brand=' + selectedBrand : '' %>"><%=category[i].name%></a>
+                 <a href="/filter?category=<%=category[i]._id%><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>"><%=category[i].name%></a>
                </li>
             <%}%>
            </ul>
@@ -299,18 +299,30 @@
 <!-- Update the pagination section -->
 <div class="pagination">
   <% if (currentPage > 1) { %>
-    <a class="btn" href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">Prev</a>
+    <a class="btn" href="?page=<%= currentPage - 1 %>
+      <%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %>
+      <%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>
+      <%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %>
+      <%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">Prev</a>
   <% } %>
 
   <% for (let i = 1; i <= totalPages; i++) { %>
     <a class="btn <%= currentPage === i ? 'active' : '' %>" 
-       href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">
-       <%= i %>
+       href="?page=<%= i %>
+         <%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %>
+         <%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>
+         <%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %>
+         <%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">
+      <%= i %>
     </a>
   <% } %>
 
   <% if (currentPage < totalPages) { %>
-    <a class="btn" href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">Next</a>
+    <a class="btn" href="?page=<%= currentPage + 1 %>
+      <%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %>
+      <%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>
+      <%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %>
+      <%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">Next</a>
   <% } %>
 </div>
   
