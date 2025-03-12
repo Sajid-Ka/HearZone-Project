@@ -376,47 +376,54 @@ const filterProduct = async (req, res) => {
 };
 
 
-const filterByPrice = async (req,res)=>{
+const filterByPrice = async (req, res) => {
     try {
-
         const user = req.session.user;
-        const userData = await User.findOne({_id:user.id});
-        const brands = await Brand.find({}).lean()
-        const categories = await Category.find({isListed:true}).lean();
+        const userData = await User.findOne({ _id: user.id });
+        const brands = await Brand.find({}).lean();
+        const categories = await Category.find({ isListed: true }).lean();
+        
+        const gt = parseFloat(req.query.gt);
+        const lt = parseFloat(req.query.lt);
+        const currentPage = parseInt(req.query.page) || 1;
+        const itemsPerPage = 9;
 
-        let findProducts = await Product.find({
-            salePrice:{$gt:req.query.gt,$lt:req.query.lt},
-            isBlocked:false,
-            quantity:{$gt:0},
-        }).lean();
+        const query = {
+            salePrice: { $gt: gt, $lt: lt },
+            isBlocked: false,
+            quantity: { $gt: 0 }
+        };
 
-        findProducts.sort((a,b)=>new Date(b.createdOn)-new Date(a.createdOn));
+        // Get total count for pagination
+        const totalProducts = await Product.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
-        let itemsPerPage = 6;
-        let currentPage = parseInt(req.query.page) || 1;
+        // Get products for current page
+        const products = await Product.find(query)
+            .populate('brand')
+            .sort({ createdOn: -1 })
+            .skip((currentPage - 1) * itemsPerPage)
+            .limit(itemsPerPage)
+            .lean();
 
-        let startIndex = (currentPage-1)*itemsPerPage;
-        let endIndex = startIndex+itemsPerPage;
-        let totalPages = Math.ceil(findProducts.length/itemsPerPage);
-        const currentProduct = findProducts.slice(startIndex,endIndex);
-        req.session.filteredProducts = findProducts;
-
-        res.render('shop',{
+        res.render('shop', {
             user: userData,
-            products: currentProduct,
+            products: products,
             category: categories,
             brand: brands,
             totalPages,
             currentPage,
             selectedCategory: req.query.category || null,
-            selectedBrand: req.query.brand || null
+            selectedBrand: req.query.brand || null,
+            gt: gt,
+            lt: lt
         });
-        
+
     } catch (error) {
         console.error(error);
         res.redirect('/pageNotFound');
     }
-}
+};
 
 
 module.exports = {

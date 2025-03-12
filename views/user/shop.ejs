@@ -287,7 +287,7 @@
              <img src="/uploads/re-image/<%=products[i].productImage[0]%>" alt="<%=products[i].productName%>" />
              <h4><%=products[i].productName%></h4>
              <p>Brand: <%=products[i].brand.brandName%></p>
-             <p>Price: ₹ <%=products[i].salePrice.toLocaleString('en-IN')%><span class="text-muted"><strike>₹ <%=products[i].regularPrice.toLocaleString('en-IN')%></strike></span></p>
+             <p>Price: ₹ <%=products[i].salePrice.toLocaleString('en-IN')%><span class="text-muted"><strike> ₹ <%=products[i].regularPrice.toLocaleString('en-IN')%></strike></span></p>
            </a>
            <button class="add-to-cart-btn" onclick="">Add to Cart</button>
          </div>
@@ -299,18 +299,18 @@
 <!-- Update the pagination section -->
 <div class="pagination">
   <% if (currentPage > 1) { %>
-    <a class="btn" href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Prev</a>
+    <a class="btn" href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">Prev</a>
   <% } %>
 
   <% for (let i = 1; i <= totalPages; i++) { %>
     <a class="btn <%= currentPage === i ? 'active' : '' %>" 
-       href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">
+       href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">
        <%= i %>
     </a>
   <% } %>
 
   <% if (currentPage < totalPages) { %>
-    <a class="btn" href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Next</a>
+    <a class="btn" href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= gt !== undefined ? '&gt=' + gt : '' %><%= lt !== undefined ? '&lt=' + lt : '' %>">Next</a>
   <% } %>
 </div>
   
