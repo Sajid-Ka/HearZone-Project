@@ -10,7 +10,13 @@ router.get('/shop', userController.loadShoppingPage);
 router.post('/search', userController.searchProducts);
 router.get('/filter', userController.filterProduct);
 router.get('/filter-price', userController.filterByPrice);
-router.get('/product-details', productController.productDetails);
+router.get('/product-details', async (req, res, next) => {
+    try {
+        await productController.productDetails(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Auth routes
 router.get('/signup', userController.loadSignup);

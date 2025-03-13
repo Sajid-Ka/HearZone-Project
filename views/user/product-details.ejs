@@ -1,112 +1,172 @@
 <%- include("../../views/partials/user/header") %>
-<br><br><br><br><br><br><br>
-<main class="main">
-    <div class="page-header breadcrumb-wrap">
-        <div class="container">
-            <div class="breadcrumb">
-                <a href="/" rel="nofollow">Home</a>
-                <span></span> <%= category ? category.name : 'Fashion' %>
-                <span></span> <%= product.productName || 'Product Detail Page' %>
-            </div>
-        </div>
-    </div>
-    <section class="mt-50 mb-50">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-9">
-                    <div class="product-detail accordion-detail">
-                        <div class="row mb-50">
-                            <div class="col-md-6 col-sm-12 col-xs-12">
-                                <div class="detail-gallery">
-                                    <span class="zoom-icon"><i class="fi-rs-search"></i></span>
-                                    <div class="product-image-slider">
-                                        <% if (product.productImage && product.productImage.length > 0) { %>
-                                            <% product.productImage.forEach((image, index) => { %>
-                                                <figure class="border-radius-10">
-                                                    <img src="/uploads/re-image/<%= image %>" alt="<%= product.productName %>">
-                                                </figure>
-                                            <% }) %>
-                                        <% } else { %>
-                                            <figure class="border-radius-10">
-                                                <img src="/uploads/re-image/default-image.jpg" alt="No image available">
-                                            </figure>
-                                        <% } %>
-                                    </div>
-                                    <div class="slider-nav-thumbnails pl-15 pr-15">
-                                        <% if (product.productImage && product.productImage.length > 0) { %>
-                                            <% product.productImage.forEach((image, index) => { %>
-                                                <div>
-                                                    <img style="object-fit: contain;" src="/uploads/re-image/<%= image %>" alt="<%= product.productName %>">
-                                                </div>
-                                            <% }) %>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-sm-12 col-xs-12">
-                                <div class="detail-info">
-                                    <h2 class="title-detail"><%= product.productName %></h2>
-                                    <div class="product-detail-rating">
-                                        <div class="pro-details-brand">
-                                            <span> Brands: <a href="#"><%= product.brand || 'Unknown' %></a></span>
-                                        </div>
-                                        <div class="product-rate-cover text-end">
-                                            <div class="product-rate d-inline-block">
-                                                <div class="product-rating" style="width: 90%"></div>
-                                            </div>
-                                            <span class="font-small ml-5 text-muted"> (25 reviews)</span>
-                                        </div>
-                                    </div>
-                                    <div class="clearfix product-price-cover">
-                                        <div class="product-price primary-color float-left">
-                                            <ins><span class="text-brand">₹<%= product.salePrice %></span></ins>
-                                            <ins><span class="old-price font-md ml-15">₹<%= product.regularPrice %></span></ins>
-                                            <span class="save-price font-md color3 ml-15">
-                                                <% if (!totalOffer) { %>
-                                                    No Offers
-                                                <% } else { %>
-                                                    <%= totalOffer %>% Offer
-                                                <% } %>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="bt-1 border-color-1 mt-15 mb-15"></div>
-                                    <div class="short-desc mb-30">
-                                        <p><%= product.description || 'No description available' %></p>
-                                    </div>
-                                    <div class="product_sort_info font-xs mb-30">
-                                        <ul>
-                                            <li class="mb-10"><i class="fi-rs-crown mr-5"></i> 1 Year Brand Warranty</li>
-                                            <li class="mb-10"><i class="fi-rs-refresh mr-5"></i> 30 Day Return Policy</li>
-                                            <li><i class="fi-rs-credit-card mr-5"></i> Cash on Delivery available</li>
-                                        </ul>
-                                    </div>
-                                    <div class="bt-1 border-color-1 mt-30 mb-30"></div>
-                                    <div class="detail-extralink">
-                                        <div class="detail-qty border radius">
-                                            <a href="#" class="qty-down" onclick="updateQuantity(-1); return false;"><i class="fi-rs-angle-small-down"></i></a>
-                                            <span class="qty-val" id="quantity">1</span>
-                                            <a href="#" class="qty-up" onclick="updateQuantity(1); return false;"><i class="fi-rs-angle-small-up"></i></a>
-                                        </div>
-                                        <div class="product-extra-link2">
-                                            <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
-                                            <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
-                                        </div>
-                                    </div>
-                                    <ul class="product-meta font-xs color-grey mt-50">
-                                        <li class="mb-5">Stock Code: <a href="#">FWM15VKT</a></li>
-                                        <li class="mb-5">Tags: <a href="#" rel="tag"><%= category ? category.name : '' %></a></li>
-                                        <li>Availability: <span class="in-stock text-success ml-5"><%= quantity %> items in Stock</span></li>
-                                    </ul>
-                                </div>
-                            </div>
+<style>
+    .product-gallery {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 600px;
+    }
+
+    .main-image {
+        width: 100%;
+        height: 400px;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .main-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .thumbnail-container {
+        display: flex;
+        gap: 10px;
+        justify-content: start;
+    }
+
+    .thumbnail {
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
+        cursor: pointer;
+        overflow: hidden;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .thumbnail:hover {
+        border-color: #007bff;
+        transform: translateY(-2px);
+    }
+
+    .thumbnail.active {
+        border-color: #007bff;
+    }
+
+    .thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-info {
+        padding: 20px;
+    }
+
+    .price-tag {
+        font-size: 24px;
+        color: #007bff;
+        margin: 15px 0;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #666;
+        margin-left: 10px;
+    }
+
+    .offer-badge {
+        background: #ff4444;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        margin-left: 10px;
+    }
+</style>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<div class="container mt-5 pt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="product-gallery">
+                <div class="main-image">
+                    <img id="mainImage" src="/uploads/re-image/<%= product.productImage[0] %>" alt="<%= product.productName %>">
+                </div>
+                <div class="thumbnail-container">
+                    <% for(let i = 0; i < Math.min(4, product.productImage.length); i++) { %>
+                        <div class="thumbnail <%= i === 0 ? 'active' : '' %>" onclick="changeImage('<%= i %>')">
+                            <img src="/uploads/re-image/<%= product.productImage[i] %>" alt="thumbnail">
                         </div>
-                    </div>
+                    <% } %>
                 </div>
             </div>
         </div>
-    </section>
-</main>
+        <div class="col-md-6">
+            <div class="product-info">
+                <h2><%= product.productName %></h2>
+                <div class="price-tag">
+                    ₹<%= product.salePrice.toLocaleString('en-IN') %>
+                    <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
+                    <% if(totalOffer > 0) { %>
+                        <span class="offer-badge"><%= totalOffer %>% OFF</span>
+                    <% } %>
+                </div>
+                <div class="product-detail-rating">
+                    <div class="pro-details-brand">
+                        <span> Brands: <a href="#"><%= product.brand || 'Unknown' %></a></span>
+                    </div>
+                    <div class="product-rate-cover text-end">
+                        <div class="product-rate d-inline-block">
+                            <div class="product-rating" style="width: 90%"></div>
+                        </div>
+                        <span class="font-small ml-5 text-muted"> (25 reviews)</span>
+                    </div>
+                </div>
+                <div class="clearfix product-price-cover">
+                    <div class="product-price primary-color float-left">
+                        <ins><span class="text-brand">₹<%= product.salePrice %></span></ins>
+                        <ins><span class="old-price font-md ml-15">₹<%= product.regularPrice %></span></ins>
+                        <span class="save-price font-md color3 ml-15">
+                            <% if (!totalOffer) { %>
+                                No Offers
+                            <% } else { %>
+                                <%= totalOffer %>% Offer
+                            <% } %>
+                        </span>
+                    </div>
+                </div>
+                <div class="bt-1 border-color-1 mt-15 mb-15"></div>
+                <div class="short-desc mb-30">
+                    <p><%= product.description || 'No description available' %></p>
+                </div>
+                <div class="product_sort_info font-xs mb-30">
+                    <ul>
+                        <li class="mb-10"><i class="fi-rs-crown mr-5"></i> 1 Year Brand Warranty</li>
+                        <li class="mb-10"><i class="fi-rs-refresh mr-5"></i> 30 Day Return Policy</li>
+                        <li><i class="fi-rs-credit-card mr-5"></i> Cash on Delivery available</li>
+                    </ul>
+                </div>
+                <div class="bt-1 border-color-1 mt-30 mb-30"></div>
+                <div class="detail-extralink">
+                    <div class="detail-qty border radius">
+                        <a href="#" class="qty-down" onclick="updateQuantity(-1); return false;"><i class="fi-rs-angle-small-down"></i></a>
+                        <span class="qty-val" id="quantity">1</span>
+                        <a href="#" class="qty-up" onclick="updateQuantity(1); return false;"><i class="fi-rs-angle-small-up"></i></a>
+                    </div>
+                    <div class="product-extra-link2">
+                        <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
+                        <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
+                    </div>
+                </div>
+                <ul class="product-meta font-xs color-grey mt-50">
+                    <li class="mb-5">Stock Code: <a href="#">FWM15VKT</a></li>
+                    <li class="mb-5">Tags: <a href="#" rel="tag"><%= category ? category.name : '' %></a></li>
+                    <li>Availability: <span class="in-stock text-success ml-5"><%= quantity %> items in Stock</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function updateQuantity(change) {
         const qtyElement = document.getElementById('quantity');
@@ -134,5 +194,20 @@
         .catch(error => console.error('Error adding to cart:', error));
         */
     }
+
+    function changeImage(index) {
+        // Get all images
+        const images = <%- JSON.stringify(product.productImage) %>;
+        const mainImage = document.getElementById('mainImage');
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        
+        // Update main image
+        mainImage.src = `/uploads/re-image/${images[index]}`;
+        
+        // Update active thumbnail
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        thumbnails[index].classList.add('active');
+    }
 </script>
+
 <%- include("../../views/partials/user/footer") %>

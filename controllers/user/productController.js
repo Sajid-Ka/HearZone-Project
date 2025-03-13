@@ -4,47 +4,36 @@ const User = require('../../models/userSchema');
 
 const productDetails = async (req, res) => {
     try {
-        // Extract user ID from session
-        const userId = req.session.user ? req.session.user.id : null;
-        let userData = null;
-
-        // Fetch user data if user is logged in
-        if (userId) {
-            userData = await User.findById(userId);
-            if (!userData) {
-                console.warn('User not found for ID:', userId);
-            }
-        }
-
-        // Get product ID from query parameters
         const productId = req.query.id;
         if (!productId) {
-            return res.redirect('/pageNotFound');
+            return res.status(404).render('user/page-404');
         }
 
-        // Fetch product with populated category
-        const product = await Product.findById(productId).populate('category');
+        // Make sure to populate both category and brand
+        const product = await Product.findById(productId)
+            .populate('category')
+            .populate('brand');
+        
         if (!product) {
-            return res.redirect('/pageNotFound');
+            return res.status(404).render('user/page-404');
         }
 
-        // Calculate offers
-        const categoryOffer = product.category && product.category.offer ? product.category.offer : 0;
-        const productOffer = product.productOffer || 0;
-        const totalOffer = categoryOffer + productOffer;
+        // Get user data if logged in
+        const userId = req.session.user ? req.session.user.id : null;
+        let userData = userId ? await User.findById(userId) : null;
 
-        // Render the product details page with correct data
-        res.render('product-details', {
+        // Ensure the view path matches your directory structure
+        res.render('user/product-details', {
             user: userData,
             product: product,
             quantity: product.quantity,
-            totalOffer: totalOffer,
-            category: product.category // Use product.category instead of findCategory
+            totalOffer: (product.category?.offer || 0) + (product.productOffer || 0),
+            category: product.category
         });
 
     } catch (error) {
         console.error('Product details error:', error);
-        res.redirect('/pageNotFound');
+        res.status(500).render('user/page-404');
     }
 };
 
