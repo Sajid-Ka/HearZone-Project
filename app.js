@@ -49,11 +49,19 @@ app.set("view engine","ejs");
 app.set('views',[path.join(__dirname,'views/user'),path.join(__dirname,'views/admin')]);
 app.use(express.static(path.join(__dirname,"public")));
 
+// Error handler middleware (add before routes)
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
 
 app.use('/',userRouter);
 app.use('/admin',adminRouter);
 
-
+// 404 handler (add after routes)
+app.use((req, res) => {
+    res.status(404).render('page-404');
+});
 
 app.listen(process.env.PORT, ()=>{
     console.log("server running")
