@@ -524,40 +524,61 @@ function checkForChanges() {
         category: document.getElementsByName('category')[0].value
     };
 
-    // Get brand name from selected option
-    const brandSelect = document.getElementsByName('brand')[0];
-    const selectedOption = brandSelect.options[brandSelect.selectedIndex];
-    const brandName = selectedOption.getAttribute('data-name');
-
     const originalData = {
         productName: document.getElementById('product_name').defaultValue.trim(),
         description: document.getElementsByName('descriptionData')[0].defaultValue.trim(),
-        brand: document.getElementsByName('brand')[0].defaultValue,
+        brand: document.getElementsByName('brand')[0].getAttribute('data-original-value') || document.getElementsByName('brand')[0].value,
         regularPrice: document.getElementsByName('regularPrice')[0].defaultValue,
-        salePrice: (document.getElementsByName('salePrice')[0].defaultValue || '0'),
+        salePrice: document.getElementsByName('salePrice')[0].defaultValue || '0',
         quantity: document.getElementsByName('quantity')[0].defaultValue,
         color: document.getElementsByName('color')[0].defaultValue,
-        category: document.getElementsByName('category')[0].defaultValue
+        category: document.getElementsByName('category')[0].getAttribute('data-original-value') || document.getElementsByName('category')[0].value
     };
 
     // Check for new images
     const hasNewImages = Array.from(document.querySelectorAll('input[type="file"]'))
         .some(input => input.files && input.files.length > 0);
 
-    // Debug logging
-    console.log('Current Data:', currentData);
-    console.log('Original Data:', originalData);
+    // Compare each field and log differences
+    const changes = {};
+    let hasChanges = false;
+    
+    Object.keys(currentData).forEach(key => {
+        if (String(currentData[key]) !== String(originalData[key])) {
+            changes[key] = {
+                from: originalData[key],
+                to: currentData[key]
+            };
+            hasChanges = true;
+        }
+    });
 
-    // Compare each field
-    const changedFields = Object.keys(currentData).filter(key => 
-        currentData[key] !== originalData[key]
-    );
+    // Log changes for debugging
+    console.log('Changes detected:', changes);
+    console.log('Has new images:', hasNewImages);
 
-    // Debug logging
-    console.log('Changed Fields:', changedFields);
-
-    return changedFields.length > 0 || hasNewImages;
+    return hasChanges || hasNewImages;
 }
+
+// When the page loads, store original values
+document.addEventListener('DOMContentLoaded', function() {
+    // Store original brand value
+    const brandSelect = document.getElementsByName('brand')[0];
+    brandSelect.setAttribute('data-original-value', brandSelect.value);
+
+    // Store original category value
+    const categorySelect = document.getElementsByName('category')[0];
+    categorySelect.setAttribute('data-original-value', categorySelect.value);
+
+    // Add change event listeners to all form inputs
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('change', function() {
+            console.log(`${input.name} changed from ${input.defaultValue} to ${input.value}`);
+        });
+    });
+});
 
 function displayErrorMessage(elementId, message) {
     var errorElement = document.getElementById(elementId);
@@ -761,189 +782,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-// Form validation and submission
-function validateForm() {
-    console.log("Validating form...");
-    clearErrorMessages();
-    
-    const name = document.getElementsByName('productName')[0].value;
-    const description = document.getElementsByName('descriptionData')[0].value;
-    const brand = document.getElementsByName('brand')[0].value;
-    const price = document.getElementsByName('regularPrice')[0].value;
-    const saleprice = document.getElementsByName('salePrice')[0].value;
-    const color = document.getElementsByName('color')[0].value;
-    const category = document.getElementsByName('category')[0].value;
-    const quantity = document.getElementsByName('quantity')[0].value;
-    
-    // Get existing image count from product data
-    const existingImagesCount = document.querySelectorAll('.image-item img').length;
-    // Count new image uploads
-    const imageInputs = document.querySelectorAll('input[name="images"]');
-    let newImagesCount = 0;
-    
-    imageInputs.forEach(input => {
-        if (input.files && input.files.length > 0) newImagesCount++;
-    });
-    
-    let isValid = true;
-    
-    if (name.trim() === "") {
-        displayErrorMessage('productName-error', 'Please enter a product name.');
-        isValid = false;
-    }
-    
-    if (description.trim() === '') {
-        displayErrorMessage('description-error', 'Please enter a product description.');
-        isValid = false;
-    }
-    
-    if (!quantity || parseInt(quantity) < 0) {
-        displayErrorMessage('quantity-error', 'Please enter a valid non-negative quantity.');
-        isValid = false;
-    }
-    
-    if (!/^\d+(\.\d{1,2})?$/.test(price) || parseFloat(price) < 0) {
-        displayErrorMessage('regularPrice-error', 'Please enter a valid non-negative price.');
-        isValid = false;
-    }
-    
-    if (saleprice && (!/^\d+(\.\d{1,2})?$/.test(saleprice) || parseFloat(saleprice) < 0)) {
-        displayErrorMessage('salePrice-error', 'Please enter a valid non-negative price.');
-        isValid = false;
-    }
-    
-    if (color.trim() === "") {
-        displayErrorMessage('color-error', 'Please enter a color.');
-        isValid = false;
-    }
-    
-    // Check if there's at least one image (either existing or new)
-    if (existingImagesCount === 0 && newImagesCount === 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Image Required',
-            text: 'Please upload at least one product image.'
-        });
-        isValid = false;
-    }
-    
-    return isValid;
-}
-
-function validateAndSubmit() {
-    if (validateForm()) {
-        // Check if any changes were made
-        const hasChanges = checkForChanges();
-        
-        if (!hasChanges) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'No Changes Detected',
-                text: 'Please make changes before updating the product',
-                confirmButtonText: 'OK'
-            });
-            return false;
-        }
-
-        const form = document.querySelector('form');
-        const formData = new FormData(form);
-        
-        // Show loading indicator
-        Swal.fire({
-            title: 'Updating Product',
-            text: 'Please wait...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        $.ajax({
-            url: form.action,
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: response.message || 'Product updated successfully',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        window.location.href = '/admin/products';
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: response.message || 'Failed to update product',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            },
-            error: function(xhr) {
-                const response = xhr.responseJSON || {};
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: response.message || 'An error occurred while updating the product',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-    }
-    return false;
-}
-
-function checkForChanges() {
-    const currentData = {
-        productName: document.getElementsByName('productName')[0].value.trim(),
-        description: document.getElementsByName('descriptionData')[0].value.trim(),
-        brand: document.getElementsByName('brand')[0].value,
-        regularPrice: document.getElementsByName('regularPrice')[0].value,
-        salePrice: document.getElementsByName('salePrice')[0].value || '0',
-        quantity: document.getElementsByName('quantity')[0].value,
-        color: document.getElementsByName('color')[0].value,
-        category: document.getElementsByName('category')[0].value
-    };
-
-    // Get brand name from selected option
-    const brandSelect = document.getElementsByName('brand')[0];
-    const selectedOption = brandSelect.options[brandSelect.selectedIndex];
-    const brandName = selectedOption.getAttribute('data-name');
-
-    const originalData = {
-        productName: document.getElementById('product_name').defaultValue.trim(),
-        description: document.getElementsByName('descriptionData')[0].defaultValue.trim(),
-        brand: document.getElementsByName('brand')[0].defaultValue,
-        regularPrice: document.getElementsByName('regularPrice')[0].defaultValue,
-        salePrice: (document.getElementsByName('salePrice')[0].defaultValue || '0'),
-        quantity: document.getElementsByName('quantity')[0].defaultValue,
-        color: document.getElementsByName('color')[0].defaultValue,
-        category: document.getElementsByName('category')[0].defaultValue
-    };
-
-    // Check for new images
-    const hasNewImages = Array.from(document.querySelectorAll('input[type="file"]'))
-        .some(input => input.files && input.files.length > 0);
-
-    // Debug logging
-    console.log('Current Data:', currentData);
-    console.log('Original Data:', originalData);
-
-    // Compare each field
-    const changedFields = Object.keys(currentData).filter(key => 
-        currentData[key] !== originalData[key]
-    );
-
-    // Debug logging
-    console.log('Changed Fields:', changedFields);
-
-    return changedFields.length > 0 || hasNewImages;
-}
 
 function displayErrorMessage(elementId, message) {
     var errorElement = document.getElementById(elementId);

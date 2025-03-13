@@ -224,13 +224,41 @@ const editProduct = async (req, res) => {
         }
 
         const data = req.body;
-        const existingProduct = await Product.findOne({
-            productName: data.productName,
-            _id: { $ne: id },
-        });
+        
+        // Check if there are any actual changes
+        const hasNameChange = data.productName !== product.productName;
+        const hasDescriptionChange = data.descriptionData !== product.description;
+        const hasBrandChange = data.brand !== product.brand.toString();
+        const hasRegularPriceChange = Number(data.regularPrice) !== product.regularPrice;
+        const hasSalePriceChange = Number(data.salePrice || 0) !== product.salePrice;
+        const hasQuantityChange = Number(data.quantity) !== product.quantity;
+        const hasColorChange = data.color !== product.color;
+        const hasCategoryChange = data.category !== product.category.name;
+        const hasNewImages = req.files && req.files.length > 0;
 
-        if (existingProduct) {
-            return res.status(400).json({ success: false, message: "This product name already exists" });
+        // If no changes detected
+        if (!hasNameChange && !hasDescriptionChange && !hasBrandChange && 
+            !hasRegularPriceChange && !hasSalePriceChange && !hasQuantityChange && 
+            !hasColorChange && !hasCategoryChange && !hasNewImages) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "No changes detected" 
+            });
+        }
+
+        // Only check for duplicate name if name is actually changed
+        if (hasNameChange) {
+            const existingProduct = await Product.findOne({
+                productName: data.productName,
+                _id: { $ne: id },
+            });
+
+            if (existingProduct) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "This product name already exists" 
+                });
+            }
         }
 
         const images = [];
