@@ -4,11 +4,33 @@ const path = require('path');
 // Get all brands
 const getAllBrands = async (req, res) => {
     try {
-        const brands = await Brand.find();
-        res.render('brand', { brands, error: null, success: null }); 
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5; // Items per page
+        const skip = (page - 1) * limit;
+
+        const totalBrands = await Brand.countDocuments();
+        const totalPages = Math.ceil(totalBrands / limit);
+        
+        const brands = await Brand.find()
+            .skip(skip)
+            .limit(limit);
+
+        res.render('brand', { 
+            brands, 
+            currentPage: page,
+            totalPages,
+            error: null, 
+            success: null 
+        });
     } catch (err) {
         console.error(err);
-        res.render('brand', { brands: [], error: 'Failed to load brands', success: null });
+        res.render('brand', { 
+            brands: [], 
+            currentPage: 1,
+            totalPages: 1,
+            error: 'Failed to load brands', 
+            success: null 
+        });
     }
 };
 
