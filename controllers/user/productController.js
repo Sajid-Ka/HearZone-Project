@@ -9,21 +9,16 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Get the main product with populated fields
+        // Modify the product query to get clean brand name
         const product = await Product.findById(productId)
-            .populate({
-                path: 'category'
-            })
-            .populate({
-                path: 'brand',
-                select: 'name'  // Explicitly select the name field
-            });
+            .populate('category')
+            .populate('brand', 'brandName -_id');
         
         if (!product) {
             return res.status(404).render('user/page-404');
         }
 
-        // Get related products from the same category
+        // Update related products query to exclude brand ID
         const relatedProducts = await Product.find({
             category: product.category._id,
             _id: { $ne: productId },
@@ -32,10 +27,9 @@ const productDetails = async (req, res) => {
         .populate('category')
         .populate({
             path: 'brand',
-            select: 'name'
+            select: 'brandName -_id'
         })
         .limit(4);
-
 
         // Calculate discounted price
         const discountedPrice = product.price - (product.price * ((product.category?.offer || 0) + (product.productOffer || 0)) / 100);
@@ -48,7 +42,7 @@ const productDetails = async (req, res) => {
         const productFeatures = {
             highlights: product.description?.split('\n').filter(item => item.trim()),
             specifications: {
-                brand: product.brand?.name,
+                brand: product.brand.brandName || 'N/A',
                 category: product.category?.name,
                 connectivity: product.connectivity || 'N/A',
                 type: product.type || 'N/A'
@@ -63,7 +57,8 @@ const productDetails = async (req, res) => {
             originalPrice: product.price,
             discountedPrice: discountedPrice.toFixed(2),
             totalDiscount: ((product.category?.offer || 0) + (product.productOffer || 0)).toFixed(0),
-            savings: (product.price - discountedPrice).toFixed(2)
+            savings: (product.price - discountedPrice).toFixed(2),
+            brandName: product.brand?.brandName || 'N/A'  // Change to brandName
         };
 
         // Generate breadcrumb data
@@ -73,9 +68,9 @@ const productDetails = async (req, res) => {
             { name: product.name, url: '#' }
         ];
 
-        // Format specifications in a more structured way
+        // Format specifications with clean brand name
         const specifications = [
-            { label: 'Brand', value: product.brand ? product.brand.name : 'N/A' },
+            { label: 'Brand', value: product.brand ? product.brand.brandName : 'N/A' },
             { label: 'Model', value: product.name },
             { label: 'Category', value: product.category?.name },
             { label: 'Connectivity', value: product.connectivity || 'N/A' },
@@ -93,7 +88,10 @@ const productDetails = async (req, res) => {
             _id: { $ne: productId },
             isListed: true
         })
-        .populate('brand')
+        .populate({
+            path: 'brand',
+            select: 'brandName -_id' // Explicitly select the brandName field and exclude the ID field
+        })
         .limit(4);
 
         // Calculate total offer percentage
@@ -101,7 +99,10 @@ const productDetails = async (req, res) => {
 
         res.render('user/product-details', {
             user: userData,
-            product: product,
+            product: {
+                ...product.toObject(),
+                brand: product.brand ? product.brand.brandName : 'N/A'  // Simplify brand to just the name
+            },
             priceInfo: priceInfo,
             productImages: productImages,
             breadcrumb: breadcrumb,
