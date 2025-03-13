@@ -9,12 +9,26 @@ const userRouter = require('./routes/userRouter');
 const adminRouter = require('./routes/adminRouter');
 const MongoStore = require("connect-mongo");
 const nocache = require('nocache');
+const fs = require('fs');
+// Removed duplicate path require
 db()
 
 app.use(nocache());
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
+
+// Ensure upload directories exist
+const uploadDirs = [
+    path.join(__dirname, 'public/uploads/product-images'),
+    path.join(__dirname, 'public/uploads/re-image')
+];
+
+uploadDirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
 
 app.use(session({
     secret: process.env.SESSION_SECRET,

@@ -124,7 +124,11 @@
                 <div class="product-card position-relative">
                   <div class="image-holder">
                     <a href="/productDetails?id=<%=products[i]._id%>">
-                      <img src="/uploads/re-image/<%=products[i].productImage[0]%>" alt="<%=products[i].productName%>" class="img-fluid">
+                      <img src="/uploads/re-image/<%=products[i].productImage[0]%>" 
+                           alt="<%=products[i].productName%>" 
+                           class="img-fluid"
+                           onerror="this.onerror=null; this.src='/images/default-product.jpg';"
+                           style="width: 100%; height: 300px; object-fit: cover;">
                     </a>
                   </div>
                   <div class="cart-concern position-absolute">

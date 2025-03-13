@@ -22,42 +22,57 @@ const getProductAddPage = async (req, res) => {
 
 const addProducts = async (req, res) => {
     try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Please upload at least one image"
+            });
+        }
+
         const products = req.body;
         const productExists = await Product.findOne({
             productName: products.productName,
         });
 
         if (productExists) {
+            // Delete uploaded files if product exists
+            req.files.forEach(file => {
+                fs.unlinkSync(file.path);
+            });
             return res.status(400).json({ 
                 success: false, 
-                message: "Product Already Exists, Please try with another name" 
+                message: "Product Already Exists" 
             });
         }
 
         const images = [];
-        if (req.files && req.files.length > 0) {
-            for (let i = 0; i < req.files.length; i++) {
-                try {
-                    const filename = `product_${Date.now()}_${i}.jpg`;
-                    const resizedImagePath = path.join('public', 'uploads', 'product-images', filename);
-                    
-                    await sharp(req.files[i].path)
-                        .resize(600, 600, {
-                            fit: 'cover',
-                            position: 'center'
-                        })
-                        .jpeg({ quality: 90 })
-                        .toFile(resizedImagePath);
-
-                    images.push(filename);
-
-                    // Clean up original
-                    fs.unlinkSync(req.files[i].path);
-                } catch (err) {
-                    console.error("Error processing image:", err);
+        for (const file of req.files) {
+            try {
+                // Create re-image directory if it doesn't exist
+                const reImageDir = path.join('public', 'uploads', 're-image');
+                if (!fs.existsSync(reImageDir)) {
+                    fs.mkdirSync(reImageDir, { recursive: true });
                 }
+
+                const filename = file.filename;
+                const reImagePath = path.join(reImageDir, filename);
+
+                // Process and save image
+                await sharp(file.path)
+                    .resize(600, 600, {
+                        fit: 'cover',
+                        position: 'center'
+                    })
+                    .jpeg({ quality: 90 })
+                    .toFile(reImagePath);
+
+                images.push(filename);
+            } catch (err) {
+                console.error("Error processing image:", err);
             }
         }
+
+        console.log('Images saved:', images);
 
         const categoryId = await Category.findOne({ name: products.category });
         if (!categoryId) {
@@ -81,7 +96,7 @@ const addProducts = async (req, res) => {
             color: products.color,
             productImage: images,
             status: 'Available',
-            isBlocked: false
+            isBlocked: false,
         });
 
         await newProduct.save();
@@ -130,7 +145,7 @@ const getAllProducts = async (req, res) => {
                     { brand: { $in: brandIds } }
                 ]
             }),
-            
+
             Category.find({ isListed: true }),
             Brand.find({ isBlocked: false })
         ]);
@@ -142,7 +157,7 @@ const getAllProducts = async (req, res) => {
             totalPages: Math.ceil(count / limit),
             cat: category,
             brand: brand,
-            search: search
+            search: search,
         });
 
     } catch (error) {
@@ -150,7 +165,6 @@ const getAllProducts = async (req, res) => {
         res.redirect("/admin/pageError");
     }
 };
-
 
 const blockProduct = async (req,res)=>{
     try {
@@ -165,7 +179,6 @@ const blockProduct = async (req,res)=>{
     }
 }
 
-
 const unblockProduct = async (req,res)=>{
     try {
         let id = req.query.id;
@@ -176,7 +189,6 @@ const unblockProduct = async (req,res)=>{
         return res.redirect("/admin/pageError");
     }
 }
-
 
 const getEditProduct = async (req,res)=>{
     try {
@@ -198,7 +210,6 @@ const getEditProduct = async (req,res)=>{
         return res.redirect("/admin/pageError");
     }
 }
-
 
 const editProduct = async (req, res) => {
     try {
@@ -263,7 +274,6 @@ const editProduct = async (req, res) => {
     }
 };
 
-
 const deleteSingleImage = async (req, res) => {
     try {
         const { imageNameToServer, productIdToServer } = req.body;
@@ -282,11 +292,11 @@ const deleteSingleImage = async (req, res) => {
             console.log(`Image ${imageNameToServer} Not Found`);
         }
 
-        return res.status(200).json({ 
+        return res.status(200).json({
             success: true,
             message: "Image deleted successfully"
         });
-
+ 
     } catch (error) {
         console.error("Error Deleting ProductImage", error);
         return res.status(500).json({
@@ -295,7 +305,6 @@ const deleteSingleImage = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     getProductAddPage,
