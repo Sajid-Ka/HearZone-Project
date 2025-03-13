@@ -220,90 +220,64 @@ const editProduct = async (req, res) => {
         const id = req.params.id;
         const product = await Product.findById(id).populate('category');
         if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Product not found"
-            });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
 
         const data = req.body;
-
-        // Check if there are any changes
-        const isUnchanged = 
-            product.productName === data.productName &&
-            product.description === data.descriptionData &&
-            product.brand.toString() === data.brand &&
-            product.regularPrice.toString() === data.regularPrice &&
-            product.salePrice.toString() === (data.salePrice || '0') &&
-            product.quantity.toString() === data.quantity &&
-            product.color === data.color &&
-            product.category.name === data.category &&
-            (!req.files || req.files.length === 0);
-
-        if (isUnchanged) {
-            return res.status(400).json({
-                success: false,
-                message: "No changes detected in the product"
-            });
-        }
-
-        // Check for unique product name
         const existingProduct = await Product.findOne({
             productName: data.productName,
             _id: { $ne: id },
         });
 
         if (existingProduct) {
-            return res.status(400).json({
-                success: false,
-                message: "This product name already exists"
-            });
+            return res.status(400).json({ success: false, message: "This product name already exists" });
         }
 
         const images = [];
         if (req.files && req.files.length > 0) {
-            const uploadDir = path.join('public', 'uploads', 'product-images');
+            // Define directories
+            const tempDir = path.join('public', 'uploads', 'temp');
+            const productImagesDir = path.join('public', 'uploads', 'product-images');
+            const reImageDir = path.join('public', 'uploads', 're-image');
             
-            // Ensure directory exists
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
-            }
-            
+            // Create directories if they don't exist
+            [tempDir, productImagesDir, reImageDir].forEach(dir => {
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            });
+
             for (let file of req.files) {
-                try {
-                    const resizedImagePath = path.join(uploadDir, file.filename);
-                    
-                    // Process and resize the image
-                    await sharp(file.path)
-                        .resize(600, 600, {
-                            fit: 'cover',
-                            position: 'center'
-                        })
+                const filename = file.filename;
+                const tempPath = path.join(tempDir, `temp_${filename}`);
+                const productImagePath = path.join(productImagesDir, filename);
+                const reImagePath = path.join(reImageDir, filename);
+
+                // Move uploaded file to temp directory
+                fs.renameSync(file.path, tempPath);
+
+                // Process and save image to both directories
+                await Promise.all([
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
                         .jpeg({ quality: 90 })
-                        .toFile(resizedImagePath);
-                    
-                    images.push(file.filename);
-                    
-                    // Remove the temporary file
-                    if (fs.existsSync(file.path)) {
-                        fs.unlinkSync(file.path);
-                    }
-                } catch (err) {
-                    console.error("Error processing image:", err);
-                }
+                        .toFile(productImagePath),
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
+                        .jpeg({ quality: 90 })
+                        .toFile(reImagePath)
+                ]);
+
+                // Clean up temp file
+                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+                
+                images.push(filename);
             }
         }
 
-        // Get Category ID
         const categoryId = await Category.findOne({ name: data.category });
         if (!categoryId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid Category name" 
-            });
+            return res.status(400).json({ success: false, message: "Invalid Category name" });
         }
 
-        // Prepare update data
         const updateFields = {
             productName: data.productName,
             description: data.descriptionData,
@@ -315,25 +289,15 @@ const editProduct = async (req, res) => {
             color: data.color,
         };
 
-        // Add new images to existing ones
         if (images.length > 0) {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
 
-        // Update the product
         await Product.findByIdAndUpdate(id, updateFields);
-        
-        return res.status(200).json({
-            success: true,
-            message: "Product updated successfully"
-        });
-
+        return res.status(200).json({ success: true, message: "Product updated successfully" });
     } catch (error) {
         console.error("Error Editing product:", error);
-        return res.status(500).json({
-            success: false,
-            message: error.message || "An error occurred while updating the product"
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -341,31 +305,73 @@ const editProduct = async (req, res) => {
 const deleteSingleImage = async (req, res) => {
     try {
         const { imageNameToServer, productIdToServer } = req.body;
-        const product = await Product.findByIdAndUpdate(
+        
+        // Validate inputs
+        if (!imageNameToServer || !productIdToServer) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required parameters"
+            });
+        }
+
+        // Get product and check image exists
+        const product = await Product.findById(productIdToServer);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: "Product not found"
+            });
+        }
+
+        if (!product.productImage.includes(imageNameToServer)) {
+            return res.status(404).json({
+                success: false,
+                message: "Image not found in product"
+            });
+        }
+
+        // Only delete if there will be at least one image remaining
+        if (product.productImage.length <= 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot delete the last image. Product must have at least one image."
+            });
+        }
+
+        // Update database
+        const updatedProduct = await Product.findByIdAndUpdate(
             productIdToServer,
             { $pull: { productImage: imageNameToServer } },
             { new: true }
         );
 
+        // Delete physical file
         const imagePath = path.join(__dirname, '../../public/uploads/product-images', imageNameToServer);
+        const reImagePath = path.join(__dirname, '../../public/uploads/re-image', imageNameToServer);
 
-        if (fs.existsSync(imagePath)) {
-            await fs.promises.unlink(imagePath);
-            console.log(`Image ${imageNameToServer} Deleted Successfully`);
-        } else {
-            console.log(`Image ${imageNameToServer} Not Found`);
+        try {
+            if (fs.existsSync(imagePath)) {
+                await fs.promises.unlink(imagePath);
+            }
+            if (fs.existsSync(reImagePath)) {
+                await fs.promises.unlink(reImagePath);
+            }
+        } catch (err) {
+            console.error('Error deleting physical files:', err);
+            // Continue execution even if physical file deletion fails
         }
 
         return res.status(200).json({
             success: true,
-            message: "Image deleted successfully"
+            message: "Image deleted successfully",
+            remainingImages: updatedProduct.productImage
         });
- 
+
     } catch (error) {
-        console.error("Error Deleting ProductImage", error);
+        console.error("Error Deleting ProductImage:", error);
         return res.status(500).json({
             success: false,
-            message: "Error deleting image"
+            message: "An error occurred while deleting the image"
         });
     }
 };

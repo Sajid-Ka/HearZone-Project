@@ -6,9 +6,8 @@ const customerController = require('../controllers/admin/customerController');
 const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
-const multer = require('multer');
-const storage = require('../helpers/multer');
-const uploads = multer({storage:storage});
+
+// Import the configured multer instance only once
 const upload = require('../helpers/multer');
 
 router.get('/pageError',adminController.pageError);
@@ -32,11 +31,10 @@ router.get('/unlistCategory', adminAuth, categoryController.getUnlistCategory);
 router.post('/editCategory/:id', adminAuth, categoryController.editCategory);
 router.get('/deleteCategory', adminAuth, categoryController.deleteCategory); 
 
-
 //brand
 router.get('/brands',adminAuth, brandController.getAllBrands);
-router.post('/brands/add',adminAuth, uploads.single('brandImage'), brandController.addBrand);
-router.post('/brands/update',adminAuth, uploads.single('brandImage'), brandController.updateBrand);
+router.post('/brands/add',adminAuth, upload.single('brandImage'), brandController.addBrand);
+router.post('/brands/update',adminAuth, upload.single('brandImage'), brandController.updateBrand);
 router.post('/brands/toggle',adminAuth, brandController.toggleBrandStatus);
 router.post('/brands/delete',adminAuth, brandController.deleteBrand);
 
@@ -47,8 +45,7 @@ router.get('/products',adminAuth,productController.getAllProducts);
 router.get('/blockProduct',adminAuth,productController.blockProduct);
 router.get('/unblockProduct',adminAuth,productController.unblockProduct);
 router.get('/editProduct',adminAuth,productController.getEditProduct);
-router.post('/editProduct/:id',adminAuth,uploads.array("images",4),productController.editProduct);
-router.post('deleteImage',adminAuth,productController.deleteSingleImage);
-
+router.post('/editProduct/:id',adminAuth,upload.array("images",4),productController.editProduct);
+router.post('/deleteImage',adminAuth,productController.deleteSingleImage);
 
 module.exports = router;

@@ -142,12 +142,12 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0,0,0,0.7);
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: all 0.3s ease;
     }
 
     .image-item:hover .image-actions {
@@ -158,14 +158,22 @@
         background: #dc3545;
         color: white;
         border: none;
-        padding: 8px 12px;
+        padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
-        transition: transform 0.2s ease;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .remove-image-btn:hover {
-        transform: scale(1.1);
+        background: #c82333;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
 
     .add-image-btn {
@@ -325,8 +333,8 @@
                                             <div class="image-actions">
                                                 <button type="button" 
                                                         class="remove-image-btn"
-                                                        onclick="deleteSingleImage('<%=product.productImage[i]%>', '<%=product._id%>')">
-                                                    <i class="fas fa-trash"></i>
+                                                        onclick="deleteImage('<%=product.productImage[i]%>', '<%=product._id%>', this)">
+                                                    <i class="fas fa-trash"></i> Delete
                                                 </button>
                                             </div>
                                         </div>
@@ -368,8 +376,7 @@
 <script>
 
 
-// In your Edit Product JavaScript section (replace the existing script)
-
+// Form validation and submission
 function validateForm() {
     console.log("Validating form...");
     clearErrorMessages();
@@ -384,7 +391,7 @@ function validateForm() {
     const quantity = document.getElementsByName('quantity')[0].value;
     
     // Get existing image count from product data
-    const existingImagesCount = <%= product.productImage.length %>;
+    const existingImagesCount = document.querySelectorAll('.image-item img').length;
     // Count new image uploads
     const imageInputs = document.querySelectorAll('input[name="images"]');
     let newImagesCount = 0;
@@ -517,15 +524,20 @@ function checkForChanges() {
         category: document.getElementsByName('category')[0].value
     };
 
+    // Get brand name from selected option
+    const brandSelect = document.getElementsByName('brand')[0];
+    const selectedOption = brandSelect.options[brandSelect.selectedIndex];
+    const brandName = selectedOption.getAttribute('data-name');
+
     const originalData = {
-        productName: '<%=product.productName%>'.trim(),
-        description: '<%=product.description%>'.trim(),
-        brand: '<%=product.brand%>'.toString(),
-        regularPrice: '<%=product.regularPrice%>'.toString(),
-        salePrice: ('<%=product.salePrice%>' || '0').toString(),
-        quantity: '<%=product.quantity%>'.toString(),
-        color: '<%=product.color%>'.trim(),
-        category: '<%=product.category.name%>'
+        productName: document.getElementById('product_name').defaultValue.trim(),
+        description: document.getElementsByName('descriptionData')[0].defaultValue.trim(),
+        brand: document.getElementsByName('brand')[0].defaultValue,
+        regularPrice: document.getElementsByName('regularPrice')[0].defaultValue,
+        salePrice: (document.getElementsByName('salePrice')[0].defaultValue || '0'),
+        quantity: document.getElementsByName('quantity')[0].defaultValue,
+        color: document.getElementsByName('color')[0].defaultValue,
+        category: document.getElementsByName('category')[0].defaultValue
     };
 
     // Check for new images
@@ -563,18 +575,23 @@ function clearErrorMessages() {
     });
 }
 
-function deleteSingleImage(imageId, productId) {
+// Image management functions
+// Image management functions
+function deleteImage(imageId, productId, buttonElement) {
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        title: 'Delete Image?',
+        text: "This action cannot be undone!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Show loading indicator
+            const imageItem = buttonElement.closest('.image-item');
+            
+            // Show loading state
             Swal.fire({
                 title: 'Deleting...',
                 text: 'Please wait',
@@ -583,38 +600,55 @@ function deleteSingleImage(imageId, productId) {
                     Swal.showLoading();
                 }
             });
-            
-            $.ajax({
-                url: "/admin/deleteImage",
-                method: "POST",
-                data: { imageNameToServer: imageId, productIdToServer: productId },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Deleted!',
-                            text: 'Image has been deleted.',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: response.message || 'Failed to delete image',
-                            confirmButtonText: 'OK'
-                        });
-                    }
+
+            fetch('/admin/deleteImage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                 },
-                error: function(error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'An error occurred while deleting the image',
-                        confirmButtonText: 'OK'
-                    });
+                body: JSON.stringify({
+                    imageNameToServer: imageId,
+                    productIdToServer: productId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
                 }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    imageItem.remove();
+                    
+                    // Add new upload slot
+                    const gallery = document.querySelector('.image-gallery');
+                    const currentImageCount = gallery.querySelectorAll('.image-item').length;
+                    const uploadSlots = gallery.querySelectorAll('.add-image-btn').length;
+                    
+                    if (currentImageCount + uploadSlots < 4) {
+                        gallery.appendChild(createUploadButton());
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Image deleted successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to delete image');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: error.message || 'Failed to delete image',
+                    confirmButtonText: 'OK'
+                });
             });
         }
     });
@@ -659,17 +693,20 @@ function handleImageUpload(event) {
             <img src="${e.target.result}" alt="New product image">
             <div class="image-actions">
                 <button type="button" class="remove-image-btn" onclick="removeNewImage(this)">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <input type="file" name="images" 
-                       accept="image/png, image/jpeg, image/jpg"
-                       style="display: none;"
-                       onchange="changeImage(event, this)">
-                <button type="button" class="change-image-btn" onclick="triggerImageChange(this)">
-                    <i class="fas fa-sync-alt"></i>
+                    <i class="fas fa-trash"></i> Delete
                 </button>
             </div>
+            <input type="file" name="images" 
+                   accept="image/png, image/jpeg, image/jpg"
+                   style="display: none;"
+                   value="${file.name}">
         `;
+
+        // Keep the file
+        const newFileInput = newImageItem.querySelector('input[type="file"]');
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        newFileInput.files = dataTransfer.files;
 
         // Replace the upload button with the new image
         gallery.replaceChild(newImageItem, parent);
@@ -681,47 +718,6 @@ function handleImageUpload(event) {
         }
     };
     reader.readAsDataURL(file);
-}
-
-function changeImage(event, buttonElement) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Validate file
-    if (file.size > 5 * 1024 * 1024) {
-        Swal.fire({
-            icon: 'error',
-            title: 'File too large',
-            text: 'Please select an image less than 5MB'
-        });
-        event.target.value = '';
-        return;
-    }
-    
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Invalid file type',
-            text: 'Please select a JPG, JPEG or PNG image'
-        });
-        event.target.value = '';
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Update the image preview
-        const imageItem = buttonElement.closest('.image-item');
-        const img = imageItem.querySelector('img');
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-
-function triggerImageChange(button) {
-    // Find the file input that's a sibling of this button and click it
-    button.previousElementSibling.click();
 }
 
 function removeNewImage(button) {
@@ -753,7 +749,217 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         validateAndSubmit();
     });
+
+    // Clean up duplicate file inputs at form submission
+    form.addEventListener('submit', function() {
+        // This ensures we only get the last valid file input for each slot
+        const fileInputs = document.querySelectorAll('input[type="file"][name="images"]');
+        fileInputs.forEach(input => {
+            if (input.files.length === 0 && input.parentElement.className !== 'add-image-btn') {
+                input.remove();
+            }
+        });
+    });
 });
+
+// Form validation and submission
+function validateForm() {
+    console.log("Validating form...");
+    clearErrorMessages();
+    
+    const name = document.getElementsByName('productName')[0].value;
+    const description = document.getElementsByName('descriptionData')[0].value;
+    const brand = document.getElementsByName('brand')[0].value;
+    const price = document.getElementsByName('regularPrice')[0].value;
+    const saleprice = document.getElementsByName('salePrice')[0].value;
+    const color = document.getElementsByName('color')[0].value;
+    const category = document.getElementsByName('category')[0].value;
+    const quantity = document.getElementsByName('quantity')[0].value;
+    
+    // Get existing image count from product data
+    const existingImagesCount = document.querySelectorAll('.image-item img').length;
+    // Count new image uploads
+    const imageInputs = document.querySelectorAll('input[name="images"]');
+    let newImagesCount = 0;
+    
+    imageInputs.forEach(input => {
+        if (input.files && input.files.length > 0) newImagesCount++;
+    });
+    
+    let isValid = true;
+    
+    if (name.trim() === "") {
+        displayErrorMessage('productName-error', 'Please enter a product name.');
+        isValid = false;
+    }
+    
+    if (description.trim() === '') {
+        displayErrorMessage('description-error', 'Please enter a product description.');
+        isValid = false;
+    }
+    
+    if (!quantity || parseInt(quantity) < 0) {
+        displayErrorMessage('quantity-error', 'Please enter a valid non-negative quantity.');
+        isValid = false;
+    }
+    
+    if (!/^\d+(\.\d{1,2})?$/.test(price) || parseFloat(price) < 0) {
+        displayErrorMessage('regularPrice-error', 'Please enter a valid non-negative price.');
+        isValid = false;
+    }
+    
+    if (saleprice && (!/^\d+(\.\d{1,2})?$/.test(saleprice) || parseFloat(saleprice) < 0)) {
+        displayErrorMessage('salePrice-error', 'Please enter a valid non-negative price.');
+        isValid = false;
+    }
+    
+    if (color.trim() === "") {
+        displayErrorMessage('color-error', 'Please enter a color.');
+        isValid = false;
+    }
+    
+    // Check if there's at least one image (either existing or new)
+    if (existingImagesCount === 0 && newImagesCount === 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Image Required',
+            text: 'Please upload at least one product image.'
+        });
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+function validateAndSubmit() {
+    if (validateForm()) {
+        // Check if any changes were made
+        const hasChanges = checkForChanges();
+        
+        if (!hasChanges) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Changes Detected',
+                text: 'Please make changes before updating the product',
+                confirmButtonText: 'OK'
+            });
+            return false;
+        }
+
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        
+        // Show loading indicator
+        Swal.fire({
+            title: 'Updating Product',
+            text: 'Please wait...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: form.action,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message || 'Product updated successfully',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.href = '/admin/products';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: response.message || 'Failed to update product',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON || {};
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: response.message || 'An error occurred while updating the product',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    }
+    return false;
+}
+
+function checkForChanges() {
+    const currentData = {
+        productName: document.getElementsByName('productName')[0].value.trim(),
+        description: document.getElementsByName('descriptionData')[0].value.trim(),
+        brand: document.getElementsByName('brand')[0].value,
+        regularPrice: document.getElementsByName('regularPrice')[0].value,
+        salePrice: document.getElementsByName('salePrice')[0].value || '0',
+        quantity: document.getElementsByName('quantity')[0].value,
+        color: document.getElementsByName('color')[0].value,
+        category: document.getElementsByName('category')[0].value
+    };
+
+    // Get brand name from selected option
+    const brandSelect = document.getElementsByName('brand')[0];
+    const selectedOption = brandSelect.options[brandSelect.selectedIndex];
+    const brandName = selectedOption.getAttribute('data-name');
+
+    const originalData = {
+        productName: document.getElementById('product_name').defaultValue.trim(),
+        description: document.getElementsByName('descriptionData')[0].defaultValue.trim(),
+        brand: document.getElementsByName('brand')[0].defaultValue,
+        regularPrice: document.getElementsByName('regularPrice')[0].defaultValue,
+        salePrice: (document.getElementsByName('salePrice')[0].defaultValue || '0'),
+        quantity: document.getElementsByName('quantity')[0].defaultValue,
+        color: document.getElementsByName('color')[0].defaultValue,
+        category: document.getElementsByName('category')[0].defaultValue
+    };
+
+    // Check for new images
+    const hasNewImages = Array.from(document.querySelectorAll('input[type="file"]'))
+        .some(input => input.files && input.files.length > 0);
+
+    // Debug logging
+    console.log('Current Data:', currentData);
+    console.log('Original Data:', originalData);
+
+    // Compare each field
+    const changedFields = Object.keys(currentData).filter(key => 
+        currentData[key] !== originalData[key]
+    );
+
+    // Debug logging
+    console.log('Changed Fields:', changedFields);
+
+    return changedFields.length > 0 || hasNewImages;
+}
+
+function displayErrorMessage(elementId, message) {
+    var errorElement = document.getElementById(elementId);
+    if (errorElement) {
+        errorElement.innerText = message;
+        errorElement.style.display = "block";
+    }
+}
+
+function clearErrorMessages() {
+    const errorElements = document.getElementsByClassName('error-message');
+    Array.from(errorElements).forEach(element => {
+        element.style.display = "none";
+        element.innerText = '';
+    });
+}
            
        </script>
 
