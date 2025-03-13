@@ -1,90 +1,154 @@
 <%- include("../../views/partials/user/header") %>
 <style>
+    /* Product Gallery Styles */
     .product-gallery {
         display: flex;
         flex-direction: column;
-        gap: 20px;
-        max-width: 600px;
+        gap: 24px;
+        max-width: 650px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     }
 
     .main-image {
         width: 100%;
-        height: 400px;
+        height: 450px;
+        border-radius: 12px;
         overflow: hidden;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        position: relative;
+        background: #f8f9fa;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #fff;
+        border: 1px solid #eee;
     }
 
     .main-image img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Changed from cover to contain */
-        transition: transform 0.3s ease;
+        object-fit: contain;
+        transition: transform 0.4s ease-in-out;
+    }
+
+    .main-image:hover img {
+        transform: scale(1.05);
     }
 
     .thumbnail-container {
         display: flex;
-        gap: 10px;
-        justify-content: center; /* Changed from start to center */
+        gap: 15px;
+        justify-content: center;
+        padding: 10px 0;
     }
 
     .thumbnail {
-        width: 80px;  /* Reduced from 100px */
-        height: 80px; /* Reduced from 100px */
-        border-radius: 8px;
+        width: 85px;
+        height: 85px;
+        border-radius: 10px;
         cursor: pointer;
         overflow: hidden;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        background: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #ffffff;
     }
 
     .thumbnail:hover {
-        border-color: #007bff;
-        transform: translateY(-2px);
+        border-color: #0d6efd;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
 
     .thumbnail.active {
-        border-color: #007bff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 2px #0d6efd30;
     }
 
     .thumbnail img {
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Changed from cover to contain */
-        padding: 5px;
+        object-fit: contain;
+        padding: 6px;
     }
 
+    /* Product Info Styles */
     .product-info {
-        padding: 20px;
+        padding: 30px;
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .product-info h2 {
+        font-size: 28px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
     }
 
     .price-tag {
-        font-size: 24px;
-        color: #007bff;
-        margin: 15px 0;
+        font-size: 32px;
+        color: #0d6efd;
+        margin: 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .original-price {
         text-decoration: line-through;
-        color: #666;
-        margin-left: 10px;
+        color: #6c757d;
+        font-size: 24px;
     }
 
     .offer-badge {
-        background: #ff4444;
+        background: linear-gradient(45deg, #ff4757, #ff6b81);
         color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 14px;
-        margin-left: 10px;
+        padding: 6px 12px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.2);
+    }
+
+    .detail-qty {
+        display: flex;
+        align-items: center;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 5px 15px;
+        gap: 10px;
+    }
+
+    .qty-val {
+        font-size: 18px;
+        font-weight: 600;
+        min-width: 30px;
+        text-align: center;
+    }
+
+    .button-add-to-cart {
+        background: #0d6efd;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .button-add-to-cart:hover {
+        background: #0b5ed7;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.2);
+    }
+
+    .product-meta {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
     }
 </style>
 <br>
@@ -175,6 +239,12 @@
         </div>
     </div>
 </div>
+
+<br>
+<br>
+<br>
+<br>
+<br>
 
 <script>
     function updateQuantity(change) {

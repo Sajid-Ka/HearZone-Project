@@ -97,22 +97,62 @@ const productDetails = async (req, res) => {
         // Calculate total offer percentage
         const totalOffer = (product.category?.offer || 0) + (product.productOffer || 0);
 
+        // Enhanced product display data
+        const displayData = {
+            mainInfo: {
+                name: product.productName,
+                brand: product.brand.brandName,
+                rating: 4.5, // You can add actual rating logic here
+                reviewCount: 25, // Add actual review count
+                availability: product.quantity > 0 ? 'In Stock' : 'Out of Stock',
+                availabilityClass: product.quantity > 0 ? 'text-success' : 'text-danger'
+            },
+            pricing: {
+                original: product.price,
+                discounted: discountedPrice.toFixed(2),
+                saveAmount: (product.price - discountedPrice).toFixed(2),
+                savePercentage: totalOffer,
+                showOffer: totalOffer > 0,
+                installment: (discountedPrice / 3).toFixed(2) // Example: 3 month installment
+            },
+            presentation: {
+                images: product.productImage || [], // Use productImage from original product
+                thumbnails: product.images || [],
+                mainImage: product.productImage?.[0] || 'default.jpg',
+                colors: product.color ? product.color.split(',').map(c => c.trim()) : [],
+                highlights: product.description?.split('\n').filter(item => item.trim()).slice(0, 5)
+            },
+            specifications: [
+                { icon: 'brand', label: 'Brand', value: product.brand.brandName },
+                { icon: 'model', label: 'Model', value: product.name },
+                { icon: 'category', label: 'Category', value: product.category?.name },
+                { icon: 'connect', label: 'Connectivity', value: product.connectivity || 'N/A' },
+                { icon: 'type', label: 'Type', value: product.type || 'N/A' },
+                { icon: 'stock', label: 'Stock Status', value: product.quantity > 0 ? 'In Stock' : 'Out of Stock' }
+            ]
+        };
+
+        // Format related products for carousel
+        const enhancedRelatedProducts = relatedProducts.map(prod => ({
+            ...prod.toObject(),
+            brand: prod.brand.brandName,
+            displayPrice: prod.price.toLocaleString('en-IN'),
+            hasDiscount: prod.productOffer > 0,
+            discountBadge: prod.productOffer > 0 ? `${prod.productOffer}% OFF` : ''
+        }));
+
         res.render('user/product-details', {
             user: userData,
             product: {
-                ...product.toObject(),
-                brand: product.brand ? product.brand.brandName : 'N/A'  // Simplify brand to just the name
+                ...product.toObject(), // Keep original product data
+                displayData: displayData, // Add enhanced display data
+                brand: product.brand.brandName
             },
-            priceInfo: priceInfo,
-            productImages: productImages,
-            breadcrumb: breadcrumb,
-            specifications: specifications,
-            relatedProducts: relatedProducts,
-            similarProducts: similarProducts,
-            features: productFeatures,
-            totalOffer: totalOffer,
-            category: product.category,  // Add this line
-            quantity: product.quantity   // Add this line
+            relatedProducts: enhancedRelatedProducts,
+            similarProducts,
+            totalOffer,
+            category: product.category,
+            quantity: product.quantity
         });
 
     } catch (error) {
