@@ -2,40 +2,6 @@
 <!-- Add SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const success = urlParams.get('success');
-        const error = urlParams.get('error');
-        
-        if (success === 'block') {
-            Swal.fire({
-                title: 'Blocked!',
-                text: 'Customer has been blocked successfully',
-                icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 2000
-            });
-        } else if (success === 'unblock') {
-            Swal.fire({
-                title: 'Unblocked!',
-                text: 'Customer has been unblocked successfully',
-                icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 2000
-            });
-        } else if (error) {
-            Swal.fire({
-                title: 'Error!',
-                text: error,
-                icon: 'error',
-                confirmButtonColor: '#e74c3c',
-                timer: 3000
-            });
-        }
-    });
-</script>
-
 <div class="content-header row">
     <div class="d-flex justify-content-between align-items-center">
         <h2 class="content-title card-title" style="color: #2c3e50; font-weight: 600; margin: 20px 0;">Customers</h2>
@@ -47,7 +13,7 @@
         <div class="d-flex justify-content-center align-items-center mb-3">
             <a href="/admin/users" class="btn mx-2 <%= !isBlocked ? 'btn-primary' : 'btn-outline-primary' %>" 
                 style="border-radius: 20px; min-width: 120px;">
-                All Customers
+                All Users
             </a>
             <a href="/admin/users?blocked=true" class="btn mx-2 <%= isBlocked ? 'btn-primary' : 'btn-outline-primary' %>" 
                 style="border-radius: 20px; min-width: 120px;">
@@ -122,6 +88,39 @@
 </div>
 
 <script>
+
+document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const success = urlParams.get('success');
+        const error = urlParams.get('error');
+        
+        if (success === 'block') {
+            Swal.fire({
+                title: 'Blocked!',
+                text: 'Customer has been blocked successfully',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000
+            });
+        } else if (success === 'unblock') {
+            Swal.fire({
+                title: 'Unblocked!',
+                text: 'Customer has been unblocked successfully',
+                icon: 'success',
+                confirmButtonColor: '#3498db',
+                timer: 2000
+            });
+        } else if (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: error,
+                icon: 'error',
+                confirmButtonColor: '#e74c3c',
+                timer: 3000
+            });
+        }
+    });
+
     // Block confirmation
     document.querySelectorAll('.block-btn').forEach(button => {
         button.addEventListener('click', function() {
