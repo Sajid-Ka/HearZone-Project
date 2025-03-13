@@ -27,63 +27,74 @@ const addProducts = async (req, res) => {
             productName: products.productName,
         });
 
-        if (!productExists) {
-            const images = [];
-            if (req.files && req.files.length > 0) {
-                for (let i = 0; i < req.files.length; i++) {
-                    const originalImagePath = req.files[i].path;
-                    const resizedImagePath = path.join('public', 'uploads', 'product-images', req.files[i].filename);
-                    await sharp(originalImagePath).resize({
-                        width: 440,
-                        height: 440,
-                    }).toFile(resizedImagePath);
-                    images.push(req.files[i].filename);
-                }
-            }
-
-            const categoryId = await Category.findOne({ name: products.category });
-            if (!categoryId) {
-                return res.status(400).json({ success: false, message: "Invalid Category name" });
-            }
-
-            const brandDoc = await Brand.findOne({ brandName: products.brand });
-            if (!brandDoc) {
-                return res.status(400).json({ success: false, message: "Invalid Brand name" });
-            }
-
-            const newProduct = new Product({
-                productName: products.productName,
-                description: products.description,
-                brand: brandDoc._id,
-                category: categoryId._id,
-                regularPrice: products.regularPrice,
-                salePrice: products.salePrice,
-                createdOn: new Date(),
-                quantity: products.quantity,
-                size: products.size,
-                color: products.color,
-                productImage: images,
-                status: 'Available',
-            });
-
-            await newProduct.save();
-            
-            // Return success JSON response instead of redirect
-            return res.status(200).json({ 
-                success: true, 
-                message: "Product added successfully" 
-            });
-        } else {
+        if (productExists) {
             return res.status(400).json({ 
                 success: false, 
                 message: "Product Already Exists, Please try with another name" 
             });
         }
+
+        const images = [];
+        if (req.files && req.files.length > 0) {
+            for (let i = 0; i < req.files.length; i++) {
+                try {
+                    const filename = `product_${Date.now()}_${i}.jpg`;
+                    const resizedImagePath = path.join('public', 'uploads', 'product-images', filename);
+                    
+                    await sharp(req.files[i].path)
+                        .resize(600, 600, {
+                            fit: 'cover',
+                            position: 'center'
+                        })
+                        .jpeg({ quality: 90 })
+                        .toFile(resizedImagePath);
+
+                    images.push(filename);
+
+                    // Clean up original
+                    fs.unlinkSync(req.files[i].path);
+                } catch (err) {
+                    console.error("Error processing image:", err);
+                }
+            }
+        }
+
+        const categoryId = await Category.findOne({ name: products.category });
+        if (!categoryId) {
+            return res.status(400).json({ success: false, message: "Invalid Category name" });
+        }
+
+        const brandDoc = await Brand.findOne({ brandName: products.brand });
+        if (!brandDoc) {
+            return res.status(400).json({ success: false, message: "Invalid Brand name" });
+        }
+
+        const newProduct = new Product({
+            productName: products.productName,
+            description: products.description,
+            brand: brandDoc._id,
+            category: categoryId._id,
+            regularPrice: products.regularPrice,
+            salePrice: products.salePrice || 0,
+            createdOn: new Date(),
+            quantity: products.quantity,
+            color: products.color,
+            productImage: images,
+            status: 'Available',
+            isBlocked: false
+        });
+
+        await newProduct.save();
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: "Product added successfully" 
+        });
     } catch (error) {
-        console.error("Error saving product", error);
+        console.error("Error saving product:", error);
         return res.status(500).json({ 
             success: false, 
-            message: "An error occurred while adding the product" 
+            message: error.message || "An error occurred while adding the product" 
         });
     }
 };
