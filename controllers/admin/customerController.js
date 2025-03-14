@@ -9,10 +9,10 @@ const customerInfo = async (req, res) => {
         const limit = 3;
         const isBlocked = req.query.blocked === 'true';
 
-        // Base query
+        
         let query = {
             isAdmin: false,
-            isBlocked: isBlocked, // Add this filter
+            isBlocked: isBlocked, 
             $or: [
                 { name: { $regex: ".*" + search + ".*", $options: "i" } },
                 { email: { $regex: ".*" + search + ".*", $options: "i" } }
@@ -32,7 +32,7 @@ const customerInfo = async (req, res) => {
             totalPages: totalPages,
             currentPage: page,
             search: search,
-            isBlocked: isBlocked // Pass to view
+            isBlocked: isBlocked 
         });
 
     } catch (error) {

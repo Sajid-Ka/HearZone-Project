@@ -2,16 +2,16 @@ const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const Brand = require('../../models/brandSchema');
 const User = require('../../models/userSchema');
-const fs = require('fs').promises; // Use promises for async operations
+const fs = require('fs').promises; 
 const path = require('path');
 const sharp = require('sharp');
 
-// Directory paths (consistent with upload.js)
+
 const tempDir = path.join(__dirname, '../../public/uploads/temp');
 const productImagesDir = path.join(__dirname, '../../public/uploads/product-images');
 const reImageDir = path.join(__dirname, '../../public/uploads/re-image');
 
-// Ensure directories exist at startup
+
 [tempDir, productImagesDir, reImageDir].forEach(dir => {
     if (!require('fs').existsSync(dir)) {
         require('fs').mkdirSync(dir, { recursive: true });
@@ -190,7 +190,7 @@ const editProduct = async (req, res) => {
 
         const data = req.body;
 
-        // Check for changes
+        
         const hasNameChange = data.productName !== product.productName;
         const hasDescriptionChange = data.descriptionData !== product.description;
         const hasBrandChange = data.brand !== product.brand.toString();
@@ -207,7 +207,7 @@ const editProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: "No changes detected" });
         }
 
-        // ... rest of your validation logic ...
+        
 
         const images = [];
         if (hasNewImages) {
@@ -248,7 +248,7 @@ const editProduct = async (req, res) => {
             color: data.color,
         };
 
-        // Only update productImage if there are new images
+        
         if (images.length > 0) {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
@@ -257,7 +257,7 @@ const editProduct = async (req, res) => {
         return res.status(200).json({ success: true, message: "Product updated successfully" });
     }catch (error) {
         console.error("Error editing product:", error);
-        // Clean up any remaining temp files on error
+        
         if (req.files) {
             await Promise.all(req.files.map(file => fs.unlink(file.path).catch(err => console.warn(`Cleanup failed for ${file.path}:`, err))));
         }

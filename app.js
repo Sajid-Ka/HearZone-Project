@@ -10,7 +10,6 @@ const adminRouter = require('./routes/adminRouter');
 const MongoStore = require("connect-mongo");
 const nocache = require('nocache');
 const fs = require('fs');
-// Removed duplicate path require
 db()
 
 app.use(nocache());
@@ -18,7 +17,7 @@ app.use(nocache());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
-// Ensure upload directories exist
+
 const uploadDirs = [
     path.join(__dirname, 'public/uploads/product-images'),
     path.join(__dirname, 'public/uploads/re-image')
@@ -39,16 +38,16 @@ app.use(session({
         collectionName: "sessions"
     }),
     cookie: {
-        secure: false, // Set to true only in production with HTTPS
+        secure: false, 
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000 
     }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Add middleware to handle both user and admin sessions
+
 app.use((req, res, next) => {
     res.locals.user = req.session.user || null;
     res.locals.admin = req.session.admin || null;
@@ -68,7 +67,7 @@ app.set('views', [
 ]);
 app.use(express.static(path.join(__dirname,"public")));
 
-// Error handler middleware (add before routes)
+
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
@@ -77,7 +76,7 @@ app.use((err, req, res, next) => {
 app.use('/',userRouter);
 app.use('/admin',adminRouter);
 
-// 404 handler (add after routes)
+
 app.use((req, res) => {
     res.status(404).render('page-404');
 });

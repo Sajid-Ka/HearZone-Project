@@ -9,7 +9,7 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Modify the product query to get clean brand name
+        
         const product = await Product.findById(productId)
             .populate('category')
             .populate('brand', 'brandName -_id');
@@ -18,7 +18,7 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Update related products query to exclude brand ID
+        
         const relatedProducts = await Product.find({
             category: product.category._id,
             _id: { $ne: productId },
@@ -31,14 +31,14 @@ const productDetails = async (req, res) => {
         })
         .limit(4);
 
-        // Calculate discounted price
+        
         const discountedPrice = product.price - (product.price * ((product.category?.offer || 0) + (product.productOffer || 0)) / 100);
 
-        // Get user data if logged in
+        
         const userId = req.session.user ? req.session.user.id : null;
         let userData = userId ? await User.findById(userId) : null;
 
-        // Format product specs and features
+        
         const productFeatures = {
             highlights: product.description?.split('\n').filter(item => item.trim()),
             specifications: {
@@ -49,26 +49,26 @@ const productDetails = async (req, res) => {
             }
         };
 
-        // Get additional product images if available
+        
         const productImages = product.images || [];
         
-        // Format price and discount information
+        
         const priceInfo = {
             originalPrice: product.price,
             discountedPrice: discountedPrice.toFixed(2),
             totalDiscount: ((product.category?.offer || 0) + (product.productOffer || 0)).toFixed(0),
             savings: (product.price - discountedPrice).toFixed(2),
-            brandName: product.brand?.brandName || 'N/A'  // Change to brandName
+            brandName: product.brand?.brandName || 'N/A'  
         };
 
-        // Generate breadcrumb data
+        
         const breadcrumb = [
             { name: 'Home', url: '/' },
             { name: product.category?.name, url: `/category/${product.category?._id}` },
             { name: product.name, url: '#' }
         ];
 
-        // Format specifications with clean brand name
+        
         const specifications = [
             { label: 'Brand', value: product.brand ? product.brand.brandName : 'N/A' },
             { label: 'Model', value: product.name },
@@ -78,7 +78,7 @@ const productDetails = async (req, res) => {
             { label: 'Stock Status', value: product.quantity > 0 ? 'In Stock' : 'Out of Stock' }
         ];
 
-        // Get similar products by price range
+        
         const similarProducts = await Product.find({
             category: product.category._id,
             price: { 
@@ -90,20 +90,20 @@ const productDetails = async (req, res) => {
         })
         .populate({
             path: 'brand',
-            select: 'brandName -_id' // Explicitly select the brandName field and exclude the ID field
+            select: 'brandName -_id' 
         })
         .limit(4);
 
-        // Calculate total offer percentage
+        
         const totalOffer = (product.category?.offer || 0) + (product.productOffer || 0);
 
-        // Enhanced product display data
+        
         const displayData = {
             mainInfo: {
                 name: product.productName,
                 brand: product.brand.brandName,
-                rating: 4.5, // You can add actual rating logic here
-                reviewCount: 25, // Add actual review count
+                rating: 4.5, 
+                reviewCount: 25, 
                 availability: product.quantity > 0 ? 'In Stock' : 'Out of Stock',
                 availabilityClass: product.quantity > 0 ? 'text-success' : 'text-danger'
             },
@@ -113,10 +113,10 @@ const productDetails = async (req, res) => {
                 saveAmount: (product.price - discountedPrice).toFixed(2),
                 savePercentage: totalOffer,
                 showOffer: totalOffer > 0,
-                installment: (discountedPrice / 3).toFixed(2) // Example: 3 month installment
+                installment: (discountedPrice / 3).toFixed(2) 
             },
             presentation: {
-                images: product.productImage || [], // Use productImage from original product
+                images: product.productImage || [], 
                 thumbnails: product.images || [],
                 mainImage: product.productImage?.[0] || 'default.jpg',
                 colors: product.color ? product.color.split(',').map(c => c.trim()) : [],
@@ -132,7 +132,7 @@ const productDetails = async (req, res) => {
             ]
         };
 
-        // Format related products for carousel
+        
         const enhancedRelatedProducts = relatedProducts.map(prod => ({
             ...prod.toObject(),
             brand: prod.brand.brandName,
@@ -144,8 +144,8 @@ const productDetails = async (req, res) => {
         res.render('user/product-details', {
             user: userData,
             product: {
-                ...product.toObject(), // Keep original product data
-                displayData: displayData, // Add enhanced display data
+                ...product.toObject(), 
+                displayData: displayData, 
                 brand: product.brand.brandName
             },
             relatedProducts: enhancedRelatedProducts,

@@ -36,7 +36,7 @@ const adminAuth = (req, res, next) => {
 const isAdminAuth = (req, res, next) => {
     try {
         if (req.session.admin) {
-            // Don't clear user session when checking admin auth
+            
             next();
         } else {
             res.redirect('/admin/login');
@@ -63,7 +63,7 @@ const isAdminLogin = (req, res, next) => {
 const isLogin = (req, res, next) => {
     try {
         if (req.session.user) {
-            res.redirect('/'); // Redirect to home if already logged in
+            res.redirect('/'); 
         } else {
             next();
         }

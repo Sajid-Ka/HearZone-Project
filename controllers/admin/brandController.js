@@ -1,11 +1,11 @@
 const Brand = require('../../models/brandSchema'); 
 const path = require('path');
 
-// Get all brands
+
 const getAllBrands = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 5; // Items per page
+        const limit = 5; 
         const skip = (page - 1) * limit;
 
         const totalBrands = await Brand.countDocuments();
@@ -34,7 +34,7 @@ const getAllBrands = async (req, res) => {
     }
 };
 
-// Add a new brand
+
 const addBrand = async (req, res) => {
     try {
         const { brandName } = req.body;
@@ -52,7 +52,7 @@ const addBrand = async (req, res) => {
     }
 };
 
-// Update a brand
+
 const updateBrand = async (req, res) => {
     try {
         const { brandId, brandName } = req.body;
@@ -71,7 +71,7 @@ const updateBrand = async (req, res) => {
     }
 };
 
-// Block/unblock a brand
+
 const toggleBrandStatus = async (req, res) => {
     try {
         const { brandId } = req.body;
@@ -85,7 +85,7 @@ const toggleBrandStatus = async (req, res) => {
     }
 };
 
-// Delete a brand
+
 const deleteBrand = async (req, res) => {
     try {
         const { brandId } = req.body;

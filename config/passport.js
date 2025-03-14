@@ -10,17 +10,17 @@ passport.use(new GoogleStrategy({
 },
 async function(accessToken, refreshToken, profile, done) {
     try {
-        // Check if user already exists
+        
         let user = await User.findOne({ email: profile.emails[0].value });
         
         if (user) {
-            // If user exists but no googleId, update it
+           
             if (!user.googleId) {
                 user.googleId = profile.id;
                 await user.save();
             }
         } else {
-            // Create new user
+           
             user = await User.create({
                 name: profile.displayName,
                 email: profile.emails[0].value,

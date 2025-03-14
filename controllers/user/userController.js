@@ -73,13 +73,13 @@ const loadHomepage = async (req, res) => {
         productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
         productData = productData.slice(0, 4);
 
-        // Add cache control headers
+        
         res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         
         res.render('home', { 
             user: userData, 
             products: productData,
-            admin: req.session.admin // Pass admin session to view
+            admin: req.session.admin 
         });
 
     } catch (err) {
@@ -294,7 +294,7 @@ const loadShoppingPage = async (req, res) => {
             name: category.name
         }));
 
-        // Clear any session-stored filtered products when returning to the base shop page
+        
         if (req.session.filteredProducts) {
             delete req.session.filteredProducts;
         }
@@ -457,7 +457,7 @@ const searchProducts = async (req, res) => {
         let searchResult = [];
         
         if(req.session.filteredProducts && req.session.filteredProducts.length>0){
-            // For filtered products, make sure they include brand information
+            
             searchResult = req.session.filteredProducts
                 .filter(product => product.productName.toLowerCase().includes(search.toLowerCase()))
                 .map(product => ({
@@ -465,7 +465,7 @@ const searchProducts = async (req, res) => {
                     brand: brands.find(b => b._id.toString() === product.brand.toString()) || product.brand
                 }));
         } else {
-            // For direct database search, use populate
+            
             searchResult = await Product.find({
                 productName: { $regex: ".*" + search + ".*", $options: "i" },
                 isBlocked: false,
