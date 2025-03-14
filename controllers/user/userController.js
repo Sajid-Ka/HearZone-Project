@@ -294,6 +294,11 @@ const loadShoppingPage = async (req, res) => {
             name: category.name
         }));
 
+        // Clear any session-stored filtered products when returning to the base shop page
+        if (req.session.filteredProducts) {
+            delete req.session.filteredProducts;
+        }
+
         res.render('shop', {
             user: userData,
             products: products,
@@ -303,14 +308,15 @@ const loadShoppingPage = async (req, res) => {
             currentPage: page,
             totalPages: totalPages,
             selectedCategory: null,
-            selectedBrand: null
+            selectedBrand: null,
+            gt: undefined,
+            lt: undefined
         });
     } catch (error) {
         console.error("shopping page loading error", error);
         res.redirect('/pageNotFound');
     }
 };
-
 
 const filterProduct = async (req, res) => {
     try {
