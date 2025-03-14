@@ -4,6 +4,7 @@ const userController = require('../controllers/user/userController');
 const productController = require('../controllers/user/productController');
 const profileController = require('../controllers/user/profileController');
 const { isLogin, isLogout } = require('../middlewares/auth');
+const passport = require('passport');
 
 // Define routes without creating circular dependencies
 router.get('/', userController.loadHomepage);
@@ -35,5 +36,24 @@ router.post('/verify-forgot-otp', profileController.verifyForgotPassOtp);
 router.get('/reset-password', profileController.getResetPassPage);
 router.post('/reset-password', profileController.postNewPassword);
 router.post('/resend-forgot-otp', profileController.resendOtp);
+
+router.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+router.get('/auth/google/callback',
+  passport.authenticate('google', { 
+    failureRedirect: '/login',
+    failureFlash: true
+  }),
+  (req, res) => {
+    req.session.user = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email
+    };
+    res.redirect('/');
+  }
+);
 
 module.exports = router;

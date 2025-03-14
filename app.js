@@ -39,11 +39,10 @@ app.use(session({
         collectionName: "sessions"
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Set to true only in production with HTTPS
         httpOnly: true,
-        maxAge: 72 * 60 * 60 * 1000
-    },
-    name: 'connect.sid' // explicitly name the session cookie
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
 }));
 
 app.use(passport.initialize());
