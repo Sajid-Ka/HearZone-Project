@@ -387,26 +387,28 @@ const filterProduct = async (req, res) => {
 const filterByPrice = async (req, res) => {
     try {
         const user = req.session.user;
-        const userData = await User.findOne({ _id: user.id });
-        const brands = await Brand.find({}).lean();
+        let userData = null;
+        if (user && user.id) {
+            userData = await User.findById(user.id);
+        }
+        
+        const brands = await Brand.find({ isBlocked: false }).lean();
         const categories = await Category.find({ isListed: true }).lean();
         
-        const gt = parseFloat(req.query.gt);
-        const lt = parseFloat(req.query.lt);
+        const gt = parseFloat(req.query.gt) || 0;
+        const lt = parseFloat(req.query.lt) || Infinity;
         const currentPage = parseInt(req.query.page) || 1;
         const itemsPerPage = 9;
 
         const query = {
-            salePrice: { $gt: gt, $lt: lt },
             isBlocked: false,
-            quantity: { $gt: 0 }
+            quantity: { $gt: 0 },
+            salePrice: { $gte: gt, $lte: lt }
         };
 
-        // Get total count for pagination
         const totalProducts = await Product.countDocuments(query);
         const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
-        // Get products for current page
         const products = await Product.find(query)
             .populate('brand')
             .sort({ createdOn: -1 })
@@ -421,14 +423,14 @@ const filterByPrice = async (req, res) => {
             brand: brands,
             totalPages,
             currentPage,
-            selectedCategory: req.query.category || null,
-            selectedBrand: req.query.brand || null,
-            gt: gt,
-            lt: lt
+            selectedCategory: null,
+            selectedBrand: null,
+            gt,
+            lt
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Price filter error:", error);
         res.redirect('/pageNotFound');
     }
 };
