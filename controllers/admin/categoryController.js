@@ -35,7 +35,7 @@ const addCategory = async (req, res) => {
         const newCategory = new Category({ 
             name, 
             description,
-            isListed: true  // Ensure new categories are listed by default
+            isListed: true  
         });
         await newCategory.save();
         return res.json({ success: true, message: "Category added successfully" });

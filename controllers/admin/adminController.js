@@ -31,7 +31,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const admin = await User.findOne({ email, isAdmin: true });
 
-        // Set no-cache headers
+        
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         
         if (!admin) {
@@ -67,7 +67,7 @@ const loadDashboard = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        // Only delete admin session data, preserve user session
+        
         delete req.session.admin;
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.redirect('/admin/login');
