@@ -319,9 +319,9 @@
                                                     <label class="custom-file-label" for="imageFile<%= i %>">Choose image</label>
                                                 </div>
                                                 <!-- Add crop button -->
-                                                <!-- <button type="button" id="cropBtn<%= i %>" class="btn btn-sm btn-outline-primary mt-2" style="display:none;" onclick="openCropModal(<%= i %>)">
+                                                <button type="button" id="cropBtn<%= i %>" class="btn btn-sm btn-outline-primary mt-2" style="display:none;" onclick="openCropModal(<%= i %>)">
                                                     Crop Image
-                                                </button> -->
+                                                </button>
                                             </div>
                                         </div>
                                         <% } %>
@@ -373,7 +373,7 @@
     <!-- Custom Script -->
     <script>
     class ImageManager {
-    constructor() {
+        constructor() {
         this.selectedImages = [];
         this.cropper = null;
         this.currentImageIndex = null;
@@ -394,7 +394,9 @@
     }
 
     handleImageSelect(input, index) {
+        // Get the file from the input
         const file = input.files[0];
+        
         if (!file) return;
 
         if (!file.type.match('image.*')) {
@@ -422,6 +424,7 @@
             const cropBtn = document.getElementById(`cropBtn${index}`);
             cropBtn.style.display = 'inline-block';
             
+            // Create a new thumbnail or update existing one
             this.addThumbnail(file, index, e.target.result);
         };
         reader.readAsDataURL(file);
@@ -569,8 +572,11 @@
 
     addThumbnail(file, index, blobUrl) {
         const container = document.getElementById('addedImagesContainer');
+        
+        // First remove existing thumbnail for this index if it exists
         this.removeExistingThumbnail(index);
         
+        // Create new thumbnail element
         const thumbnail = document.createElement('div');
         thumbnail.classList.add('thumbnail');
         thumbnail.setAttribute('data-index', index);
@@ -581,15 +587,19 @@
         const removeIcon = document.createElement('span');
         removeIcon.classList.add('remove-icon');
         removeIcon.innerHTML = '×';
-        removeIcon.onclick = () => this.removeThumbnail(index);
+        removeIcon.onclick = (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            this.removeThumbnail(index);
+        };
         
         thumbnail.appendChild(img);
         thumbnail.appendChild(removeIcon);
         container.appendChild(thumbnail);
         
-        // Update the stored images
+        // Update the stored images array
         const imageInfo = { file, index, blobUrl };
         const existingIndex = this.selectedImages.findIndex(img => img.index === index);
+        
         if (existingIndex !== -1) {
             this.selectedImages[existingIndex] = imageInfo;
         } else {

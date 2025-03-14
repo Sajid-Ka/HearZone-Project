@@ -52,7 +52,7 @@ router.get('/auth/google/callback',
       name: req.user.name,
       email: req.user.email
     };
-    res.redirect('/');
+    res.redirect('/home');
   }
 );
 
