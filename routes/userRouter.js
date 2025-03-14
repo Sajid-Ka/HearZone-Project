@@ -7,7 +7,7 @@ const { isLogin, isLogout } = require('../middlewares/auth');
 const passport = require('passport');
 
 // Define routes without creating circular dependencies
-router.get('/', userController.loadHomepage);
+router.get('/home', userController.loadHomepage);
 router.get('/shop', userController.loadShoppingPage);
 router.post('/search', userController.searchProducts);
 router.get('/filter', userController.filterProduct);

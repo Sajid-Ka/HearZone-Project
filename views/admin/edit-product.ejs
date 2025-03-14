@@ -376,7 +376,7 @@
 <script>
 
 
-// Form validation and submission
+
 function validateForm() {
     console.log("Validating form...");
     clearErrorMessages();
@@ -390,9 +390,9 @@ function validateForm() {
     const category = document.getElementsByName('category')[0].value;
     const quantity = document.getElementsByName('quantity')[0].value;
     
-    // Get existing image count from product data
+    
     const existingImagesCount = document.querySelectorAll('.image-item img').length;
-    // Count new image uploads
+    
     const imageInputs = document.querySelectorAll('input[name="images"]');
     let newImagesCount = 0;
     
@@ -432,7 +432,7 @@ function validateForm() {
         isValid = false;
     }
     
-    // Check if there's at least one image (either existing or new)
+    
     if (existingImagesCount === 0 && newImagesCount === 0) {
         Swal.fire({
             icon: 'error',
@@ -447,7 +447,7 @@ function validateForm() {
 
 function validateAndSubmit() {
     if (validateForm()) {
-        // Check if any changes were made
+        
         const hasChanges = checkForChanges();
         
         if (!hasChanges) {
@@ -463,7 +463,7 @@ function validateAndSubmit() {
         const form = document.querySelector('form');
         const formData = new FormData(form);
         
-        // Show loading indicator
+        
         Swal.fire({
             title: 'Updating Product',
             text: 'Please wait...',
@@ -551,7 +551,7 @@ function checkForChanges() {
         }
     });
 
-    // Check if images were deleted or new images were added
+    
     const hasImageChanges = deletedImages.length > 0 || hasNewImages;
 
     console.log('Changes detected:', changes);
@@ -560,17 +560,17 @@ function checkForChanges() {
     return hasChanges || hasImageChanges;
 }
 
-// When the page loads, store original values
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Store original brand value
+    
     const brandSelect = document.getElementsByName('brand')[0];
     brandSelect.setAttribute('data-original-value', brandSelect.value);
 
-    // Store original category value
+   
     const categorySelect = document.getElementsByName('category')[0];
     categorySelect.setAttribute('data-original-value', categorySelect.value);
 
-    // Add change event listeners to all form inputs
+    
     const form = document.querySelector('form');
     const inputs = form.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
@@ -596,8 +596,8 @@ function clearErrorMessages() {
     });
 }
 let deletedImages = [];
-// Image management functions
-// Image management functions
+
+
 function deleteImage(imageId, productId, buttonElement) {
     Swal.fire({
         title: 'Delete Image?',
@@ -639,7 +639,7 @@ function deleteImage(imageId, productId, buttonElement) {
             })
             .then(data => {
                 if (data.success) {
-                    // Add the deleted image to the tracking array
+                    
                     deletedImages.push(imageId);
                     imageItem.remove();
 
@@ -679,8 +679,8 @@ function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check file size and type
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    
+    if (file.size > 5 * 1024 * 1024) { 
         Swal.fire({
             icon: 'error',
             title: 'File too large',
@@ -690,7 +690,7 @@ function handleImageUpload(event) {
         return;
     }
     
-    // Validate file type
+    
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validTypes.includes(file.type)) {
         Swal.fire({
@@ -707,7 +707,7 @@ function handleImageUpload(event) {
         const parent = event.target.parentElement;
         const gallery = parent.parentElement;
         
-        // Create new image item with the uploaded image
+        
         const newImageItem = document.createElement('div');
         newImageItem.className = 'image-item';
         newImageItem.innerHTML = `
@@ -723,16 +723,16 @@ function handleImageUpload(event) {
                    value="${file.name}">
         `;
 
-        // Keep the file
+        
         const newFileInput = newImageItem.querySelector('input[type="file"]');
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         newFileInput.files = dataTransfer.files;
 
-        // Replace the upload button with the new image
+        
         gallery.replaceChild(newImageItem, parent);
 
-        // Add a new upload button if we haven't reached the limit of 4 images
+        
         const currentImages = gallery.querySelectorAll('.image-item').length;
         if (currentImages < 4) {
             gallery.appendChild(createUploadButton());
@@ -745,7 +745,7 @@ function removeNewImage(button) {
     const imageItem = button.closest('.image-item');
     const gallery = imageItem.parentElement;
     
-    // Replace the image with an upload button
+    
     gallery.replaceChild(createUploadButton(), imageItem);
 }
 
@@ -763,7 +763,7 @@ function createUploadButton() {
     return label;
 }
 
-// Set up form submission event
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     form.addEventListener('submit', function(e) {
@@ -771,9 +771,9 @@ document.addEventListener('DOMContentLoaded', function() {
         validateAndSubmit();
     });
 
-    // Clean up duplicate file inputs at form submission
+    
     form.addEventListener('submit', function() {
-        // This ensures we only get the last valid file input for each slot
+        
         const fileInputs = document.querySelectorAll('input[type="file"][name="images"]');
         fileInputs.forEach(input => {
             if (input.files.length === 0 && input.parentElement.className !== 'add-image-btn') {
