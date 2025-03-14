@@ -73,10 +73,13 @@ const loadHomepage = async (req, res) => {
         productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
         productData = productData.slice(0, 4);
 
-        // Single render with conditional data
+        // Add cache control headers
+        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        
         res.render('home', { 
-            user: userData || null, 
-            products: productData || [] 
+            user: userData, 
+            products: productData,
+            admin: req.session.admin // Pass admin session to view
         });
 
     } catch (err) {
@@ -89,6 +92,10 @@ const loadHomepage = async (req, res) => {
 
 const loadSignup = async (req, res) => {
     try {
+        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
+        res.header('Expires', '-1');
+        res.header('Pragma', 'no-cache');
+        
         res.render('signup', { message: null });
     } catch (err) {
         console.error('Signup page load error:', err);
@@ -187,9 +194,10 @@ const resendOtp = async (req, res) => {
 
 const loadLogin = async (req, res) => {
     try {
-        if (req.session.user) {
-            return res.redirect('/');
-        }
+        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
+        res.header('Expires', '-1');
+        res.header('Pragma', 'no-cache');
+        
         res.render('login', { message: null });
     } catch (error) {
         console.error('Login page load error:', error);

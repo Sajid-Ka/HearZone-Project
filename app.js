@@ -42,15 +42,17 @@ app.use(session({
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 72 * 60 * 60 * 1000
-    }
+    },
+    name: 'connect.sid' // explicitly name the session cookie
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Add this middleware to make user data available in templates
+// Add middleware to handle both user and admin sessions
 app.use((req, res, next) => {
-    res.locals.user = req.user;
+    res.locals.user = req.session.user || null;
+    res.locals.admin = req.session.admin || null;
     next();
 });
 

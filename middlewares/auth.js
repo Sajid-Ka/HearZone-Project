@@ -33,7 +33,64 @@ const adminAuth = (req, res, next) => {
     }
 };
 
+const isAdminAuth = (req, res, next) => {
+    try {
+        if (req.session.admin) {
+            // Don't clear user session when checking admin auth
+            next();
+        } else {
+            res.redirect('/admin/login');
+        }
+    } catch (error) {
+        console.error(error);
+        res.redirect('/admin/login');
+    }
+};
+
+const isAdminLogin = (req, res, next) => {
+    try {
+        if (req.session.admin) {
+            res.redirect('/admin/dashboard');
+        } else {
+            next();
+        }
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
+const isLogin = (req, res, next) => {
+    try {
+        if (req.session.user) {
+            res.redirect('/'); // Redirect to home if already logged in
+        } else {
+            next();
+        }
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
+const isLogout = (req, res, next) => {
+    try {
+        if (req.session.user) {
+            next();
+        } else {
+            res.redirect('/login');
+        }
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
 module.exports = {
     userAuth,
-    adminAuth
-}
+    adminAuth,
+    isLogin,
+    isLogout,
+    isAdminAuth,
+    isAdminLogin
+};

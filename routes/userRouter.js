@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/user/userController');
 const productController = require('../controllers/user/productController');
 const profileController = require('../controllers/user/profileController');
+const { isLogin, isLogout } = require('../middlewares/auth');
 
 // Define routes without creating circular dependencies
 router.get('/', userController.loadHomepage);
@@ -18,14 +19,14 @@ router.get('/product-details', async (req, res, next) => {
     }
 });
 
-// Auth routes
-router.get('/signup', userController.loadSignup);
-router.post('/signup', userController.signup);
-router.post('/verify-otp', userController.verifyOtp);
-router.post('/resend-otp', userController.resendOtp);
-router.get('/login', userController.loadLogin);
-router.post('/login', userController.login);
-router.get('/logout', userController.logout);
+// Auth routes - Add isLogin middleware
+router.get('/signup', isLogin, userController.loadSignup);
+router.post('/signup', isLogin, userController.signup);
+router.post('/verify-otp', isLogin, userController.verifyOtp);
+router.post('/resend-otp', isLogin, userController.resendOtp);
+router.get('/login', isLogin, userController.loadLogin);
+router.post('/login', isLogin, userController.login);
+router.get('/logout', isLogout, userController.logout);
 
 // Profile routes
 router.get('/forgot-password', profileController.getForgotPassPage);

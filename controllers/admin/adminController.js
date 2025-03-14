@@ -12,7 +12,13 @@ const pageError = async (req,res)=>{
 
 const loadLogin = async (req, res) => {
     try {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.header('Expires', '-1');
+        res.header('Pragma', 'no-cache');
+        
+        if (req.session.admin) {
+            return res.redirect('/admin/dashboard');
+        }
         res.render("admin-login", { message: null }); 
     } catch (error) {
         console.error("Error loading admin login page:", error);
@@ -47,31 +53,27 @@ const login = async (req, res) => {
 };
 
 const loadDashboard = async (req, res) => {
-    if (req.session.admin) {
-        try {
-            res.render("dashboard");  
-        } catch (error) {
-            console.error("Error loading Dashboard:", error);
-            return res.redirect("/admin/pageError");
-        }
-    } else {
-        return res.redirect("/admin/login");
+    try {
+        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.header('Expires', '-1');
+        res.header('Pragma', 'no-cache');
+        
+        res.render("dashboard");
+    } catch (error) {
+        console.error("Error loading Dashboard:", error);
+        return res.redirect("/admin/pageError");
     }
 };
 
 const logout = async (req, res) => {
     try {
-        req.session.destroy(err => {
-            if(err) {
-                console.log("Error destroying session", err);
-                return res.redirect('/pageError');
-            }
-            res.setHeader('Clear-Site-Data', '"storage"');
-            res.redirect('/admin/login');
-        });
+        // Only delete admin session data, preserve user session
+        delete req.session.admin;
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.redirect('/admin/login');
     } catch (error) {
         console.log("Admin logout Error", error);
-        res.redirect("/pageError");
+        res.redirect("/admin/pageError");
     }
 }
 
