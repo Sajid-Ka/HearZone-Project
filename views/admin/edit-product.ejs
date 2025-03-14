@@ -535,14 +535,12 @@ function checkForChanges() {
         category: document.getElementsByName('category')[0].getAttribute('data-original-value') || document.getElementsByName('category')[0].value
     };
 
-    // Check for new images
     const hasNewImages = Array.from(document.querySelectorAll('input[type="file"]'))
         .some(input => input.files && input.files.length > 0);
 
-    // Compare each field and log differences
     const changes = {};
     let hasChanges = false;
-    
+
     Object.keys(currentData).forEach(key => {
         if (String(currentData[key]) !== String(originalData[key])) {
             changes[key] = {
@@ -553,11 +551,13 @@ function checkForChanges() {
         }
     });
 
-    // Log changes for debugging
-    console.log('Changes detected:', changes);
-    console.log('Has new images:', hasNewImages);
+    // Check if images were deleted or new images were added
+    const hasImageChanges = deletedImages.length > 0 || hasNewImages;
 
-    return hasChanges || hasNewImages;
+    console.log('Changes detected:', changes);
+    console.log('Has image changes:', hasImageChanges, 'Deleted images:', deletedImages, 'New images:', hasNewImages);
+
+    return hasChanges || hasImageChanges;
 }
 
 // When the page loads, store original values
@@ -595,7 +595,7 @@ function clearErrorMessages() {
         element.innerText = '';
     });
 }
-
+let deletedImages = [];
 // Image management functions
 // Image management functions
 function deleteImage(imageId, productId, buttonElement) {
@@ -611,8 +611,7 @@ function deleteImage(imageId, productId, buttonElement) {
     }).then((result) => {
         if (result.isConfirmed) {
             const imageItem = buttonElement.closest('.image-item');
-            
-            // Show loading state
+
             Swal.fire({
                 title: 'Deleting...',
                 text: 'Please wait',
@@ -640,13 +639,14 @@ function deleteImage(imageId, productId, buttonElement) {
             })
             .then(data => {
                 if (data.success) {
+                    // Add the deleted image to the tracking array
+                    deletedImages.push(imageId);
                     imageItem.remove();
-                    
-                    // Add new upload slot
+
                     const gallery = document.querySelector('.image-gallery');
                     const currentImageCount = gallery.querySelectorAll('.image-item').length;
                     const uploadSlots = gallery.querySelectorAll('.add-image-btn').length;
-                    
+
                     if (currentImageCount + uploadSlots < 4) {
                         gallery.appendChild(createUploadButton());
                     }
