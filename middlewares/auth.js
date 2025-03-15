@@ -1,7 +1,15 @@
 const User = require("../models/userSchema");
 const mongoose = require('mongoose');
 
+const protectedUserRoutes = process.env.PROTECTED_USER_ROUTES?.split(',') || [];
+const protectedAdminRoutes = process.env.PROTECTED_ADMIN_ROUTES?.split(',') || [];
+
 const userAuth = (req, res, next) => {
+    const path = req.path;
+    if (!protectedUserRoutes.some(route => path.startsWith(route))) {
+        return next();
+    }
+
     if (req.session.user) {
         const userId = req.session.user.id || req.session.user._id || req.session.user;
         if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -26,17 +34,21 @@ const userAuth = (req, res, next) => {
 };
 
 const adminAuth = (req, res, next) => {
-    if (req.session.admin) {  
-        return next(); 
+    const path = req.path;
+    if (!protectedAdminRoutes.some(route => path.startsWith(route))) {
+        return next();
+    }
+
+    if (req.session.admin) {
+        return next();
     } else {
-        return res.redirect('/admin/login'); 
+        return res.redirect('/admin/login');
     }
 };
 
 const isAdminAuth = (req, res, next) => {
     try {
         if (req.session.admin) {
-            
             next();
         } else {
             res.redirect('/admin/login');

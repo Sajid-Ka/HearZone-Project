@@ -3,7 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/user/userController');
 const productController = require('../controllers/user/productController');
 const profileController = require('../controllers/user/profileController');
-const { isLogin, isLogout } = require('../middlewares/auth');
+const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const passport = require('passport');
 
 // Define routes without creating circular dependencies
@@ -19,6 +19,9 @@ router.get('/product-details', async (req, res, next) => {
         next(error);
     }
 });
+
+// Apply userAuth middleware to all routes
+router.use(userAuth);
 
 // Auth routes - Add isLogin middleware
 router.get('/signup', isLogin, userController.loadSignup);
