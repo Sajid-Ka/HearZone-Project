@@ -615,6 +615,7 @@ function deleteImage(imageId, productId, buttonElement) {
     }).then((result) => {
         if (result.isConfirmed) {
             const imageItem = buttonElement.closest('.image-item');
+            const gallery = imageItem.parentElement;
 
             Swal.fire({
                 title: 'Deleting...',
@@ -643,16 +644,16 @@ function deleteImage(imageId, productId, buttonElement) {
             })
             .then(data => {
                 if (data.success) {
-                    
                     deletedImages.push(imageId);
                     imageItem.remove();
 
-                    const gallery = document.querySelector('.image-gallery');
-                    const currentImageCount = gallery.querySelectorAll('.image-item').length;
-                    const uploadSlots = gallery.querySelectorAll('.add-image-btn').length;
-
-                    if (currentImageCount + uploadSlots < 4) {
-                        gallery.appendChild(createUploadButton());
+                    // Update upload button logic
+                    const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
+                    if (totalItems < 4) {
+                        const existingUploadBtn = gallery.querySelector('.add-image-btn');
+                        if (!existingUploadBtn) {
+                            gallery.appendChild(createUploadButton());
+                        }
                     }
 
                     Swal.fire({
@@ -792,10 +793,13 @@ function handleImageUpload(event) {
                 // Replace the upload button with the new image
                 gallery.replaceChild(newImageItem, parent);
                 
-                // Add a new upload button if we haven't reached 4 images
-                const currentImages = gallery.querySelectorAll('.image-item').length;
-                if (currentImages < 4) {
-                    gallery.appendChild(createUploadButton());
+                // Check total number of items (images + upload buttons)
+                const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
+                if (totalItems < 4) {
+                    const existingUploadBtn = gallery.querySelector('.add-image-btn');
+                    if (!existingUploadBtn) {
+                        gallery.appendChild(createUploadButton());
+                    }
                 }
                 
                 // Close the modal
@@ -811,8 +815,16 @@ function removeNewImage(button) {
     const imageItem = button.closest('.image-item');
     const gallery = imageItem.parentElement;
     
-    
-    gallery.replaceChild(createUploadButton(), imageItem);
+    imageItem.remove();
+
+    // Check if we need to add an upload button
+    const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
+    if (totalItems < 4) {
+        const existingUploadBtn = gallery.querySelector('.add-image-btn');
+        if (!existingUploadBtn) {
+            gallery.appendChild(createUploadButton());
+        }
+    }
 }
 
 function createUploadButton() {
