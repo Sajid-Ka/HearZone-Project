@@ -190,13 +190,24 @@ const fsExists = async (path) => {
 };
 
 const safeDelete = async (filePath) => {
-    try {
-        if (await fsExists(filePath)) {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const exists = await fs.access(filePath).then(() => true).catch(() => false);
+            if (!exists) return true;
+
             await fs.unlink(filePath);
             return true;
+        } catch (error) {
+            if (attempt === maxRetries) {
+                console.warn(`Warning: Could not delete file ${filePath} after ${maxRetries} attempts:`, error);
+                return false;
+            }
+            // Wait before next attempt
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
-    } catch (error) {
-        console.warn(`Warning: Could not delete file ${filePath}:`, error);
     }
     return false;
 };
@@ -220,6 +231,7 @@ const editProduct = async (req, res) => {
                 const reImagePath = path.join(reImageDir, filename);
 
                 try {
+                    // Process images first
                     await Promise.all([
                         sharp(tempPath)
                             .resize(600, 600, { fit: 'cover', position: 'center' })
@@ -230,11 +242,17 @@ const editProduct = async (req, res) => {
                             .jpeg({ quality: 90 })
                             .toFile(reImagePath)
                     ]);
+
                     images.push(filename);
-                } finally {
-                    // Wait a bit before trying to delete the temp file
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    await safeDelete(tempPath);
+
+                    // Schedule temp file deletion for later
+                    setTimeout(async () => {
+                        await safeDelete(tempPath);
+                    }, 2000); // Wait 2 seconds before attempting deletion
+
+                } catch (error) {
+                    console.warn(`Warning: Error processing image ${filename}:`, error);
+                    // Continue with other files even if one fails
                 }
             }
         }
@@ -264,12 +282,13 @@ const editProduct = async (req, res) => {
     } catch (error) {
         console.error("Error editing product:", error);
         
-        // Clean up any remaining temp files
+        // Clean up any remaining temp files with delay
         if (req.files) {
-            for (const file of req.files) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                await safeDelete(file.path);
-            }
+            setTimeout(async () => {
+                for (const file of req.files) {
+                    await safeDelete(file.path);
+                }
+            }, 2000);
         }
         return res.status(500).json({ success: false, message: error.message });
     }
