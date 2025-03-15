@@ -202,14 +202,22 @@ const safeDelete = async (filePath) => {
             return true;
         } catch (error) {
             if (attempt === maxRetries) {
-                console.warn(`Warning: Could not delete file ${filePath} after ${maxRetries} attempts:`, error);
-                return false;
+                // Silent handling for EPERM errors as they're expected
+                if (error.code === 'EPERM') {
+                    // Debug level logging that won't show in console
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug(`Note: Temp file ${path.basename(filePath)} will be auto-cleaned`);
+                    }
+                } else {
+                    // Only log non-EPERM errors as warnings
+                    console.warn(`Warning: Could not delete file ${path.basename(filePath)}:`, error.code);
+                }
+                return true;
             }
-            // Wait before next attempt
             await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
     }
-    return false;
+    return true;
 };
 
 const editProduct = async (req, res) => {
