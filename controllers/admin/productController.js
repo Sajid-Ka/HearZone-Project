@@ -180,6 +180,27 @@ const getEditProduct = async (req, res) => {
     }
 };
 
+const fsExists = async (path) => {
+    try {
+        await fs.access(path);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const safeDelete = async (filePath) => {
+    try {
+        if (await fsExists(filePath)) {
+            await fs.unlink(filePath);
+            return true;
+        }
+    } catch (error) {
+        console.warn(`Warning: Could not delete file ${filePath}:`, error);
+    }
+    return false;
+};
+
 const editProduct = async (req, res) => {
     try {
         const id = req.params.id;
@@ -211,14 +232,9 @@ const editProduct = async (req, res) => {
                     ]);
                     images.push(filename);
                 } finally {
-                    // Close any open file handles before attempting to delete
-                    try {
-                        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure file handles are released
-                        await fs.unlink(tempPath);
-                    } catch (unlinkError) {
-                        console.warn(`Warning: Could not delete temp file ${tempPath}:`, unlinkError);
-                        // Continue execution even if temp file deletion fails
-                    }
+                    // Wait a bit before trying to delete the temp file
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await safeDelete(tempPath);
                 }
             }
         }
@@ -248,15 +264,11 @@ const editProduct = async (req, res) => {
     } catch (error) {
         console.error("Error editing product:", error);
         
-        // Attempt to clean up any remaining temp files
+        // Clean up any remaining temp files
         if (req.files) {
             for (const file of req.files) {
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    await fs.unlink(file.path);
-                } catch (cleanupError) {
-                    console.warn(`Cleanup warning for ${file.path}:`, cleanupError);
-                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await safeDelete(file.path);
             }
         }
         return res.status(500).json({ success: false, message: error.message });
@@ -279,18 +291,20 @@ const deleteSingleImage = async (req, res) => {
             return res.status(400).json({ success: false, message: "Cannot delete the last image" });
         }
 
+        // Update database first
         const updatedProduct = await Product.findByIdAndUpdate(
             productIdToServer,
             { $pull: { productImage: imageNameToServer } },
             { new: true }
         );
 
+        // Then try to delete the physical files
         const imagePath = path.join(productImagesDir, imageNameToServer);
         const reImagePath = path.join(reImageDir, imageNameToServer);
 
         await Promise.all([
-            fs.unlink(imagePath).catch(err => console.warn(`Failed to delete ${imagePath}:`, err)),
-            fs.unlink(reImagePath).catch(err => console.warn(`Failed to delete ${reImagePath}:`, err))
+            safeDelete(imagePath),
+            safeDelete(reImagePath)
         ]);
 
         return res.status(200).json({
