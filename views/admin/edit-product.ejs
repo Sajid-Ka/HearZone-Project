@@ -217,6 +217,15 @@
     .image-actions {
         gap: 10px;
     }
+
+    .crop-btn {
+        background: #28a745;
+        margin-left: 5px;
+    }
+
+    .crop-btn:hover {
+        background: #218838;
+    }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -336,6 +345,11 @@
                                                         class="remove-image-btn"
                                                         onclick="deleteImage('<%=product.productImage[i]%>', '<%=product._id%>', this)">
                                                     <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                                <button type="button" 
+                                                        class="remove-image-btn crop-btn"
+                                                        onclick="cropExistingImage(this)">
+                                                    <i class="fas fa-crop"></i> Crop
                                                 </button>
                                             </div>
                                         </div>
@@ -707,108 +721,102 @@ function handleImageUpload(event) {
         return;
     }
 
-    // Set up the cropper modal
-    setupImageCropper();
-    
-    // Set the current file input for reference
-    currentFileInput = event.target;
-    
-    // Read the file and set up the cropper
+    // Create preview immediately without cropping
     const reader = new FileReader();
     reader.onload = function(e) {
-        const cropperImage = document.getElementById('cropperImage');
-        cropperImage.src = e.target.result;
+        const parent = event.target.parentElement;
+        const gallery = parent.parentElement;
         
-        // Initialize Bootstrap modal
-        const cropperModal = new bootstrap.Modal(document.getElementById('cropperModal'));
-        cropperModal.show();
+        const newImageItem = document.createElement('div');
+        newImageItem.className = 'image-item';
+        newImageItem.innerHTML = `
+            <img src="${e.target.result}" alt="New product image">
+            <div class="image-actions">
+                <button type="button" class="remove-image-btn" onclick="removeNewImage(this)">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button type="button" class="remove-image-btn crop-btn" onclick="cropExistingImage(this)">
+                    <i class="fas fa-crop"></i> Crop
+                </button>
+            </div>
+            <input type="file" name="images" style="display: none;">
+        `;
         
-        // Initialize cropper after modal is shown
-        document.getElementById('cropperModal').addEventListener('shown.bs.modal', function() {
-            if (cropper) {
-                cropper.destroy();
+        // Set the file to the hidden input
+        const newFileInput = newImageItem.querySelector('input[type="file"]');
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        newFileInput.files = dataTransfer.files;
+        
+        gallery.replaceChild(newImageItem, parent);
+        
+        // Add new upload button if needed
+        const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
+        if (totalItems < 4) {
+            const existingUploadBtn = gallery.querySelector('.add-image-btn');
+            if (!existingUploadBtn) {
+                gallery.appendChild(createUploadButton());
             }
-            
-            cropper = new Cropper(cropperImage, {
-                aspectRatio: 1, // 1:1 ratio for product images
-                viewMode: 1,
-                responsive: true,
-                zoomable: true,
-                background: false,
-                autoCropArea: 0.8, // Define the automatic cropping area size
-                guides: true
-            });
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function cropExistingImage(button) {
+    const imageElement = button.closest('.image-item').querySelector('img');
+    setupImageCropper();
+    
+    const cropperModal = new bootstrap.Modal(document.getElementById('cropperModal'));
+    const cropperImage = document.getElementById('cropperImage');
+    cropperImage.src = imageElement.src;
+    
+    cropperModal.show();
+    
+    document.getElementById('cropperModal').addEventListener('shown.bs.modal', function() {
+        if (cropper) {
+            cropper.destroy();
+        }
+        
+        cropper = new Cropper(cropperImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            responsive: true,
+            zoomable: true,
+            background: false,
+            autoCropArea: 0.8,
+            guides: true
+        });
+    });
+    
+    document.getElementById('cropImageBtn').onclick = function() {
+        const canvas = cropper.getCroppedCanvas({
+            width: 600,
+            height: 600,
+            imageSmoothingQuality: 'high'
         });
         
-        // Set up crop button handler
-        document.getElementById('cropImageBtn').onclick = function() {
-            // Get the cropped image canvas
-            const canvas = cropper.getCroppedCanvas({
-                width: 600, // Output size
-                height: 600,
-                imageSmoothingQuality: 'high'
-            });
+        canvas.toBlob(function(blob) {
+            const imageUrl = URL.createObjectURL(blob);
+            imageElement.src = imageUrl;
             
-            // Convert canvas to blob
-            canvas.toBlob(function(blob) {
-                // Create a new File from the blob
-                const croppedFile = new File([blob], file.name, {
-                    type: file.type,
-                    lastModified: Date.now()
-                });
-                
-                // Create a new FileList-like object
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(croppedFile);
-                
-                // Set the FileList to the file input
-                currentFileInput.files = dataTransfer.files;
-                
-                // Create preview image
-                const imageUrl = URL.createObjectURL(blob);
-                
-                // Handle the cropped image like in the original function
-                const parent = currentFileInput.parentElement;
-                const gallery = parent.parentElement;
-                
-                // Create new image item with the cropped image
-                const newImageItem = document.createElement('div');
-                newImageItem.className = 'image-item';
-                newImageItem.innerHTML = `
-                    <img src="${imageUrl}" alt="New product image">
-                    <div class="image-actions">
-                        <button type="button" class="remove-image-btn" onclick="removeNewImage(this)">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                    <input type="file" name="images" 
-                           accept="image/png, image/jpeg, image/jpg"
-                           style="display: none;">
-                `;
-                
-                // Set the file to the hidden input
-                const newFileInput = newImageItem.querySelector('input[type="file"]');
-                newFileInput.files = dataTransfer.files;
-                
-                // Replace the upload button with the new image
-                gallery.replaceChild(newImageItem, parent);
-                
-                // Check total number of items (images + upload buttons)
-                const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
-                if (totalItems < 4) {
-                    const existingUploadBtn = gallery.querySelector('.add-image-btn');
-                    if (!existingUploadBtn) {
-                        gallery.appendChild(createUploadButton());
-                    }
-                }
-                
-                // Close the modal
-                bootstrap.Modal.getInstance(document.getElementById('cropperModal')).hide();
-            }, file.type);
-        };
+            // Create a new file input for the cropped image
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' }));
+            
+            // Find or create hidden file input
+            let fileInput = button.closest('.image-item').querySelector('input[type="file"]');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.name = 'images';
+                fileInput.style.display = 'none';
+                button.closest('.image-item').appendChild(fileInput);
+            }
+            fileInput.files = dataTransfer.files;
+            
+            bootstrap.Modal.getInstance(document.getElementById('cropperModal')).hide();
+        }, 'image/jpeg');
     };
-    
-    reader.readAsDataURL(file);
 }
 
 function removeNewImage(button) {
