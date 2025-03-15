@@ -190,45 +190,36 @@ const editProduct = async (req, res) => {
 
         const data = req.body;
 
-        
-        const hasNameChange = data.productName !== product.productName;
-        const hasDescriptionChange = data.descriptionData !== product.description;
-        const hasBrandChange = data.brand !== product.brand.toString();
-        const hasRegularPriceChange = Number(data.regularPrice) !== product.regularPrice;
-        const hasSalePriceChange = Number(data.salePrice || 0) !== product.salePrice;
-        const hasQuantityChange = Number(data.quantity) !== product.quantity;
-        const hasColorChange = data.color !== product.color;
-        const hasCategoryChange = data.category !== product.category.name;
-        const hasNewImages = req.files && req.files.length > 0;
-
-        if (!hasNameChange && !hasDescriptionChange && !hasBrandChange &&
-            !hasRegularPriceChange && !hasSalePriceChange && !hasQuantityChange &&
-            !hasColorChange && !hasCategoryChange && !hasNewImages) {
-            return res.status(400).json({ success: false, message: "No changes detected" });
-        }
-
-        
-
         const images = [];
-        if (hasNewImages) {
+        if (req.files && req.files.length > 0) {
             for (const file of req.files) {
                 const filename = file.filename;
                 const tempPath = file.path;
                 const productImagePath = path.join(productImagesDir, filename);
                 const reImagePath = path.join(reImageDir, filename);
 
-                await Promise.all([
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(productImagePath),
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(reImagePath)
-                ]);
-                images.push(filename);
-                await fs.unlink(tempPath).catch(err => console.warn(`Failed to delete temp file ${tempPath}:`, err));
+                try {
+                    await Promise.all([
+                        sharp(tempPath)
+                            .resize(600, 600, { fit: 'cover', position: 'center' })
+                            .jpeg({ quality: 90 })
+                            .toFile(productImagePath),
+                        sharp(tempPath)
+                            .resize(600, 600, { fit: 'cover', position: 'center' })
+                            .jpeg({ quality: 90 })
+                            .toFile(reImagePath)
+                    ]);
+                    images.push(filename);
+                } finally {
+                    // Close any open file handles before attempting to delete
+                    try {
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure file handles are released
+                        await fs.unlink(tempPath);
+                    } catch (unlinkError) {
+                        console.warn(`Warning: Could not delete temp file ${tempPath}:`, unlinkError);
+                        // Continue execution even if temp file deletion fails
+                    }
+                }
             }
         }
 
@@ -248,18 +239,25 @@ const editProduct = async (req, res) => {
             color: data.color,
         };
 
-        
         if (images.length > 0) {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
 
         await Product.findByIdAndUpdate(id, updateFields);
         return res.status(200).json({ success: true, message: "Product updated successfully" });
-    }catch (error) {
+    } catch (error) {
         console.error("Error editing product:", error);
         
+        // Attempt to clean up any remaining temp files
         if (req.files) {
-            await Promise.all(req.files.map(file => fs.unlink(file.path).catch(err => console.warn(`Cleanup failed for ${file.path}:`, err))));
+            for (const file of req.files) {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await fs.unlink(file.path);
+                } catch (cleanupError) {
+                    console.warn(`Cleanup warning for ${file.path}:`, cleanupError);
+                }
+            }
         }
         return res.status(500).json({ success: false, message: error.message });
     }
