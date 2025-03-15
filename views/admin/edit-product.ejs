@@ -220,6 +220,7 @@
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <section class="content-main">
     <div class="row">
@@ -678,8 +679,8 @@ function deleteImage(imageId, productId, buttonElement) {
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     
+    // Validate file size
     if (file.size > 5 * 1024 * 1024) { 
         Swal.fire({
             icon: 'error',
@@ -690,7 +691,7 @@ function handleImageUpload(event) {
         return;
     }
     
-    
+    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validTypes.includes(file.type)) {
         Swal.fire({
@@ -702,42 +703,104 @@ function handleImageUpload(event) {
         return;
     }
 
+    // Set up the cropper modal
+    setupImageCropper();
+    
+    // Set the current file input for reference
+    currentFileInput = event.target;
+    
+    // Read the file and set up the cropper
     const reader = new FileReader();
     reader.onload = function(e) {
-        const parent = event.target.parentElement;
-        const gallery = parent.parentElement;
+        const cropperImage = document.getElementById('cropperImage');
+        cropperImage.src = e.target.result;
         
+        // Initialize Bootstrap modal
+        const cropperModal = new bootstrap.Modal(document.getElementById('cropperModal'));
+        cropperModal.show();
         
-        const newImageItem = document.createElement('div');
-        newImageItem.className = 'image-item';
-        newImageItem.innerHTML = `
-            <img src="${e.target.result}" alt="New product image">
-            <div class="image-actions">
-                <button type="button" class="remove-image-btn" onclick="removeNewImage(this)">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-            <input type="file" name="images" 
-                   accept="image/png, image/jpeg, image/jpg"
-                   style="display: none;"
-                   value="${file.name}">
-        `;
-
+        // Initialize cropper after modal is shown
+        document.getElementById('cropperModal').addEventListener('shown.bs.modal', function() {
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            cropper = new Cropper(cropperImage, {
+                aspectRatio: 1, // 1:1 ratio for product images
+                viewMode: 1,
+                responsive: true,
+                zoomable: true,
+                background: false,
+                autoCropArea: 0.8, // Define the automatic cropping area size
+                guides: true
+            });
+        });
         
-        const newFileInput = newImageItem.querySelector('input[type="file"]');
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        newFileInput.files = dataTransfer.files;
-
-        
-        gallery.replaceChild(newImageItem, parent);
-
-        
-        const currentImages = gallery.querySelectorAll('.image-item').length;
-        if (currentImages < 4) {
-            gallery.appendChild(createUploadButton());
-        }
+        // Set up crop button handler
+        document.getElementById('cropImageBtn').onclick = function() {
+            // Get the cropped image canvas
+            const canvas = cropper.getCroppedCanvas({
+                width: 600, // Output size
+                height: 600,
+                imageSmoothingQuality: 'high'
+            });
+            
+            // Convert canvas to blob
+            canvas.toBlob(function(blob) {
+                // Create a new File from the blob
+                const croppedFile = new File([blob], file.name, {
+                    type: file.type,
+                    lastModified: Date.now()
+                });
+                
+                // Create a new FileList-like object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(croppedFile);
+                
+                // Set the FileList to the file input
+                currentFileInput.files = dataTransfer.files;
+                
+                // Create preview image
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Handle the cropped image like in the original function
+                const parent = currentFileInput.parentElement;
+                const gallery = parent.parentElement;
+                
+                // Create new image item with the cropped image
+                const newImageItem = document.createElement('div');
+                newImageItem.className = 'image-item';
+                newImageItem.innerHTML = `
+                    <img src="${imageUrl}" alt="New product image">
+                    <div class="image-actions">
+                        <button type="button" class="remove-image-btn" onclick="removeNewImage(this)">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <input type="file" name="images" 
+                           accept="image/png, image/jpeg, image/jpg"
+                           style="display: none;">
+                `;
+                
+                // Set the file to the hidden input
+                const newFileInput = newImageItem.querySelector('input[type="file"]');
+                newFileInput.files = dataTransfer.files;
+                
+                // Replace the upload button with the new image
+                gallery.replaceChild(newImageItem, parent);
+                
+                // Add a new upload button if we haven't reached 4 images
+                const currentImages = gallery.querySelectorAll('.image-item').length;
+                if (currentImages < 4) {
+                    gallery.appendChild(createUploadButton());
+                }
+                
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('cropperModal')).hide();
+            }, file.type);
+        };
     };
+    
     reader.readAsDataURL(file);
 }
 
@@ -782,6 +845,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function setupImageCropper() {
+    // Create modal HTML if it doesn't exist
+    if (!document.getElementById('cropperModal')) {
+        const modalHTML = `
+            <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="img-container">
+                                <img id="cropperImage" src="" alt="Image to crop">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="cropImageBtn">Crop</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+}
+
+// Global variables for cropper
+let cropper;
+let currentFileInput;
+
 
 function displayErrorMessage(elementId, message) {
     var errorElement = document.getElementById(elementId);

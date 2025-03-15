@@ -168,7 +168,7 @@
         .img-container {
             height: 400px;
             width: 100%;
-            overflow: hidden;
+            padding: 20px;  /* Add padding */
             background: #f8f9fa;
         }
         
@@ -196,6 +196,12 @@
             gap: 10px;
             justify-content: flex-end;
             width: 100%;
+        }
+
+        #cropperImage {
+            max-height: 100%;
+            max-width: 100%;
+            display: block;
         }
 
         #cropBtn {
@@ -338,9 +344,9 @@
         </div>
     </section>
 
-    <!-- Cropper Modal -->
+    
    <!-- Cropper Modal -->
-<div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true">
+   <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -372,8 +378,8 @@
 
     <!-- Custom Script -->
     <script>
-    class ImageManager {
-        constructor() {
+   class ImageManager {
+    constructor() {
         this.selectedImages = [];
         this.cropper = null;
         this.currentImageIndex = null;
@@ -386,10 +392,46 @@
         
         // Clear cropper instance when modal is hidden
         $('#cropperModal').on('hidden.bs.modal', () => {
+                    if (this.cropper) {
+                        this.cropper.destroy();
+                        this.cropper = null;
+                    }
+                });
+
+                // Initialize cropper when modal is shown
+                $('#cropperModal').on('shown.bs.modal', () => {
+            const image = document.getElementById('cropperImage');
+            
+            // Ensure we destroy any existing cropper before creating a new one
             if (this.cropper) {
                 this.cropper.destroy();
-                this.cropper = null;
             }
+            
+            // Wait a brief moment for the image to fully render
+            setTimeout(() => {
+                // Initialize new cropper
+                this.cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,  // Changed to viewMode 1
+                    zoomable: true,
+                    scalable: true,
+                    rotatable: true,
+                    movable: true,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,  // Increased auto crop area
+                    responsive: true,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: true,
+                    minContainerWidth: 200,
+                    minContainerHeight: 200
+                });
+            }, 300);
+        });
+
+        // Ensure modal close buttons work
+        $('.close, .btn-secondary').on('click', () => {
+            $('#cropperModal').modal('hide');
         });
     }
 
@@ -434,58 +476,25 @@
         this.currentImageIndex = index;
         const imagePreview = document.getElementById(`imgView${index}`);
         const cropperImage = document.getElementById('cropperImage');
-        cropperImage.src = imagePreview.src;
         
-        $('#cropperModal').modal('show');
-        
-        // Initialize cropper after modal is fully shown
-        $('#cropperModal').on('shown.bs.modal', () => {
-            setTimeout(() => {
-                this.initCropper();
-            }, 300);
-        });
-    }
-
-    initCropper() {
-        const image = document.getElementById('cropperImage');
-        
-        // Destroy existing cropper if it exists
+        // Reset cropper if it exists
         if (this.cropper) {
             this.cropper.destroy();
+            this.cropper = null;
         }
         
-        // Initialize new cropper
-        this.cropper = new Cropper(image, {
-            aspectRatio: 1, // Square crop
-            viewMode: 1,    // Restrict view to crop box
-            dragMode: 'move',
-            guides: true,
-            center: true,
-            highlight: false,
-            cropBoxMovable: true,
-            cropBoxResizable: true,
-            toggleDragModeOnDblclick: false,
-            autoCropArea: 0.8,
-            responsive: true,
-            background: false,
-            minContainerWidth: 300,
-            minContainerHeight: 300,
-            ready: () => {
-                console.log('Cropper initialized successfully');
-            }
-        });
+        // Set source and show modal
+        cropperImage.src = imagePreview.src;
+        
+        // Show modal after a short delay to ensure image is loaded
+        setTimeout(() => {
+            $('#cropperModal').modal('show');
+        }, 100);
     }
 
     cropImage() {
-        console.log('Crop button clicked');
-        
         if (!this.cropper) {
             console.error('Cropper not initialized');
-            return;
-        }
-        
-        if (this.currentImageIndex === null) {
-            console.error('No image selected');
             return;
         }
         
@@ -528,6 +537,8 @@
                 // Close the modal
                 $('#cropperModal').modal('hide');
                 
+                // Add a console log for debugging
+                console.log('Crop successful:', file);
             }, 'image/jpeg', 0.9);
         } catch (error) {
             console.error('Error cropping image:', error);
@@ -630,6 +641,7 @@
     }
 }
 
+
     class FormValidator {
         static validate() {
             this.clearErrors();
@@ -712,9 +724,31 @@
         }
     }
 
+    
+
+    
+   
+   // Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize image manager
+    window.imageManager = new ImageManager();
+    
+    // Make sure modal backdrop functions properly
+    $(document).on('click', '.modal', function(e) {
+            if ($(e.target).hasClass('modal')) {
+                $(this).modal('hide');
+            }
+        });
+        
+        // Add explicit event handlers for modal close buttons
+        $('.close, .btn-secondary').on('click', function() {
+            $('#cropperModal').modal('hide');
+        });
+    });
+
     // Global functions
     function handleImageSelect(input, index) {
-    window.imageManager.handleImageSelect(input, index);
+        window.imageManager.handleImageSelect(input, index);
     }
 
     function openCropModal(index) {
@@ -724,27 +758,5 @@
     function validateAndSubmit() {
         FormValidator.submit();
     }
-
-    
-   // Initialize on page load
-   document.addEventListener('DOMContentLoaded', () => {
-    // Initialize image manager
-    window.imageManager = new ImageManager();
-    
-    // Fix for the modal backdrop issue
-    $(document).on('click', '.modal-backdrop', function() {
-        $('.modal').modal('hide');
-    });
-    
-    // Ensure modal close button works
-    $('.close').on('click', function() {
-        $('#cropperModal').modal('hide');
-    });
-    
-    // Ensure the cancel button works
-    $('.btn-secondary[data-dismiss="modal"]').on('click', function() {
-        $('#cropperModal').modal('hide');
-    });
-});
 
 </script>
