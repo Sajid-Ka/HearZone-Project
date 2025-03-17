@@ -226,6 +226,20 @@
     .crop-btn:hover {
         background: #218838;
     }
+
+    #cancelbtn {
+        background-color: #ffebee;
+        color: #d32f2f;
+        border: 1px solid #ffcdd2;
+        margin-left: 10px;
+        transition: all 0.3s ease;
+    }
+
+    #cancelbtn:hover {
+        background-color: #ffcdd2;
+        color: #c62828;
+        transform: translateY(-2px);
+    }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -369,13 +383,17 @@
                             </div>
                         </div>
                         <div>
-
-
                             <button class="btn btn-md rounded font-sm hover-up" 
-            id="updatebtn" 
-            type="submit">
-        Update
-    </button>
+                                    id="updatebtn" 
+                                    type="submit">
+                                Update
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-md rounded font-sm hover-up" 
+                                    id="cancelbtn" 
+                                    onclick="cancelEdit()">
+                                Cancel
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -915,6 +933,23 @@ function clearErrorMessages() {
     Array.from(errorElements).forEach(element => {
         element.style.display = "none";
         element.innerText = '';
+    });
+}
+
+function cancelEdit() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Any unsaved changes will be lost!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, leave page',
+        cancelButtonText: 'Stay here'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/admin/products';
+        }
     });
 }
            
