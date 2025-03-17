@@ -38,35 +38,57 @@ const addProducts = async (req, res) => {
         }
 
         const products = req.body;
-        // Case-insensitive product name check
         const productExists = await Product.findOne({ 
             productName: { $regex: new RegExp(`^${products.productName}$`, 'i') }
         });
         
         if (productExists) {
-            await Promise.all(req.files.map(file => fs.unlink(file.path).catch(err => console.warn(`Failed to clean up ${file.path}:`, err))));
+            // Clean up uploaded files safely
+            for (const file of req.files) {
+                try {
+                    await safeDelete(file.path);
+                } catch (err) {
+                    console.warn(`Warning: Could not delete temp file ${file.path}:`, err.code);
+                }
+            }
             return res.status(400).json({ success: false, message: "Product Already Exists" });
         }
 
         const images = [];
         for (const file of req.files) {
             const filename = file.filename;
+            const tempPath = file.path; // Store temp path
             const reImagePath = path.join(reImageDir, filename);
             const productImagePath = path.join(productImagesDir, filename);
 
-            await Promise.all([
-                sharp(file.path)
-                    .resize(600, 600, { fit: 'cover', position: 'center' })
-                    .jpeg({ quality: 90 })
-                    .toFile(productImagePath),
-                sharp(file.path)
-                    .resize(600, 600, { fit: 'cover', position: 'center' })
-                    .jpeg({ quality: 90 })
-                    .toFile(reImagePath)
-            ]);
+            try {
+                // Process images first
+                await Promise.all([
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
+                        .jpeg({ quality: 90 })
+                        .toFile(productImagePath),
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
+                        .jpeg({ quality: 90 })
+                        .toFile(reImagePath)
+                ]);
 
-            images.push(filename);
-            await fs.unlink(file.path).catch(err => console.warn(`Failed to delete temp file ${file.path}:`, err));
+                images.push(filename);
+
+                // Schedule temp file deletion with retry
+                setTimeout(async () => {
+                    try {
+                        await safeDelete(tempPath);
+                    } catch (err) {
+                        console.warn(`Warning: Could not delete temp file ${tempPath}:`, err.code);
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.warn(`Warning: Error processing image ${filename}:`, error);
+                // Continue with other files even if one fails
+            }
         }
 
         const [categoryId, brandDoc] = await Promise.all([
@@ -107,7 +129,16 @@ const addProducts = async (req, res) => {
         return res.status(200).json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Error saving product:", error);
-        await Promise.all((req.files || []).map(file => fs.unlink(file.path).catch(err => console.warn(`Cleanup failed for ${file.path}:`, err))));
+        // Clean up any remaining files
+        if (req.files) {
+            for (const file of req.files) {
+                try {
+                    await safeDelete(file.path);
+                } catch (err) {
+                    console.warn(`Warning: Cleanup failed for ${file.path}:`, err.code);
+                }
+            }
+        }
         return res.status(500).json({ success: false, message: error.message || "An error occurred while adding the product" });
     }
 };
@@ -208,35 +239,32 @@ const fsExists = async (path) => {
     }
 };
 
-const safeDelete = async (filePath) => {
-    const maxRetries = 3;
-    const retryDelay = 1000; // 1 second
-
+const safeDelete = async (filePath, maxRetries = 3) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const exists = await fs.access(filePath).then(() => true).catch(() => false);
-            if (!exists) return true;
+            // Check if file exists first
+            try {
+                await fs.access(filePath);
+            } catch {
+                return; // File doesn't exist, consider it "deleted"
+            }
 
             await fs.unlink(filePath);
-            return true;
+            return;
         } catch (error) {
             if (attempt === maxRetries) {
-                // Silent handling for EPERM errors as they're expected
-                if (error.code === 'EPERM') {
-                    // Debug level logging that won't show in console
-                    if (process.env.NODE_ENV === 'development') {
-                        console.debug(`Note: Temp file ${path.basename(filePath)} will be auto-cleaned`);
-                    }
-                } else {
-                    // Only log non-EPERM errors as warnings
-                    console.warn(`Warning: Could not delete file ${path.basename(filePath)}:`, error.code);
+                // On last attempt, throw error if it's not EPERM
+                if (error.code !== 'EPERM') {
+                    throw error;
                 }
-                return true;
+                // For EPERM errors on last attempt, just log and continue
+                console.warn(`Note: File ${path.basename(filePath)} will be cleaned up by system later`);
+                return;
             }
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
-    return true;
 };
 
 const editProduct = async (req, res) => {
