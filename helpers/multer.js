@@ -2,7 +2,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-
 const uploadDir = path.join(__dirname, '../public/uploads/product-images');
 const tempDir = path.join(__dirname, '../public/uploads/temp');
 const reImageDir = path.join(__dirname, '../public/uploads/re-image');
@@ -15,7 +14,7 @@ const reImageDir = path.join(__dirname, '../public/uploads/re-image');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, tempDir); 
+        cb(null, tempDir);  // Store in temp directory first
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

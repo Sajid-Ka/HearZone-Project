@@ -1,6 +1,16 @@
 const Brand = require('../../models/brandSchema'); 
 const path = require('path');
+const fs = require('fs');
 
+// Add these helper functions at the top
+const moveFile = (oldPath, newPath) => {
+    return new Promise((resolve, reject) => {
+        fs.rename(oldPath, newPath, (err) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+};
 
 const getAllBrands = async (req, res) => {
     try {
@@ -38,15 +48,28 @@ const getAllBrands = async (req, res) => {
 const addBrand = async (req, res) => {
     try {
         const { brandName } = req.body;
-        const brandImage = req.file ? `/uploads/re-image/${req.file.filename}` : null;
+        
+        if (!req.file) {
+            return res.json({ success: false, message: 'Brand image is required' });
+        }
 
+        // Move file from temp to re-image directory
+        const tempPath = req.file.path;
+        const targetPath = path.join(__dirname, `../../public/uploads/re-image/${req.file.filename}`);
+        await moveFile(tempPath, targetPath);
+
+        const brandImage = `/uploads/re-image/${req.file.filename}`;
         const newBrand = new Brand({
             brandName,
-            brandImage: brandImage ? [brandImage] : []
+            brandImage: [brandImage]
         });
         await newBrand.save();
         res.json({ success: true, message: 'Brand added successfully' });
     } catch (err) {
+        // If there's an error, try to clean up the temp file
+        if (req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
         console.error(err);
         res.json({ success: false, message: 'Failed to add brand' });
     }
@@ -56,18 +79,31 @@ const addBrand = async (req, res) => {
 const updateBrand = async (req, res) => {
     try {
         const { brandId, brandName } = req.body;
-        const brandImage = req.file ? `/public/uploads/${req.file.filename}` : undefined;
-
-        const updateData = { brandName };
-        if (brandImage) {
-            updateData.brandImage = [brandImage];
+        
+        if (!req.file) {
+            return res.json({ success: false, message: 'Brand image is required' });
         }
 
+        // Move file from temp to re-image directory
+        const tempPath = req.file.path;
+        const targetPath = path.join(__dirname, `../../public/uploads/re-image/${req.file.filename}`);
+        await moveFile(tempPath, targetPath);
+
+        const brandImage = `/uploads/re-image/${req.file.filename}`;
+        const updateData = {
+            brandName,
+            brandImage: [brandImage]
+        };
+
         await Brand.findByIdAndUpdate(brandId, updateData);
-        res.redirect('/admin/brands');
+        res.json({ success: true, message: 'Brand updated successfully' });
     } catch (err) {
+        // If there's an error, try to clean up the temp file
+        if (req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
         console.error(err);
-        res.redirect('/admin/brands');
+        res.json({ success: false, message: 'Failed to update brand' });
     }
 };
 

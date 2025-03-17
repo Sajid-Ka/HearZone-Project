@@ -128,11 +128,13 @@
     }
 
     function submitBrandForm() {
-        // Reset error message
+        // Reset error messages
         const brandNameInput = document.getElementById('brandName');
+        const brandImageInput = document.getElementById('brandImage');
         const brandNameError = document.getElementById('brandNameError');
         brandNameError.style.display = 'none';
         brandNameInput.classList.remove('is-invalid');
+        brandImageInput.classList.remove('is-invalid');
 
         // Validate brand name
         if (!brandNameInput.value.trim()) {
@@ -141,6 +143,18 @@
             return;
         }
 
+        // Validate image
+        if (!brandImageInput.files || brandImageInput.files.length === 0) {
+            brandImageInput.classList.add('is-invalid');
+            Swal.fire({
+                title: "Error!",
+                text: "Please select a brand image",
+                icon: "error"
+            });
+            return;
+        }
+
+        // Continue with form submission
         Swal.fire({
             title: "Add New Brand",
             text: "Are you sure you want to add this brand?",
