@@ -101,15 +101,20 @@
                     Blocked Products
                 </a>
             </div>
-            <form action="" method="get" class="d-inline">
-                <div class="search-input input-group">
-                    <input type="text" class="form-control border-0" placeholder="Search products or brands" name="search" value="<%= search %>">
-                    <% if(isBlocked) { %>
-                        <input type="hidden" name="blocked" value="true">
-                    <% } %>
-                    <button class="btn action-btn offer-btn" type="submit">Search</button>
-                </div>
-            </form>
+            <div class="d-flex justify-content-center align-items-center">
+                <form action="" method="get" class="d-inline me-2">
+                    <div class="search-input input-group">
+                        <input type="text" class="form-control border-0" placeholder="Search products or brands" name="search" value="<%= search %>">
+                        <% if(isBlocked) { %>
+                            <input type="hidden" name="blocked" value="true">
+                        <% } %>
+                        <button class="btn action-btn offer-btn" type="submit">Search</button>
+                    </div>
+                </form>
+                <% if(search) { %>
+                    <a href="<%= isBlocked ? '/admin/products?blocked=true' : '/admin/products' %>" class="btn btn-secondary">Clear Search</a>
+                <% } %>
+            </div>
         </header>
     </div>
 
@@ -160,11 +165,23 @@
 
     <div class="container mt-3">
         <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center mb-20" style="margin-right: 200px;">
+            <ul class="pagination justify-content-center mb-20">
+                <% if (currentPage > 1) { %>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<%= currentPage - 1 %>&search=<%= search %><%= isBlocked ? '&blocked=true' : '' %>">Previous</a>
+                    </li>
+                <% } %>
+                
                 <% for (let i = 1; i <= totalPages; i++) { %>
-                <li class="page-item <%= (i === currentPage) ? 'active' : '' %>">
-                    <a class="page-link" href="?page=<%= i %>&search=<%= search %><%= isBlocked ? '&blocked=true' : '' %>"><%= i %></a>
-                </li>
+                    <li class="page-item <%= (i === currentPage) ? 'active' : '' %>">
+                        <a class="page-link" href="?page=<%= i %>&search=<%= search %><%= isBlocked ? '&blocked=true' : '' %>"><%= i %></a>
+                    </li>
+                <% } %>
+                
+                <% if (currentPage < totalPages) { %>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<%= currentPage + 1 %>&search=<%= search %><%= isBlocked ? '&blocked=true' : '' %>">Next</a>
+                    </li>
                 <% } %>
             </ul>
         </nav>
