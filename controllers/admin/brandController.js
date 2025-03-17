@@ -53,6 +53,19 @@ const addBrand = async (req, res) => {
             return res.json({ success: false, message: 'Brand image is required' });
         }
 
+        // Check if brand name already exists (case-insensitive)
+        const existingBrand = await Brand.findOne({
+            brandName: { $regex: new RegExp(`^${brandName}$`, 'i') }
+        });
+
+        if (existingBrand) {
+            // Clean up the uploaded file
+            if (req.file) {
+                fs.unlink(req.file.path, () => {});
+            }
+            return res.json({ success: false, message: 'Brand name already exists' });
+        }
+
         // Move file from temp to re-image directory
         const tempPath = req.file.path;
         const targetPath = path.join(__dirname, `../../public/uploads/re-image/${req.file.filename}`);
