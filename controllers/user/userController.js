@@ -271,13 +271,38 @@ const loadShoppingPage = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = 9;
         const skip = (page - 1) * limit;
-        const products = await Product.find({
+        const sortOption = req.query.sort;
+        let sortQuery = { createdOn: -1 }; // default sorting
+
+        switch(sortOption) {
+            case 'priceAsc':
+                sortQuery = { salePrice: 1 };
+                break;
+            case 'priceDesc':
+                sortQuery = { salePrice: -1 };
+                break;
+            case 'nameAsc':
+                sortQuery = { productName: 1 };
+                break;
+            case 'nameDesc':
+                sortQuery = { productName: -1 };
+                break;
+        }
+
+        let query = Product.find({
             isBlocked: false,
             category: { $in: categoryIds },
             quantity: { $gt: 0 }
         })
-            .populate('brand')
-            .sort({ createdOn: -1 })
+            .populate('brand');
+
+        // Apply collation only for name sorting
+        if (sortOption === 'nameAsc' || sortOption === 'nameDesc') {
+            query = query.collation({ locale: 'en', strength: 2 });
+        }
+
+        const products = await query
+            .sort(sortQuery)
             .skip(skip)
             .limit(limit);
 
@@ -310,7 +335,8 @@ const loadShoppingPage = async (req, res) => {
             selectedCategory: null,
             selectedBrand: null,
             gt: undefined,
-            lt: undefined
+            lt: undefined,
+            selectedSort: sortOption // Add this line
         });
     } catch (error) {
         console.error("shopping page loading error", error);
@@ -327,28 +353,51 @@ const filterProduct = async (req, res) => {
         const itemsPerPage = 9;
 
        
-        const query = {
+        const queryFilter = {
             isBlocked: false,
             quantity: { $gt: 0 }
         };
 
         if (categoryId) {
-            query.category = new mongoose.Types.ObjectId(categoryId);
+            queryFilter.category = new mongoose.Types.ObjectId(categoryId);
         }
 
         if (brandId) {
-            query.brand = new mongoose.Types.ObjectId(brandId);
+            queryFilter.brand = new mongoose.Types.ObjectId(brandId);
         }
 
-       
-        const totalProducts = await Product.countDocuments(query);
+        const sortOption = req.query.sort;
+        let sortQuery = { createdOn: -1 }; // default sorting
+
+        switch(sortOption) {
+            case 'priceAsc':
+                sortQuery = { salePrice: 1 };
+                break;
+            case 'priceDesc':
+                sortQuery = { salePrice: -1 };
+                break;
+            case 'nameAsc':
+                sortQuery = { productName: 1 };
+                break;
+            case 'nameDesc':
+                sortQuery = { productName: -1 };
+                break;
+        }
+
+        const totalProducts = await Product.countDocuments(queryFilter);
         const totalPages = Math.ceil(totalProducts / itemsPerPage);
         
-       
-        const products = await Product.find(query)
+        let query = Product.find(queryFilter)
             .populate('brand')
-            .populate('category')
-            .sort({ createdOn: -1 })
+            .populate('category');
+
+        // Apply collation only for name sorting
+        if (sortOption === 'nameAsc' || sortOption === 'nameDesc') {
+            query = query.collation({ locale: 'en', strength: 2 });
+        }
+
+        const products = await query
+            .sort(sortQuery)
             .skip((page - 1) * itemsPerPage)
             .limit(itemsPerPage)
             .lean();
@@ -380,7 +429,8 @@ const filterProduct = async (req, res) => {
             totalPages,
             currentPage: page,
             selectedCategory: categoryId || null,
-            selectedBrand: brandId || null
+            selectedBrand: brandId || null,
+            selectedSort: sortOption // Add this line
         });
         
     } catch (error) {

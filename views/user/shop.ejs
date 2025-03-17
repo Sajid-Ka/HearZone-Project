@@ -424,6 +424,26 @@
   .back-to-shop {
     text-decoration: none;
   }
+
+  .sort-dropdown {
+    margin-left: 1rem;
+  }
+
+  .sort-select {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background-color: white;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+    min-width: 200px;
+  }
+
+  .sort-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
 </style>
 <br>
 <br>
@@ -452,6 +472,15 @@
           <input type="text" name="query" placeholder="Search for products..." class="search-input" />
           <button type="submit" class="search-button">Search</button>
         </form>
+      </div>
+      <div class="sort-dropdown">
+        <select id="sortSelect" class="sort-select" onchange="applySorting(this.value)">
+          <option value="">Sort By</option>
+          <option value="priceAsc">Price: Low to High</option>
+          <option value="priceDesc">Price: High to Low</option>
+          <option value="nameAsc">Name: A to Z</option>
+          <option value="nameDesc">Name: Z to A</option>
+        </select>
       </div>
     </div>
     
@@ -561,4 +590,15 @@
   </section>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+<script>
+function applySorting(sortValue) {
+  const currentUrl = new URL(window.location.href);
+  if (sortValue) {
+    currentUrl.searchParams.set('sort', sortValue);
+  } else {
+    currentUrl.searchParams.delete('sort');
+  }
+  window.location.href = currentUrl.toString();
+}
+</script>
 <%- include("../../views/partials/user/footer") %>
