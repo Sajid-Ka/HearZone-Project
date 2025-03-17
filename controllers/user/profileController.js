@@ -59,10 +59,10 @@ const securePassword = async (password)=>{
 
 const getForgotPassPage = async (req, res) => {
     try {
-        res.render('forgot-password');
+        res.render('forgot-password', { message: null });
     } catch (error) {
         console.error("Forgot Password Page error", error);
-        res.redirect('/pageNotFound');
+        res.status(500).render('page-404');
     }
 };
 
@@ -72,23 +72,27 @@ const forgotEmailValid = async (req, res) => {
         const findUser = await User.findOne({ email: email });
         if (findUser) {
             const otp = generateOtp();
-            const emailSend = await sendVerificationEmail(email, otp);
-            if (emailSend) {
+            const emailSent = await sendVerificationEmail(email, otp);
+            if (emailSent) {
                 req.session.userOtp = otp;
                 req.session.email = email;
-                res.render('forgotPass-otp');
+                res.render('forgotPass-otp', { message: null });
                 console.log("Generated OTP: ", otp);
             } else {
-                res.json({ success: false, message: "Failed to send OTP, Please try Again" });
+                res.render("forgot-password", {
+                    message: "Failed to send OTP, Please try Again"
+                });
             }
         } else {
             res.render("forgot-password", {
-                message: "User with this Email Does not Exist",
+                message: "User with this Email Does not Exist"
             });
         }
     } catch (error) {
         console.error("Error in forgotEmailValid:", error);
-        res.redirect('/pageNotFound');
+        res.render("forgot-password", {
+            message: "An error occurred. Please try again."
+        });
     }
 };
 
@@ -103,11 +107,14 @@ const verifyForgotPassOtp = async (req, res) => {
         if (enteredOtp === storedOtp) {
             res.json({ success: true, redirectUrl: '/reset-password' });
         } else {
-            res.json({ success: false, message: "OTP Not Matching" });
+            res.json({ success: false, message: "Invalid OTP" });
         }
     } catch (error) {
         console.error("Error in OTP verification:", error);
-        res.status(500).json({ success: false, message: "An Error occurred, please try again" });
+        res.status(500).json({ 
+            success: false, 
+            message: "An error occurred, please try again" 
+        });
     }
 };
 

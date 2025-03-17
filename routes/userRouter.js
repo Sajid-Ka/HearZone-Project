@@ -35,8 +35,8 @@ router.get('/logout', isLogout, userController.logout);
 
 // Profile routes
 router.get('/forgot-password', profileController.getForgotPassPage);
-router.post('/forgot-password', profileController.forgotEmailValid);
-router.post('/verify-forgot-otp', profileController.verifyForgotPassOtp);
+router.post('/forgot-email-valid', profileController.forgotEmailValid); // update this route
+router.post('/verify-passForgot-otp', profileController.verifyForgotPassOtp);
 router.get('/reset-password', profileController.getResetPassPage);
 router.post('/reset-password', profileController.postNewPassword);
 router.post('/resend-forgot-otp', profileController.resendOtp);
