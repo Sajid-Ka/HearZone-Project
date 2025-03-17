@@ -90,12 +90,27 @@
     </div>
 
     <div class="search-wrapper">
-        <form action="" method="get">
-            <div class="search-input input-group">
-                <input type="text" class="form-control border-0" placeholder="Search products or brands" name="search">
-                <button class="btn action-btn offer-btn" type="submit">Search</button>
+        <header class="card-header text-center mb-4 border-0 bg-transparent">
+            <div class="d-flex justify-content-center align-items-center mb-3">
+                <a href="/admin/products" class="btn mx-2 <%= !isBlocked ? 'btn-primary' : 'btn-outline-primary' %>" 
+                    style="border-radius: 20px; min-width: 120px;">
+                    Available Products
+                </a>
+                <a href="/admin/products?blocked=true" class="btn mx-2 <%= isBlocked ? 'btn-primary' : 'btn-outline-primary' %>" 
+                    style="border-radius: 20px; min-width: 120px;">
+                    Blocked Products
+                </a>
             </div>
-        </form>
+            <form action="" method="get" class="d-inline">
+                <div class="search-input input-group">
+                    <input type="text" class="form-control border-0" placeholder="Search products or brands" name="search" value="<%= search %>">
+                    <% if(isBlocked) { %>
+                        <input type="hidden" name="blocked" value="true">
+                    <% } %>
+                    <button class="btn action-btn offer-btn" type="submit">Search</button>
+                </div>
+            </form>
+        </header>
     </div>
 
     <div class="custom-table">
@@ -148,7 +163,7 @@
             <ul class="pagination justify-content-center mb-20" style="margin-right: 200px;">
                 <% for (let i = 1; i <= totalPages; i++) { %>
                 <li class="page-item <%= (i === currentPage) ? 'active' : '' %>">
-                    <a class="page-link" href="?page=<%= i %>&search=<%= search %>"><%= i %></a>
+                    <a class="page-link" href="?page=<%= i %>&search=<%= search %><%= isBlocked ? '&blocked=true' : '' %>"><%= i %></a>
                 </li>
                 <% } %>
             </ul>

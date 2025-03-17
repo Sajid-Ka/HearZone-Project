@@ -105,28 +105,31 @@ const getAllProducts = async (req, res) => {
     try {
         const search = req.query.search || "";
         const page = parseInt(req.query.page) || 1;
+        const isBlocked = req.query.blocked === "true";
         const limit = 4;
 
         const matchingBrands = await Brand.find({ brandName: { $regex: search, $options: "i" } }).select("_id");
         const brandIds = matchingBrands.map(brand => brand._id);
 
+        const searchQuery = {
+            $and: [
+                {
+                    $or: [
+                        { productName: { $regex: search, $options: "i" } },
+                        { brand: { $in: brandIds } }
+                    ]
+                },
+                { isBlocked: isBlocked }
+            ]
+        };
+
         const [productData, count, category, brand] = await Promise.all([
-            Product.find({
-                $or: [
-                    { productName: { $regex: search, $options: "i" } },
-                    { brand: { $in: brandIds } }
-                ]
-            })
+            Product.find(searchQuery)
                 .limit(limit)
                 .skip((page - 1) * limit)
                 .populate("category")
                 .populate("brand"),
-            Product.countDocuments({
-                $or: [
-                    { productName: { $regex: search, $options: "i" } },
-                    { brand: { $in: brandIds } }
-                ]
-            }),
+            Product.countDocuments(searchQuery),
             Category.find({ isListed: true }),
             Brand.find({ isBlocked: false })
         ]);
@@ -138,6 +141,7 @@ const getAllProducts = async (req, res) => {
             cat: category,
             brand: brand,
             search: search,
+            isBlocked: isBlocked
         });
     } catch (error) {
         console.error("Error fetching products:", error);
