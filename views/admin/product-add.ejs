@@ -646,12 +646,13 @@
 
 
     class FormValidator {
-        static validate() {
+        static async validate() {
             this.clearErrors();
             const form = document.getElementById('productForm');
             const imageManager = window.imageManager;
             let isValid = true;
 
+            // Basic validations remain the same
             const validations = [
                 { field: 'productName', errorId: 'productName-error', message: 'Please enter a product name', check: v => v.trim() === '' },
                 { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
@@ -660,13 +661,28 @@
                 { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' }
             ];
 
-            validations.forEach(val => {
+            for (const val of validations) {
                 const value = form.elements[val.field].value;
                 if (val.check(value)) {
                     this.displayError(val.errorId, val.message);
                     isValid = false;
                 }
-            });
+            }
+
+            // Additional async validation for product name
+            if (isValid) {
+                const productName = form.elements['productName'].value;
+                try {
+                    const response = await fetch(`/admin/checkProductName?name=${encodeURIComponent(productName)}`);
+                    const data = await response.json();
+                    if (data.exists) {
+                        this.displayError('productName-error', 'This product name already exists');
+                        isValid = false;
+                    }
+                } catch (error) {
+                    console.error('Error checking product name:', error);
+                }
+            }
 
             const regularPrice = Number(form.elements['regularPrice'].value);
             const salePrice = form.elements['salePrice'].value;

@@ -38,7 +38,11 @@ const addProducts = async (req, res) => {
         }
 
         const products = req.body;
-        const productExists = await Product.findOne({ productName: products.productName });
+        // Case-insensitive product name check
+        const productExists = await Product.findOne({ 
+            productName: { $regex: new RegExp(`^${products.productName}$`, 'i') }
+        });
+        
         if (productExists) {
             await Promise.all(req.files.map(file => fs.unlink(file.path).catch(err => console.warn(`Failed to clean up ${file.path}:`, err))));
             return res.status(400).json({ success: false, message: "Product Already Exists" });
@@ -229,6 +233,20 @@ const editProduct = async (req, res) => {
         }
 
         const data = req.body;
+
+        // Case-insensitive product name check, excluding the current product
+        const productExists = await Product.findOne({
+            _id: { $ne: id },
+            productName: { $regex: new RegExp(`^${data.productName}$`, 'i') }
+        });
+
+        if (productExists) {
+            // Clean up any uploaded files
+            if (req.files) {
+                await Promise.all(req.files.map(file => safeDelete(file.path)));
+            }
+            return res.status(400).json({ success: false, message: "Product name already exists" });
+        }
 
         const images = [];
         if (req.files && req.files.length > 0) {
