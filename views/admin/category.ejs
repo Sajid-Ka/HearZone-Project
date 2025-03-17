@@ -186,6 +186,15 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -198,12 +207,12 @@
                     <div class="form-grid">
                         <div class="mb-4">
                             <label for="product_name" class="form-label">Name</label>
-                            <input type="text" name="name" placeholder="Type here" class="form-control" id="product_name" required/>
+                            <input type="text" name="name" placeholder="Type here" class="form-control" id="product_name" />
                             <div id="name-error" class="error-message"></div>
                         </div>
                         <div class="mb-4">
                             <label for="descriptionId" class="form-label">Description</label>
-                            <textarea placeholder="Type here" name="description" class="form-control" id="descriptionId" required></textarea>
+                            <textarea placeholder="Type here" name="description" class="form-control" id="descriptionId" ></textarea>
                             <div id="description-error" class="error-message"></div>
                         </div>
                     </div>
@@ -382,15 +391,67 @@ function updateCategoryRow(categoryId, category) {
         statusBadge.className = `badge ${category.isListed ? 'badge-success' : 'badge-danger'}`;
         statusBadge.textContent = category.isListed ? 'Listed' : 'Unlisted';
 
-        // Update list/unlist button
+        // Update action buttons
         const actionCell = row.cells[3];
+        
+        // Update list/unlist button
         const listButton = actionCell.querySelector('.btn-danger, .btn-success');
         if (listButton) {
             listButton.className = `btn ${category.isListed ? 'btn-danger' : 'btn-success'}`;
             listButton.textContent = category.isListed ? 'Unlist' : 'List';
             listButton.onclick = () => handleListUnlist(categoryId, category.isListed);
         }
+
+        // Update edit button onclick
+        const editButton = actionCell.querySelector('.btn-info');
+        if (editButton) {
+            editButton.onclick = () => openEditModal(categoryId, category.name, category.description);
+        }
     }
+}
+
+// Replace the handleEditSubmit function
+function handleEditSubmit(event) {
+    event.preventDefault();
+    const categoryId = document.getElementById('editCategoryId').value;
+    const categoryName = document.getElementById('editCategoryName').value;
+    const description = document.getElementById('editDescription').value;
+
+    Swal.fire({
+        title: 'Confirm Changes',
+        text: 'Are you sure you want to save these changes?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, save it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/editCategory/${categoryId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ categoryName, description })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Updated!', data.message, 'success').then(() => {
+                        updateCategoryRow(categoryId, data.category);
+                        closeEditModal();
+                    });
+                } else {
+                    // Check if it's a "no changes" error
+                    if (data.error === "No changes detected") {
+                        Swal.fire('Info', 'No changes were made to the category', 'info');
+                        closeEditModal();
+                    } else {
+                        Swal.fire('Error!', data.error, 'error');
+                    }
+                }
+            })
+            .catch(error => Swal.fire('Error!', 'Something went wrong', 'error'));
+        }
+    });
 }
 
         // Open Edit Modal
@@ -404,44 +465,6 @@ function updateCategoryRow(categoryId, category) {
         // Close Edit Modal
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
-        }
-
-        // Handle Edit Submission
-        function handleEditSubmit(event) {
-            event.preventDefault();
-            const categoryId = document.getElementById('editCategoryId').value;
-            const categoryName = document.getElementById('editCategoryName').value;
-            const description = document.getElementById('editDescription').value;
-
-            Swal.fire({
-                title: 'Confirm Changes',
-                text: 'Are you sure you want to save these changes?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, save it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/admin/editCategory/${categoryId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ categoryName, description })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('Updated!', data.message, 'success').then(() => {
-                                updateCategoryRow(categoryId, data.category);
-                                closeEditModal();
-                            });
-                        } else {
-                            Swal.fire('Error!', data.error, 'error');
-                        }
-                    })
-                    .catch(error => Swal.fire('Error!', 'Something went wrong', 'error'));
-                }
-            });
         }
 
         // Delete Category
@@ -475,37 +498,70 @@ function updateCategoryRow(categoryId, category) {
         // Form Validation
         function validateForm() {
             clearErrorMessages();
-            const name = document.getElementsByName("name")[0].value.trim();
-            const description = document.getElementById("descriptionId").value.trim();
+            const name = document.getElementsByName("name")[0];
+            const description = document.getElementById("descriptionId");
             let isValid = true;
 
-            if (!name) {
-                displayErrorMessage("name-error", "Please enter a name");
+            // Validate name
+            if (!name.value.trim()) {
+                displayErrorMessage("name-error", "Category name is required");
+                name.classList.add('is-invalid');
                 isValid = false;
-            } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+            } else if (!/^[a-zA-Z\s]+$/.test(name.value.trim())) {
                 displayErrorMessage("name-error", "Category name should contain only alphabetic characters");
+                name.classList.add('is-invalid');
                 isValid = false;
+            } else {
+                name.classList.remove('is-invalid');
             }
 
-            if (!description) {
-                displayErrorMessage("description-error", "Please enter a description");
+            // Validate description
+            if (!description.value.trim()) {
+                displayErrorMessage("description-error", "Description is required");
+                description.classList.add('is-invalid');
                 isValid = false;
+            } else {
+                description.classList.remove('is-invalid');
             }
+
             return isValid;
         }
 
+        // Update the displayErrorMessage function
         function displayErrorMessage(elementId, message) {
             const errorElement = document.getElementById(elementId);
-            errorElement.innerText = message;
+            errorElement.textContent = message;
             errorElement.style.display = "block";
         }
 
+        // Update the clearErrorMessages function
         function clearErrorMessages() {
             const errorElements = document.getElementsByClassName("error-message");
+            const formInputs = document.querySelectorAll('.form-control');
+            
             Array.from(errorElements).forEach(element => {
-                element.innerText = "";
+                element.textContent = "";
                 element.style.display = "none";
             });
+            
+            Array.from(formInputs).forEach(input => {
+                input.classList.remove('is-invalid');
+            });
         }
+        
+        // Add real-time validation
+        document.getElementsByName("name")[0].addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                document.getElementById("name-error").style.display = "none";
+            }
+        });
+
+        document.getElementById("descriptionId").addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                document.getElementById("description-error").style.display = "none";
+            }
+        });
     </script>
 <%- include("../../views/partials/admin/footer") %>

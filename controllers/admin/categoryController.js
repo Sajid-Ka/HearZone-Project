@@ -28,7 +28,11 @@ const categoryInfo = async (req, res) => {
 const addCategory = async (req, res) => {
     const { name, description } = req.body;
     try {
-        const existingCategory = await Category.findOne({ name });
+        // Convert name to lowercase for case-insensitive comparison
+        const existingCategory = await Category.findOne({ 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
+        });
+        
         if (existingCategory) {
             return res.status(400).json({ success: false, error: "Category already exists" });
         }
@@ -126,8 +130,25 @@ const editCategory = async (req, res) => {
         const id = req.params.id;
         const { categoryName, description } = req.body;
 
+        const currentCategory = await Category.findById(id);
+        if (!currentCategory) {
+            return res.status(404).json({ 
+                success: false,
+                error: "Category not found" 
+            });
+        }
+
+        if (currentCategory.name.toLowerCase() === categoryName.toLowerCase() && 
+            currentCategory.description === description) {
+            return res.status(400).json({
+                success: false,
+                error: "No changes detected"
+            });
+        }
+
+        // Case-insensitive check for existing category name
         const existingCategory = await Category.findOne({ 
-            name: categoryName,
+            name: { $regex: new RegExp(`^${categoryName}$`, 'i') },
             _id: { $ne: id }
         });
 
@@ -144,19 +165,12 @@ const editCategory = async (req, res) => {
             { new: true }
         );
 
-        if (updatedCategory) {
-            return res.json({ 
-                success: true,
-                message: "Category updated successfully",
-                redirect: "/admin/category",
-                category: updatedCategory
-            });
-        } else {
-            return res.status(404).json({ 
-                success: false,
-                error: "Category not found" 
-            });
-        }
+        return res.json({ 
+            success: true,
+            message: "Category updated successfully",
+            redirect: "/admin/category",
+            category: updatedCategory
+        });
     } catch (error) {
         console.error("Edit Category Error:", error);
         return res.status(500).json({ 
