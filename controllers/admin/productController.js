@@ -93,6 +93,17 @@ const addProducts = async (req, res) => {
         });
 
         await newProduct.save();
+        
+        // Add delay before deletion
+        setTimeout(async () => {
+            try {
+                await fs.unlink(tempPath);
+            } catch (unlinkError) {
+                console.log('Could not delete temp file:', unlinkError.message);
+                // Continue execution even if delete fails
+            }
+        }, 1000);
+
         return res.status(200).json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Error saving product:", error);
