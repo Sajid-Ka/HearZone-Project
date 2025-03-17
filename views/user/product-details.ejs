@@ -1,5 +1,26 @@
 <%- include("../../views/partials/user/header") %>
 <style>
+    .breadcrumb-section {
+        border-bottom: 1px solid #eee;
+    }
+    
+    .breadcrumb {
+        font-size: 14px;
+    }
+    
+    .breadcrumb-item a {
+        color: #666;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-item a:hover {
+        color: #0d6efd;
+    }
+    
+    .breadcrumb-item.active {
+        color: #333;
+    }
+
     /* Product Gallery Styles */
     .product-gallery {
         display: flex;
@@ -234,14 +255,112 @@
         background: rgba(255, 255, 255, 0.3);
         transform: scale(1.1);
     }
+
+    /* Add this to your existing styles */
+    .review-section {
+        padding: 2rem;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .star-rating {
+        display: inline-flex;
+        flex-direction: row-reverse;
+        gap: 0.25rem;
+    }
+
+    .star-rating input {
+        display: none;
+    }
+
+    .star-rating label {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #ddd;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #ffd700;
+    }
+
+    .rating-stats {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .average-rating {
+        text-align: center;
+    }
+
+    .rating-number {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .rating-bar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress {
+        flex: 1;
+        height: 0.5rem;
+        background: #eee;
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: #ffd700;
+    }
+
+    .review-item {
+        border-bottom: 1px solid #eee;
+        padding: 1rem 0;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .rating {
+        color: #ffd700;
+        margin: 0.5rem 0;
+    }
 </style>
+
+<br>
 <br>
 <br>
 <br>
 <br>
 <br>
 
-<div class="container mt-5 pt-5">
+<div class="breadcrumb-section bg-white">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 py-3">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <% if (category) { %>
+                    <li class="breadcrumb-item"><a href="/shop">Shop</a></li>
+                <% } %>
+                <li class="breadcrumb-item active" aria-current="page"><%= product.productName %></li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container mt-5">
     <div class="row">
         <div class="col-md-6">
             <div class="product-gallery">
@@ -270,7 +389,7 @@
                 </div>
                 <div class="product-detail-rating">
                     <div class="pro-details-brand">
-                        <span> Brands: <a href="#"><%= product.brand || 'Unknown' %></a></span>
+                        <span> Brand: <a href="#"><%= product.brand || 'Unknown' %></a></span>
                     </div>
                     <div class="product-rate-cover text-end">
                         <div class="product-rate d-inline-block">
@@ -281,8 +400,6 @@
                 </div>
                 <div class="clearfix product-price-cover">
                     <div class="product-price primary-color float-left">
-                        <ins><span class="text-brand">₹<%= product.salePrice %></span></ins>
-                        <ins><span class="old-price font-md ml-15">₹<%= product.regularPrice %></span></ins>
                         <span class="save-price font-md color3 ml-15">
                             <% if (!totalOffer) { %>
                                 No Offers
@@ -325,13 +442,62 @@
     </div>
 </div>
 
+<!-- Add this after the product info section -->
+<div class="review-section mt-5">
+    <h3>Customer Reviews</h3>
+    <div class="review-summary mb-4">
+        <div class="rating-stats">
+            <div class="average-rating">
+                <span class="rating-number">0.0</span>
+                <div class="stars"></div>
+                <span class="total-reviews">(0 reviews)</span>
+            </div>
+            <div class="rating-bars"></div>
+        </div>
+    </div>
+
+    <% if (user) { %>
+        <div class="review-form mb-4">
+            <h4>Write a Review</h4>
+            <form id="reviewForm">
+                <div class="rating-input mb-3">
+                    <label>Rating:</label>
+                    <div class="star-rating">
+                        <input type="radio" name="rating" value="5" id="star5">
+                        <label for="star5">★</label>
+                        <input type="radio" name="rating" value="4" id="star4">
+                        <label for="star4">★</label>
+                        <input type="radio" name="rating" value="3" id="star3">
+                        <label for="star3">★</label>
+                        <input type="radio" name="rating" value="2" id="star2">
+                        <label for="star2">★</label>
+                        <input type="radio" name="rating" value="1" id="star1">
+                        <label for="star1">★</label>
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="comment">Your Review:</label>
+                    <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+        </div>
+    <% } else { %>
+        <div class="login-prompt mb-4">
+            <p>Please <a href="/login">login</a> to write a review.</p>
+        </div>
+    <% } %>
+
+    <div class="reviews-list">
+        <!-- Reviews will be loaded here dynamically -->
+    </div>
+</div>
+
 <div id="fullscreenContainer" class="fullscreen-container">
     <span class="close-fullscreen" onclick="closeFullscreen()">×</span>
     <img id="fullscreenImage" class="fullscreen-image" src="" alt="Fullscreen view">
 </div>
 
-<br>
-<br>
 <br>
 <br>
 <br>
@@ -341,7 +507,7 @@
         const qtyElement = document.getElementById('quantity');
         let currentQty = parseInt(qtyElement.textContent);
         let newQty = currentQty + change;
-        const maxQty = <%= quantity %>; // Maximum available quantity from product
+        const maxQty = <%= quantity %>;
         if (newQty >= 1 && newQty <= maxQty) {
             qtyElement.textContent = newQty;
         }
@@ -349,40 +515,25 @@
 
     function addToCart(productId) {
         const quantity = document.getElementById('quantity').textContent;
-        // Placeholder for AJAX call to add to cart
         console.log(`Adding ${quantity} of product ${productId} to cart`);
-        // Example AJAX call (uncomment and adjust as needed):
-        /*
-        fetch('/cart/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId, quantity })
-        })
-        .then(response => response.json())
-        .then(data => alert(data.message))
-        .catch(error => console.error('Error adding to cart:', error));
-        */
     }
 
     function changeImage(index) {
-        // Get all images
         const images = <%- JSON.stringify(product.productImage) %>;
         const mainImage = document.getElementById('mainImage');
         const zoomedImage = document.getElementById('zoomedImage');
         const thumbnails = document.querySelectorAll('.thumbnail');
         
-        // Update main image
         const imagePath = `/uploads/re-image/${images[index]}`;
         mainImage.src = imagePath;
         zoomedImage.src = imagePath;
         fullscreenImage.src = imagePath;
         
-        // Update active thumbnail
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
         thumbnails[index].classList.add('active');
     }
 
-    // Add zoom functionality
+    // Zoom functionality
     const imageContainer = document.getElementById('imageContainer');
     const mainImage = document.getElementById('mainImage');
     const zoomedImage = document.getElementById('zoomedImage');
@@ -395,7 +546,7 @@
         const xPercent = (x / rect.width) * 100;
         const yPercent = (y / rect.height) * 100;
         
-        zoomedImage.style.transform = `scale(2)`;
+        zoomedImage.style.transform = 'scale(2)';
         zoomedImage.style.transformOrigin = `${xPercent}% ${yPercent}%`;
         zoomedImage.classList.add('active');
     });
@@ -404,7 +555,7 @@
         zoomedImage.classList.remove('active');
     });
 
-    // Add fullscreen functionality
+    // Fullscreen functionality
     const fullscreenContainer = document.getElementById('fullscreenContainer');
     const fullscreenImage = document.getElementById('fullscreenImage');
 
@@ -419,19 +570,120 @@
         document.body.style.overflow = 'auto';
     }
 
-    // Close fullscreen on escape key press
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeFullscreen();
         }
     });
 
-    // Close fullscreen on clicking outside the image
     fullscreenContainer.addEventListener('click', (e) => {
         if (e.target === fullscreenContainer) {
             closeFullscreen();
         }
     });
+
+    // Reviews functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        loadReviews();
+
+        const reviewForm = document.getElementById('reviewForm');
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitReview();
+            });
+        }
+    });
+
+    async function loadReviews() {
+        try {
+            const response = await fetch(`/review/product/<%= product._id %>`);
+            const data = await response.json();
+            
+            if (data.success) {
+                updateReviewStats(data.stats);
+                renderReviews(data.reviews);
+            }
+        } catch (error) {
+            console.error('Error loading reviews:', error);
+        }
+    }
+
+    function updateReviewStats(stats) {
+        document.querySelector('.rating-number').textContent = stats.averageRating.toFixed(1);
+        document.querySelector('.total-reviews').textContent = `(${stats.totalReviews} reviews)`;
+        
+        const barsHtml = Object.entries(stats.ratingDistribution)
+            .reverse()
+            .map(([rating, count]) => {
+                const percentage = (count / stats.totalReviews * 100) || 0;
+                return `
+                    <div class="rating-bar">
+                        <span class="rating-label">${rating} ★</span>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="rating-count">${count}</span>
+                    </div>
+                `;
+            }).join('');
+        
+        document.querySelector('.rating-bars').innerHTML = barsHtml;
+    }
+
+    function renderReviews(reviews) {
+        const reviewsList = document.querySelector('.reviews-list');
+        reviewsList.innerHTML = reviews.map(review => `
+            <div class="review-item mb-3">
+                <div class="review-header">
+                    <span class="reviewer-name">${review.username}</span>
+                    <span class="review-date">${new Date(review.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div class="rating">
+                    ${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}
+                </div>
+                <div class="review-comment">
+                    ${review.comment}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function submitReview() {
+        const rating = document.querySelector('input[name="rating"]:checked')?.value;
+        const comment = document.querySelector('#comment').value;
+
+        if (!rating || !comment) {
+            alert('Please provide both rating and comment');
+            return;
+        }
+
+        try {
+            const response = await fetch('/review/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    productId: '<%= product._id %>',
+                    rating,
+                    comment
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Review added successfully!');
+                document.getElementById('reviewForm').reset();
+                loadReviews();
+            } else {
+                alert(data.message || 'Failed to add review');
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            alert('Failed to submit review');
+        }
+    }
 </script>
 
 <%- include("../../views/partials/user/footer") %>

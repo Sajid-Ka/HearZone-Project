@@ -5,6 +5,7 @@ const productController = require('../controllers/user/productController');
 const profileController = require('../controllers/user/profileController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const passport = require('passport');
+const reviewController = require('../controllers/user/reviewController');
 
 // Define routes without creating circular dependencies
 router.get('/', userController.loadHomepage);
@@ -58,5 +59,8 @@ router.get('/auth/google/callback',
     res.redirect('/');
   }
 );
+
+router.post('/review/add', isLogout, reviewController.addReview);
+router.get('/review/product/:productId', reviewController.getProductReviews);
 
 module.exports = router;
