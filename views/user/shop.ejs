@@ -389,12 +389,65 @@
     border-radius: var(--border-radius);
     color: var(--text-light);
   }
+
+  .search-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+
+  .back-button {
+    padding: 0.5rem 1rem;
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .back-button:hover {
+    background-color: #4338ca;
+  }
+
+  .search-results {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .back-to-shop {
+    text-decoration: none;
+  }
 </style>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 
 <div class="main-container">
   <section class="shop-page">
     <div class="shop-topbar">
       <div class="search-bar">
+        <% if (typeof isSearchActive !== 'undefined' && isSearchActive) { %>
+          <div class="search-header">
+            <a href="/shop" class="back-to-shop">
+              <button class="back-button">
+                <i class="fas fa-arrow-left"></i> Back to Shop
+              </button>
+            </a>
+            <p class="search-results">Search results for: "<%= searchQuery %>"</p>
+          </div>
+        <% } %>
         <form action="/search" method="POST" class="search-form">
           <input type="text" name="query" placeholder="Search for products..." class="search-input" />
           <button type="submit" class="search-button">Search</button>

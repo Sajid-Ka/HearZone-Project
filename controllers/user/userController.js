@@ -494,7 +494,9 @@ const searchProducts = async (req, res) => {
             selectedCategory: null,
             selectedBrand: null,
             gt: undefined,
-            lt: undefined
+            lt: undefined,
+            isSearchActive: true,  // Add this flag
+            searchQuery: search    // Add the search query
         });
         
     } catch (error) {
