@@ -1,15 +1,16 @@
 const User = require('../../models/userSchema');
 
-
-
 const customerInfo = async (req, res) => {
     try {
+        if (!req.session.admin) {
+            return res.redirect('/admin/login');
+        }
+
         let search = req.query.search || "";
         let page = parseInt(req.query.page) || 1;
         const limit = 3;
         const isBlocked = req.query.blocked === 'true';
 
-        
         let query = {
             isAdmin: false,
             isBlocked: isBlocked, 
@@ -27,20 +28,24 @@ const customerInfo = async (req, res) => {
         const count = await User.countDocuments(query);
         const totalPages = Math.ceil(count / limit);
 
-        res.render("customers", {
+        // Change "customers" to "admin/customers"
+        res.render("admin/customers", {
             data: userData,
             totalPages: totalPages,
             currentPage: page,
             search: search,
-            isBlocked: isBlocked 
+            isBlocked: isBlocked,
+            admin: req.session.admin
         });
 
     } catch (error) {
         console.error(error);
+        if (!req.session.admin) {
+            return res.redirect('/admin/login');
+        }
         res.status(500).send("Internal Server Error");
     }
 };
-
 
 const customerBlocked = async (req,res)=>{
     try {
@@ -61,8 +66,6 @@ const customerUnblocked = async (req,res)=>{
         res.redirect('/admin/users?error=Failed to unblock customer');
     }
 }
-
-
 
 module.exports = {
     customerInfo,

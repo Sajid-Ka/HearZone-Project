@@ -5,6 +5,7 @@ const addReview = async (req, res) => {
     try {
         const { productId, rating, comment } = req.body;
         const userId = req.session.user.id;
+        const adminSession = req.session.admin; // Store admin session
 
         // Check if user has already reviewed this product
         const existingReview = await Review.findOne({ productId, userId });
@@ -29,6 +30,15 @@ const addReview = async (req, res) => {
         const reviews = await Review.find({ productId });
         const avgRating = reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length;
         await Product.findByIdAndUpdate(productId, { rating: avgRating });
+
+        // Preserve admin session if it exists
+        if (adminSession) {
+            req.session.admin = adminSession;
+            await req.session.save(); // Explicitly save session
+        }
+
+        // Touch the session to keep it alive
+        req.session.touch();
 
         res.status(200).json({
             success: true,

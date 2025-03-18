@@ -31,22 +31,35 @@ uploadDirs.forEach(dir => {
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true, // Changed to true
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: "sessions"
+        collectionName: "sessions",
+        ttl: 24 * 60 * 60, // Session TTL in seconds
+        autoRemove: 'native', // Enable automatic removal of expired sessions
+        touchAfter: 24 * 3600 // Only update session once per 24 hours
     }),
     cookie: {
         secure: false, 
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 
+        maxAge: 24 * 60 * 60 * 1000,
+        rolling: true // Resets maxAge on every request
     }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Add this middleware to preserve admin session
+app.use((req, res, next) => {
+    if (req.session.admin) {
+        res.locals.admin = req.session.admin;
+        // Touch the session to keep it alive
+        req.session.touch();
+    }
+    next();
+});
 
 app.use((req, res, next) => {
     res.locals.user = req.session.user || null;
