@@ -434,6 +434,7 @@
                 </div>
                 <div class="bt-1 border-color-1 mt-30 mb-30"></div>
                 <div class="detail-extralink">
+                    <% if (quantity > 0) { %>
                     <div class="detail-qty">
                         <a href="#" class="qty-down" onclick="updateQuantity(-1); return false;">-</a>
                         <span class="qty-val" id="quantity">1</span>
@@ -443,6 +444,12 @@
                         <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
                         <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
                     </div>
+                    <% } else { %>
+                    <div class="out-of-stock-message" style="width: 100%; text-align: center; padding: 1rem; background-color: #fee2e2; color: #ef4444; border-radius: 0.5rem; margin-bottom: 1rem;">
+                        <strong>Out of Stock</strong>
+                        <p style="margin: 0.5rem 0 0; font-size: 0.875rem;">This product is currently unavailable</p>
+                    </div>
+                    <% } %>
                 </div>
                 <ul class="product-meta font-xs color-grey mt-50">
                     <li class="mb-5">Stock Code: <a href="#">FWM15VKT</a></li>
@@ -520,12 +527,24 @@
         let currentQty = parseInt(qtyElement.textContent);
         let newQty = currentQty + change;
         const maxQty = <%= quantity %>;
+        
+        if (maxQty === 0) {
+            alert('Sorry, this product is currently out of stock.');
+            return;
+        }
+        
         if (newQty >= 1 && newQty <= maxQty) {
             qtyElement.textContent = newQty;
         }
     }
 
     function addToCart(productId) {
+        const maxQty = <%= quantity %>;
+        if (maxQty === 0) {
+            alert('Sorry, this product is currently out of stock.');
+            return;
+        }
+        
         const quantity = document.getElementById('quantity').textContent;
         console.log(`Adding ${quantity} of product ${productId} to cart`);
     }

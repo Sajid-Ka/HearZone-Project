@@ -585,8 +585,12 @@
                 </svg>
               </button>
               <a href="/product-details?id=<%=products[i]._id%>">
-                <img src="/uploads/re-image/<%=products[i].productImage[0]%>" alt="<%=products[i].productName%>" />
-                <div class="product-info">
+                <img 
+                  src="/uploads/re-image/<%=products[i].productImage[0]%>" 
+                  alt="<%=products[i].productName%>"
+                  style="<%= products[i].quantity === 0 ? 'opacity: 0.5;' : '' %>" 
+                />
+                <div class="product-info" style="<%= products[i].quantity === 0 ? 'opacity: 0.5;' : '' %>">
                   <div class="product-header">
                     <h3 class="product-name"><%=products[i].productName%></h3>
                     <div class="rating-display">
@@ -599,9 +603,19 @@
                     ₹<%=products[i].salePrice.toLocaleString('en-IN')%>
                     <span class="original-price">₹<%=products[i].regularPrice.toLocaleString('en-IN')%></span>
                   </div>
+                  <% if (products[i].quantity === 0) { %>
+                    <p class="out-of-stock-text" style="color: #ef4444; font-size: 0.875rem; margin: 0.5rem 0;">Out of Stock</p>
+                  <% } %>
                 </div>
               </a>
-              <button class="add-to-cart-btn">Add to Cart</button>
+              <button 
+                class="add-to-cart-btn" 
+                onclick="handleAddToCart('<%=products[i]._id%>', <%=products[i].quantity%>)"
+                style="<%= products[i].quantity === 0 ? 'opacity: 0.5; cursor: not-allowed;' : '' %>"
+                <%= products[i].quantity === 0 ? 'disabled' : '' %>
+              >
+                <%= products[i].quantity === 0 ? 'Out of Stock' : 'Add to Cart' %>
+              </button>
             </div>
           <% } %>
         <% } %>
@@ -663,6 +677,15 @@ function handleImageUpload(files) {
   .catch(error => {
     console.error('Upload failed:', error);
   });
+}
+
+function handleAddToCart(productId, quantity) {
+  if (quantity === 0) {
+    alert('Sorry, this product is currently out of stock.');
+    return;
+  }
+  // Your existing add to cart logic here
+  // You can add AJAX call to add the product to cart
 }
 </script>
 <%- include("../../views/partials/user/footer") %>
