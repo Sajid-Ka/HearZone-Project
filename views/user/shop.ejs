@@ -444,6 +444,35 @@
     outline: none;
     border-color: var(--primary-color);
   }
+
+  .product-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #fbbf24;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    background: #fffbeb;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid #fef3c7;
+  }
+
+  .rating-display i {
+    font-size: 0.75rem;
+  }
+
+  .rating-count {
+    color: #92400e;
+    font-size: 0.7rem;
+  }
 </style>
 <br>
 <br>
@@ -452,6 +481,7 @@
 <br>
 <br>
 <br>
+
 
 
 <div class="main-container">
@@ -557,7 +587,13 @@
               <a href="/product-details?id=<%=products[i]._id%>">
                 <img src="/uploads/re-image/<%=products[i].productImage[0]%>" alt="<%=products[i].productName%>" />
                 <div class="product-info">
-                  <h3 class="product-name"><%=products[i].productName%></h3>
+                  <div class="product-header">
+                    <h3 class="product-name"><%=products[i].productName%></h3>
+                    <div class="rating-display">
+                      <i class="fas fa-star"></i>
+                      <span><%= products[i].rating %></span>
+                    </div>
+                  </div>
                   <p class="product-brand"><%=products[i].brand.brandName%></p>
                   <div class="product-price">
                     ₹<%=products[i].salePrice.toLocaleString('en-IN')%>
@@ -603,6 +639,30 @@ function applySorting(sortValue) {
     currentUrl.searchParams.delete('sort');
   }
   window.location.href = currentUrl.toString();
+}
+
+// Add error handling for file operations
+function handleImageUpload(files) {
+  if (!files || files.length === 0) return;
+  
+  const formData = new FormData();
+  for (let file of files) {
+    formData.append('images', file);
+  }
+  
+  fetch('/upload-images', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      console.error('Upload error:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Upload failed:', error);
+  });
 }
 </script>
 <%- include("../../views/partials/user/footer") %>

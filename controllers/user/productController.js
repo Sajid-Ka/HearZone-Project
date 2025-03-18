@@ -1,6 +1,7 @@
 const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
+const Review = require('../../models/reviewSchema');
 
 const productDetails = async (req, res) => {
     try {
@@ -9,16 +10,19 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        
         const product = await Product.findById(productId)
             .populate('category')
             .populate('brand', 'brandName -_id');
-        
+
+        const reviews = await Review.find({ productId: product._id });
+        const avgRating = reviews.length > 0 
+            ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+            : null;
+
         if (!product) {
             return res.status(404).render('user/page-404');
         }
 
-        
         const relatedProducts = await Product.find({
             category: product.category._id,
             _id: { $ne: productId },
@@ -31,14 +35,11 @@ const productDetails = async (req, res) => {
         })
         .limit(4);
 
-        
         const discountedPrice = product.price - (product.price * ((product.category?.offer || 0) + (product.productOffer || 0)) / 100);
 
-        
         const userId = req.session.user ? req.session.user.id : null;
         let userData = userId ? await User.findById(userId) : null;
 
-        
         const productFeatures = {
             highlights: product.description?.split('\n').filter(item => item.trim()),
             specifications: {
@@ -49,9 +50,7 @@ const productDetails = async (req, res) => {
             }
         };
 
-        
         const productImages = product.images || [];
-        
         
         const priceInfo = {
             originalPrice: product.price,
@@ -61,14 +60,12 @@ const productDetails = async (req, res) => {
             brandName: product.brand?.brandName || 'N/A'  
         };
 
-        
         const breadcrumb = [
             { name: 'Home', url: '/' },
             { name: product.category?.name, url: `/category/${product.category?._id}` },
             { name: product.name, url: '#' }
         ];
 
-        
         const specifications = [
             { label: 'Brand', value: product.brand ? product.brand.brandName : 'N/A' },
             { label: 'Model', value: product.name },
@@ -78,7 +75,6 @@ const productDetails = async (req, res) => {
             { label: 'Stock Status', value: product.quantity > 0 ? 'In Stock' : 'Out of Stock' }
         ];
 
-        
         const similarProducts = await Product.find({
             category: product.category._id,
             price: { 
@@ -94,16 +90,14 @@ const productDetails = async (req, res) => {
         })
         .limit(4);
 
-        
         const totalOffer = (product.category?.offer || 0) + (product.productOffer || 0);
 
-        
         const displayData = {
             mainInfo: {
                 name: product.productName,
                 brand: product.brand.brandName,
-                rating: 4.5, 
-                reviewCount: 25, 
+                rating: avgRating,
+                reviewCount: reviews.length,
                 availability: product.quantity > 0 ? 'In Stock' : 'Out of Stock',
                 availabilityClass: product.quantity > 0 ? 'text-success' : 'text-danger'
             },
@@ -132,7 +126,6 @@ const productDetails = async (req, res) => {
             ]
         };
 
-        
         const enhancedRelatedProducts = relatedProducts.map(prod => ({
             ...prod.toObject(),
             brand: prod.brand.brandName,
