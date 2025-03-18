@@ -66,8 +66,8 @@ const loadHomepage = async (req, res) => {
         const categories = await Category.find({ isListed: true });
         let productData = await Product.find({
             isBlocked: false,
-            category: { $in: categories.map(category => category._id) },
-            quantity: { $gt: 0 }
+            category: { $in: categories.map(category => category._id) }
+            // Removed quantity check to show all products
         });
 
         productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
@@ -279,8 +279,8 @@ const loadShoppingPage = async (req, res) => {
 
         let query = Product.find({
             isBlocked: false,
-            category: { $in: categoryIds },
-            quantity: { $gt: 0 }
+            category: { $in: categoryIds }
+            // Removed quantity check to show all products
         }).populate('brand');
 
         // Apply collation only for name sorting

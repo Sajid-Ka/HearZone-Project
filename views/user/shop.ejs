@@ -473,6 +473,30 @@
     color: #92400e;
     font-size: 0.7rem;
   }
+
+  .out-of-stock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .out-of-stock-overlay span {
+    background: #dc3545;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
 </style>
 <br>
 <br>
@@ -579,6 +603,13 @@
         <% } else { %>
           <% for(let i=0; i<products.length; i++) { %>
             <div class="product-card">
+              <!-- Add out of stock overlay -->
+              <% if (products[i].quantity === 0) { %>
+                  <div class="out-of-stock-overlay">
+                      <span>Out of Stock</span>
+                  </div>
+              <% } %>
+              
               <button class="wishlist-btn" aria-label="Add to wishlist">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -611,7 +642,7 @@
               <button 
                 class="add-to-cart-btn" 
                 onclick="handleAddToCart('<%=products[i]._id%>', <%=products[i].quantity%>)"
-                style="<%= products[i].quantity === 0 ? 'opacity: 0.5; cursor: not-allowed;' : '' %>"
+                style="<%= products[i].quantity === 0 ? 'opacity: 0.5; cursor: not-allowed; background-color: #ccc;' : '' %>"
                 <%= products[i].quantity === 0 ? 'disabled' : '' %>
               >
                 <%= products[i].quantity === 0 ? 'Out of Stock' : 'Add to Cart' %>
@@ -681,7 +712,12 @@ function handleImageUpload(files) {
 
 function handleAddToCart(productId, quantity) {
   if (quantity === 0) {
-    alert('Sorry, this product is currently out of stock.');
+    Swal.fire({
+        icon: 'error',
+        title: 'Out of Stock',
+        text: 'Sorry, this product is currently not available',
+        confirmButtonColor: '#dc3545'
+    });
     return;
   }
   // Your existing add to cart logic here
