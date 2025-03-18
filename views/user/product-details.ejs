@@ -359,19 +359,12 @@
 <br>
 <br>
 
-<div class="breadcrumb-section bg-white">
-    <div class="container">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0 py-3">
-                <li class="breadcrumb-item"><a href="/">Home</a></li>
-                <% if (category) { %>
-                    <li class="breadcrumb-item"><a href="/shop">Shop</a></li>
-                <% } %>
-                <li class="breadcrumb-item active" aria-current="page"><%= product.productName %></li>
-            </ol>
-        </nav>
-    </div>
-</div>
+<%- include('../../views/partials/user/breadcrumb', {
+    breadcrumbs: [
+        { text: 'Shop', url: '/shop' },
+        { text: product.productName, url: '#', active: true }
+    ]
+}) %>
 
 <div class="container mt-5">
     <div class="row">

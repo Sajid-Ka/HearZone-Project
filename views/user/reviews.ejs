@@ -147,6 +147,14 @@
 
 <div class="reviews-page">
     <div class="container">
+        <%- include('../../views/partials/user/breadcrumb', {
+            breadcrumbs: [
+                { text: 'Shop', url: '/shop' },
+                { text: product.productName, url: `/product-details?id=${product._id}` },
+                { text: 'Reviews', url: '#', active: true }
+            ]
+        }) %>
+
         <div class="back-link">
             <a href="/product-details?id=<%= product._id %>" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-left"></i> Back to Product
@@ -154,7 +162,18 @@
         </div>
 
         <div class="product-info">
-            <h2><%= product.productName %></h2>
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <img src="/uploads/product-images/<%= product.productImage[0] %>" 
+                         alt="<%= product.productName %>" 
+                         class="img-fluid rounded" 
+                         style="max-width: 200px;">
+                </div>
+                <div class="col-md-9">
+                    <h2><%= product.productName %></h2>
+                    <p class="text-muted"><%= product.description %></p>
+                </div>
+            </div>
         </div>
 
         <div class="review-stats">
@@ -194,5 +213,9 @@
         </div>
     </div>
 </div>
+<br>
+<br>
+<br>
+<br>
 
 <%-include("../../views/partials/user/footer") %>

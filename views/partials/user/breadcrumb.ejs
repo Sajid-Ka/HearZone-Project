@@ -1,0 +1,18 @@
+<div class="breadcrumb-section bg-white">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 py-3">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <% breadcrumbs.forEach(crumb => { %>
+                    <li class="breadcrumb-item <%= crumb.active ? 'active' : '' %>">
+                        <% if (crumb.active) { %>
+                            <%= crumb.text %>
+                        <% } else { %>
+                            <a href="<%= crumb.url %>"><%= crumb.text %></a>
+                        <% } %>
+                    </li>
+                <% }); %>
+            </ol>
+        </nav>
+    </div>
+</div>
