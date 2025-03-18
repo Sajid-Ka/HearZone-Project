@@ -14,7 +14,12 @@ const productDetails = async (req, res) => {
             .populate('category')
             .populate('brand', 'brandName -_id');
 
+        // Calculate average rating
         const reviews = await Review.find({ productId: product._id });
+        const averageRating = reviews.length > 0 
+            ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+            : '0.0';
+
         const avgRating = reviews.length > 0 
             ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
             : null;
@@ -137,8 +142,9 @@ const productDetails = async (req, res) => {
         res.render('user/product-details', {
             user: userData,
             product: {
-                ...product.toObject(), 
-                displayData: displayData, 
+                ...product.toObject(),
+                averageRating, // Pass the average rating
+                displayData, 
                 brand: product.brand.brandName
             },
             relatedProducts: enhancedRelatedProducts,

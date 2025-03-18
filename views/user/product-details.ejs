@@ -385,7 +385,14 @@
         </div>
         <div class="col-md-6">
             <div class="product-info">
-                <h2><%= product.productName %></h2>
+                <div class="d-flex align-items-center">
+                    <h2 class="mb-0"><%= product.productName %></h2>
+                    <div class="ms-3">
+                        <span style="color: #ffd700; font-size: 20px;">
+                            <%= product.averageRating %> ★
+                        </span>
+                    </div>
+                </div>
                 <div class="price-tag">
                     ₹<%= product.salePrice.toLocaleString('en-IN') %>
                     <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
