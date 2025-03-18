@@ -67,15 +67,13 @@ app.set('views', [
 ]);
 app.use(express.static(path.join(__dirname,"public")));
 
+app.use('/',userRouter);
+app.use('/admin',adminRouter);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
-
-app.use('/',userRouter);
-app.use('/admin',adminRouter);
-
 
 app.use((req, res) => {
     res.status(404).render('page-404');

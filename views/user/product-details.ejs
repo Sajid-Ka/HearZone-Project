@@ -408,7 +408,6 @@
                         <div class="product-rate d-inline-block">
                             <div class="product-rating" style="width: 90%"></div>
                         </div>
-                        <span class="font-small ml-5 text-muted"> (25 reviews)</span>
                     </div>
                 </div>
                 <div class="clearfix product-price-cover">
@@ -654,7 +653,10 @@
 
     function renderReviews(reviews) {
         const reviewsList = document.querySelector('.reviews-list');
-        reviewsList.innerHTML = reviews.map(review => `
+        const initialReviews = reviews.slice(0, 5);
+        const hasMoreReviews = reviews.length > 5;
+        
+        let html = initialReviews.map(review => `
             <div class="review-item mb-3">
                 <div class="review-header">
                     <span class="reviewer-name">${review.username}</span>
@@ -668,6 +670,18 @@
                 </div>
             </div>
         `).join('');
+
+        if (hasMoreReviews) {
+            html += `
+                <div class="text-center mt-4">
+                    <a href="/review/full/<%= product._id %>" class="btn btn-primary">
+                        Show All Reviews (${reviews.length})
+                    </a>
+                </div>
+            `;
+        }
+        
+        reviewsList.innerHTML = html;
     }
 
     async function submitReview() {

@@ -60,7 +60,15 @@ router.get('/auth/google/callback',
   }
 );
 
+// Update these routes with more specific paths and validation
 router.post('/review/add', isLogout, reviewController.addReview);
 router.get('/review/product/:productId', reviewController.getProductReviews);
+router.get('/review/full/:productId', (req, res, next) => {
+    // Validate ObjectId before proceeding
+    if (!req.params.productId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(404).render('page-404');
+    }
+    reviewController.getFullReviews(req, res, next);
+});
 
 module.exports = router;
