@@ -1,5 +1,22 @@
 <%-include("../../views/partials/user/header")%>
 
+<style>
+  .swiper-pagination {
+    position: absolute;
+    bottom: 20px;
+  }
+  .swiper-pagination-bullet {
+    width: 10px;
+    height: 10px;
+    margin: 0 5px;
+    background: #000;
+    opacity: 0.5;
+  }
+  .swiper-pagination-bullet-active {
+    opacity: 1;
+  }
+</style>
+
 <br>
 <br><br>
 <br>
@@ -12,8 +29,8 @@
           <div class="row d-flex align-items-center justify-content-between" style="min-height: 400px;">
             <div class="col-md-6">
               <div class="banner-content d-flex flex-column justify-content-center">
-                <h1 class="display-2 text-uppercase text-dark pb-5">Your Products Are Great.</h1>
-                <a href="/shop" class="btn btn-medium btn-dark text-uppercase btn-rounded-none">Shop Product</a>
+                <h1 class="display-2 text-uppercase text-dark pb-5">Bold Looks. Superior Sound.</h1>
+                <a href="/shop" class="btn btn-medium btn-dark text-uppercase btn-rounded-none" style="width: fit-content;">Shop Product</a>
               </div>
             </div>
             <div class="col-md-6">
@@ -29,8 +46,8 @@
           <div class="row d-flex align-items-center justify-content-between" style="min-height: 400px;">
             <div class="col-md-6">
               <div class="banner-content d-flex flex-column justify-content-center">
-                <h1 class="display-2 text-uppercase text-dark pb-5">Technology Hack You Won't Get</h1>
-                <a href="/shop" class="btn btn-medium btn-dark text-uppercase btn-rounded-none">Shop Product</a>
+                <h1 class="display-2 text-uppercase text-dark pb-5">Where Sound Meets Perfection!</h1>
+                <a href="/shop" class="btn btn-medium btn-dark text-uppercase btn-rounded-none" style="width: fit-content;">Shop Product</a>
               </div>
             </div>
             <div class="col-md-6">
@@ -41,19 +58,29 @@
           </div>
         </div>
       </div>
+      <div class="swiper-slide">
+        <div class="container">
+          <div class="row d-flex align-items-center justify-content-between" style="min-height: 400px;">
+            <div class="col-md-6">
+              <div class="banner-content d-flex flex-column justify-content-center">
+                <h1 class="display-2 text-uppercase text-dark pb-5">Hear Every Beat, Feel Every Moment!</h1>
+                <a href="/shop" class="btn btn-medium btn-dark text-uppercase btn-rounded-none" style="width: fit-content;">Shop Product</a>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="image-holder text-center d-flex align-items-center justify-content-center">
+                <img src="images/banner-image2.png" alt="banner" class="img-fluid" style="max-height: 350px; object-fit: contain;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="swiper-icon swiper-arrow swiper-arrow-prev">
-    <svg class="chevron-left">
-      <use xlink:href="#chevron-left" />
-    </svg>
-  </div>
-  <div class="swiper-icon swiper-arrow swiper-arrow-next">
-    <svg class="chevron-right">
-      <use xlink:href="#chevron-right" />
-    </svg>
+    <!-- Add pagination dots -->
+    <div class="swiper-pagination"></div>
   </div>
 </section>
+
 <section id="company-services" class="padding-large">
   <div class="container">
     <div class="row">
@@ -112,7 +139,8 @@
     </div>
   </div>
 </section>
-<section id="mobile-products" class="product-store position-relative padding-large no-padding-top">
+
+<section id="mobile-products" class="product-store position-relative padding-large no-padding-top" style="margin-bottom: -450px;">
   <div class="container">
     <div class="row">
       <div class="display-header d-flex justify-content-between pb-3">
@@ -161,27 +189,75 @@
   <div class="swiper-pagination position-absolute text-center"></div>
 </section>
 
-
-<section id="yearly-sale" class="bg-light-blue overflow-hidden mt-5 padding-xlarge"
-  style="background-image: url('images/single-image1.png');background-position: right; background-repeat: no-repeat;">
-  <div class="row d-flex flex-wrap align-items-center">
-    <div class="col-md-6 col-sm-12">
-      <div class="text-content offset-4 padding-medium">
-        <h3>10% off</h3>
-        <h2 class="display-2 pb-5 text-uppercase text-dark">New year sale</h2>
-        <a href="shop.html" class="btn btn-medium btn-dark text-uppercase btn-rounded-none">Shop Sale</a>
+<section id="yearly-sale" class="bg-light-blue overflow-hidden mt-5 padding-xlarge" 
+  style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('images/single-image1.png'); 
+         background-position: center;
+         background-repeat: no-repeat; 
+         background-size: cover;
+         width: 100vw;
+         position: relative;
+         left: 50%;
+         right: 50%;
+         margin-left: -50vw;
+         margin-right: -50vw;
+         min-height: 500px;">
+    <div class="row d-flex flex-wrap align-items-center h-100">
+      <div class="col-md-6 col-sm-12">
+        <div class="text-content ps-5">
+          <h2 class="display-1 pb-4 text-uppercase text-white fw-bolder">Feel the<br>Music</h2>
+          <a href="/shop" class="btn btn-lg btn-warning text-uppercase fw-bold">Shop Now</a>
+        </div>
       </div>
     </div>
-    <div class="col-md-6 col-sm-12">
-
-    </div>
-  </div>
 </section>
 
 <br>
 <br>
 <br>
 <br>
+
+<script>
+  var mainSwiper = new Swiper('.main-swiper', {
+    loop: true,
+    autoplay: {
+      delay: 5000,
+      disableOnInteraction: false,
+    },
+    navigation: {
+      nextEl: '.swiper-arrow-next',
+      prevEl: '.swiper-arrow-prev',
+    },
+  });
+</script>
+
+<!-- Add this script just before closing body tag, after including Swiper JS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const swiper = new Swiper('.main-swiper', {
+      slidesPerView: 1,
+      spaceBetween: 30,
+      loop: true,
+      autoplay: {
+        delay: 10000,
+        disableOnInteraction: false,
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+        type: 'bullets',
+        dynamicBullets: true,
+        dynamicMainBullets: 3,
+        renderBullet: function (index, className) {
+          if (index < 3) { // Only show 3 bullets
+            return '<span class="' + className + '"></span>';
+          }
+          return '';
+        },
+      },
+    });
+  });
+</script>
+
 
 
 <%-include("../../views/partials/user/footer")%>
