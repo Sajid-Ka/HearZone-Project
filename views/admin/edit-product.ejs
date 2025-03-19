@@ -422,7 +422,6 @@
 
 
 function validateForm() {
-    console.log("Validating form...");
     clearErrorMessages();
     
     const name = document.getElementsByName('productName')[0].value;
@@ -557,7 +556,6 @@ function validateAndSubmit() {
 }
 
 function checkForChanges() {
-    console.log("Checking for changes...");
     
     // Get all current file inputs with files
     const newImageInputs = document.querySelectorAll('input[type="file"][name="images"]');
@@ -614,15 +612,6 @@ function checkForChanges() {
         }
     });
 
-    // Log changes for debugging
-    console.log('Changes detected:', changes);
-    console.log('Has image changes:', hasNewImages || deletedImages.length > 0);
-    console.log('New images detected:', hasNewImages);
-    console.log('Deleted images:', deletedImages);
-    console.log('Original highlights:', originalHighlights);
-    console.log('Current highlights:', currentHighlights);
-    console.log('Highlights changed:', highlightsChanged);
-
     // Return true if there are any changes including new or deleted images
     return hasChanges || hasNewImages || deletedImages.length > 0;
 }
@@ -641,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = form.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
         input.addEventListener('change', function() {
-            console.log(`${input.name} changed from ${input.defaultValue} to ${input.value}`);
+            
         });
     });
 });
