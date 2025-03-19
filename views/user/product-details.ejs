@@ -435,7 +435,7 @@
 
 <%- include('../../views/partials/user/breadcrumb', {
     breadcrumbs: [
-        { text: 'Shop', url: '/shop' },
+        { text: category ? category.name : 'Category', url: `/shop?category=${category ? category._id : ''}` },
         { text: product.productName, url: '#', active: true }
     ]
 }) %>

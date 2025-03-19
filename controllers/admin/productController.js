@@ -35,6 +35,7 @@ const getProductAddPage = async (req, res) => {
 
 const addProducts = async (req, res) => {
     try {
+
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ success: false, message: "Please upload at least one image" });
         }
@@ -91,29 +92,33 @@ const addProducts = async (req, res) => {
         if (!categoryId) return res.status(400).json({ success: false, message: "Invalid Category name" });
         if (!brandDoc) return res.status(400).json({ success: false, message: "Invalid Brand name" });
 
-        const highlights = req.body.highlights.split('\n')
-            .map(h => h.trim())
-            .filter(h => h.length > 0);
+        // Process highlights if provided
+        let highlights = [];
+        if (products.highlights) {
+            highlights = products.highlights.split('\n')
+                .map(h => h.trim())
+                .filter(h => h.length > 0);
+        }
 
-            // Process specifications
-            const specifications = [];
-            if (products.specKey) {
-                const specKeys = Array.isArray(products.specKey) ? products.specKey : [products.specKey];
-                specKeys.forEach((key, index) => {
-                    if (key.trim()) {
-                        const values = products[`specValue[${key}]`] || [];
-                        const validValues = (Array.isArray(values) ? values : [values])
-                            .map(v => v?.trim())
-                            .filter(v => v);
-                        if (validValues.length > 0) {
-                            specifications.push({
-                                key: key.trim(),
-                                values: validValues
-                            });
-                        }
+        // Process specifications if provided
+        let specifications = [];
+        if (products.specKey) {
+            const specKeys = Array.isArray(products.specKey) ? products.specKey : [products.specKey];
+            specKeys.forEach((key, index) => {
+                if (key && key.trim()) {
+                    const values = products[`specValue[${key}]`] || [];
+                    const validValues = (Array.isArray(values) ? values : [values])
+                        .map(v => v?.trim())
+                        .filter(v => v);
+                    if (validValues.length > 0) {
+                        specifications.push({
+                            key: key.trim(),
+                            values: validValues
+                        });
                     }
-                });
-            }
+                }
+            });
+        }
 
         const newProduct = new Product({
             productName: products.productName,
@@ -128,8 +133,8 @@ const addProducts = async (req, res) => {
             productImage: images,
             status: 'Available',
             isBlocked: false,
-            highlights,
-            specifications
+            highlights: highlights,  // Will be empty array if not provided
+            specifications: specifications  // Will be empty array if not provided
         });
 
         await newProduct.save();
@@ -287,19 +292,32 @@ const editProduct = async (req, res) => {
 
         const data = req.body;
         
-
         const categoryId = await Category.findOne({ name: data.category });
         if (!categoryId) {
             return res.status(400).json({ success: false, message: "Invalid Category name" });
         }
 
-        // Process specifications
-        const specifications = [];
+        // Process highlights if provided or explicitly cleared
+        let newHighlights = product.highlights; // Default to existing highlights
+        if ('highlights' in data) { // Check if highlights field exists in the request
+            if (data.highlights && data.highlights.trim()) {
+                // If non-empty highlights are provided, process them
+                newHighlights = data.highlights.split('\n')
+                    .map(h => h.trim())
+                    .filter(h => h.length > 0);
+            } else {
+                // If highlights is empty or only whitespace, clear it
+                newHighlights = [];
+            }
+        }
+
+        // Process specifications if provided
+        let specifications = product.specifications;  // Keep existing if not updated
         if (data.specKey) {
+            specifications = [];
             const specKeys = Array.isArray(data.specKey) ? data.specKey : [data.specKey];
             specKeys.forEach((key) => {
                 if (key && key.trim()) {
-                    // Look for specValue[key] or fallback to specValue[][] if key doesn't match
                     let values = data.specValue && data.specValue[key] ? data.specValue[key] : [];
                     if (!Array.isArray(values)) {
                         values = [values];
@@ -320,12 +338,6 @@ const editProduct = async (req, res) => {
                 }
             });
         }
-
-        
-
-        const newHighlights = data.highlights.split('\n')
-            .map(h => h.trim())
-            .filter(h => h.length > 0);
 
         const images = [];
         if (req.files && req.files.length > 0) {
@@ -375,8 +387,6 @@ const editProduct = async (req, res) => {
             { $set: updateFields },
             { new: true, runValidators: true }
         );
-
-        
 
         return res.status(200).json({ 
             success: true, 

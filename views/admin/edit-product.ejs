@@ -483,13 +483,9 @@ function validateForm() {
     const imageInputs = document.querySelectorAll('input[name="images"]');
     let newImagesCount = 0;
 
-    
-    
     imageInputs.forEach(input => {
         if (input.files && input.files.length > 0) newImagesCount++;
     });
-    
-    
     
     if (name.trim() === "") {
         displayErrorMessage('productName-error', 'Please enter a product name.');
@@ -530,39 +526,30 @@ function validateForm() {
         isValid = false;
     }
 
-    // Validate specifications
-    const specKeys = document.getElementsByName('specKey[]');
-    const specValues = document.getElementsByName('specValue[]');
+    // Optional specifications validation - only check if provided
     const specEntries = document.querySelectorAll('.specification-entry');
-    let hasValidSpec = false;
-    
     specEntries.forEach(entry => {
         const key = entry.querySelector('input[name="specKey[]"]').value.trim();
         const values = Array.from(entry.querySelectorAll('input[name^="specValue"]'))
             .map(input => input.value.trim());
         
-        if (key && values.some(v => v)) {
-            hasValidSpec = true;
-        }
-        
-        if (key && !values.some(v => v)) {
-            displayErrorMessage('specifications-error', 'Please provide at least one value for each specification');
-            isValid = false;
-        }
-        
-        if (!key && values.some(v => v)) {
-            displayErrorMessage('specifications-error', 'Please provide a key for specification values');
-            isValid = false;
+        // Only validate if either key or values are provided
+        if (key || values.some(v => v)) {
+            if (key && !values.some(v => v)) {
+                displayErrorMessage('specifications-error', 'Please provide at least one value for each specification');
+                isValid = false;
+            }
+            if (!key && values.some(v => v)) {
+                displayErrorMessage('specifications-error', 'Please provide a key for specification values');
+                isValid = false;
+            }
         }
     });
 
-    if (!hasValidSpec) {
-        displayErrorMessage('specifications-error', 'Please add at least one complete specification');
-        isValid = false;
-    }
-    
     return isValid;
 }
+
+
 
 function validateAndSubmit() {
     if (validateForm()) {
@@ -579,11 +566,6 @@ function validateAndSubmit() {
 
         const form = document.querySelector('form');
         const formData = new FormData(form);
-
-        // Debug: Log all FormData entries
-        for (let [key, value] of formData.entries()) {
-            console.log(`${key}: ${value}`);
-        }
 
         Swal.fire({
             title: 'Updating Product',
@@ -633,12 +615,16 @@ function validateAndSubmit() {
     return false;
 }
 
+
 function checkForChanges() {
+    // Track deleted images
+    const deletedImages = window.deletedImages || [];
     
-    // Get all current file inputs with files
+    // Check for new images
     const newImageInputs = document.querySelectorAll('input[type="file"][name="images"]');
     const hasNewImages = Array.from(newImageInputs).some(input => input.files && input.files.length > 0);
-    
+
+    // Get current form data
     const currentData = {
         productName: document.getElementsByName('productName')[0].value.trim(),
         description: document.getElementsByName('descriptionData')[0].value.trim(),
@@ -651,6 +637,7 @@ function checkForChanges() {
         highlights: document.getElementsByName('highlights')[0].value.trim()
     };
 
+    // Get original data
     const originalData = {
         productName: document.getElementById('product_name').defaultValue.trim(),
         description: document.getElementsByName('descriptionData')[0].defaultValue.trim(),
@@ -663,34 +650,12 @@ function checkForChanges() {
         highlights: document.getElementsByName('highlights')[0].defaultValue.trim()
     };
 
-    // Process highlights for comparison
+    // Compare highlights
     const currentHighlights = currentData.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0);
     const originalHighlights = originalData.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0);
-    
     const highlightsChanged = JSON.stringify(currentHighlights.sort()) !== JSON.stringify(originalHighlights.sort());
 
-    const changes = {};
-    let hasChanges = false;
-
-    Object.keys(currentData).forEach(key => {
-        if (key === 'highlights') {
-            if (highlightsChanged) {
-                changes[key] = {
-                    from: originalHighlights,
-                    to: currentHighlights
-                };
-                hasChanges = true;
-            }
-        } else if (String(currentData[key]) !== String(originalData[key])) {
-            changes[key] = {
-                from: originalData[key],
-                to: currentData[key]
-            };
-            hasChanges = true;
-        }
-    });
-
-    // Add specifications comparison
+    // Compare specifications
     const currentSpecs = Array.from(document.querySelectorAll('.specification-entry')).map(entry => {
         return {
             key: entry.querySelector('input[name="specKey[]"]').value.trim(),
@@ -698,22 +663,28 @@ function checkForChanges() {
                 .map(input => input.value.trim())
                 .filter(v => v)
         };
-    });
+    }).filter(spec => spec.key || spec.values.length > 0);
 
     const originalSpecs = <%- JSON.stringify(product.specifications || []) %>;
-    
-    const specsChanged = JSON.stringify(currentSpecs.sort()) !== JSON.stringify(originalSpecs.sort());
-    
-    if (specsChanged) {
-        changes.specifications = {
-            from: originalSpecs,
-            to: currentSpecs
-        };
-        hasChanges = true;
-    }
+    const specsChanged = JSON.stringify(currentSpecs.sort((a, b) => a.key.localeCompare(b.key))) !== 
+                        JSON.stringify(originalSpecs.sort((a, b) => a.key.localeCompare(b.key)));
 
-    // Return true if there are any changes including new or deleted images
-    return hasChanges || hasNewImages || deletedImages.length > 0;
+    // Compare basic fields
+    let basicFieldsChanged = false;
+    Object.keys(currentData).forEach(key => {
+        if (key !== 'highlights') {
+            if (String(currentData[key]) !== String(originalData[key])) {
+                basicFieldsChanged = true;
+            }
+        }
+    });
+
+    // Return true if any type of change is detected
+    return basicFieldsChanged || 
+           highlightsChanged || 
+           specsChanged || 
+           hasNewImages || 
+           deletedImages.length > 0;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -787,15 +758,10 @@ function deleteImage(imageId, productId, buttonElement) {
                     productIdToServer: productId
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    deletedImages.push(imageId);
+                    window.deletedImages.push(imageId); // Track deleted image
                     imageItem.remove();
 
                     const totalItems = gallery.querySelectorAll('.image-item').length;
@@ -1006,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         validateAndSubmit();
     });
-
+    window.deletedImages = [];
     
     form.addEventListener('submit', function() {
         

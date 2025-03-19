@@ -63,11 +63,11 @@ const productSchema = new Schema({
     specifications: [{
         key: {
             type: String,
-            required: true
+            
         },
         values: [{
             type: String,
-            required: true
+            
         }]
     }]
 }, { timestamps: true });
