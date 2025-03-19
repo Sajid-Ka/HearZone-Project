@@ -540,6 +540,21 @@
     <div class="product-details-box">
         <div class="row">
             <div class="col-12 details-section">
+                <h3 class="details-title">Specifications</h3>
+                <% if (product.specifications && product.specifications.length > 0) { %>
+                    <table class="specs-table">
+                        <% product.specifications.forEach(spec => { %>
+                            <tr>
+                                <th><%= spec.key %></th>
+                                <td><%= spec.values.join(', ') %></td> 
+                            </tr>
+                        <% }); %>
+                    </table>
+                <% } else { %>
+                    <p>No specifications available</p>
+                <% } %>
+            </div>
+            <div class="col-12 details-section">
                 <h3 class="details-title">Highlights</h3>
                 <ul class="highlights-list">
                     <% if (product.highlights && product.highlights.length > 0) { %>
@@ -547,7 +562,7 @@
                             <li><%= highlight %></li>
                         <% }); %>
                     <% } else { %>
-                        <li>No Spec available</li>
+                        <li>No highlights available</li>
                     <% } %>
                 </ul>
             </div>

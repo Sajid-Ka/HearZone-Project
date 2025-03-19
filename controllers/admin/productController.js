@@ -31,6 +31,8 @@ const getProductAddPage = async (req, res) => {
     }
 };
 
+
+
 const addProducts = async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
@@ -43,7 +45,6 @@ const addProducts = async (req, res) => {
         });
         
         if (productExists) {
-            // Clean up uploaded files safely
             for (const file of req.files) {
                 try {
                     await safeDelete(file.path);
@@ -57,38 +58,29 @@ const addProducts = async (req, res) => {
         const images = [];
         for (const file of req.files) {
             const filename = file.filename;
-            const tempPath = file.path; // Store temp path
+            const tempPath = file.path;
             const reImagePath = path.join(reImageDir, filename);
             const productImagePath = path.join(productImagesDir, filename);
 
-            try {
-                // Process images first
-                await Promise.all([
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(productImagePath),
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(reImagePath)
-                ]);
+            await Promise.all([
+                sharp(tempPath)
+                    .resize(600, 600, { fit: 'cover', position: 'center' })
+                    .jpeg({ quality: 90 })
+                    .toFile(productImagePath),
+                sharp(tempPath)
+                    .resize(600, 600, { fit: 'cover', position: 'center' })
+                    .jpeg({ quality: 90 })
+                    .toFile(reImagePath)
+            ]);
 
-                images.push(filename);
-
-                // Schedule temp file deletion with retry
-                setTimeout(async () => {
-                    try {
-                        await safeDelete(tempPath);
-                    } catch (err) {
-                        console.warn(`Warning: Could not delete temp file ${tempPath}:`, err.code);
-                    }
-                }, 1000);
-
-            } catch (error) {
-                console.warn(`Warning: Error processing image ${filename}:`, error);
-                // Continue with other files even if one fails
-            }
+            images.push(filename);
+            setTimeout(async () => {
+                try {
+                    await safeDelete(tempPath);
+                } catch (err) {
+                    console.warn(`Warning: Could not delete temp file ${tempPath}:`, err.code);
+                }
+            }, 1000);
         }
 
         const [categoryId, brandDoc] = await Promise.all([
@@ -99,10 +91,29 @@ const addProducts = async (req, res) => {
         if (!categoryId) return res.status(400).json({ success: false, message: "Invalid Category name" });
         if (!brandDoc) return res.status(400).json({ success: false, message: "Invalid Brand name" });
 
-        // Process highlights only
         const highlights = req.body.highlights.split('\n')
             .map(h => h.trim())
             .filter(h => h.length > 0);
+
+            // Process specifications
+            const specifications = [];
+            if (products.specKey) {
+                const specKeys = Array.isArray(products.specKey) ? products.specKey : [products.specKey];
+                specKeys.forEach((key, index) => {
+                    if (key.trim()) {
+                        const values = products[`specValue[${key}]`] || [];
+                        const validValues = (Array.isArray(values) ? values : [values])
+                            .map(v => v?.trim())
+                            .filter(v => v);
+                        if (validValues.length > 0) {
+                            specifications.push({
+                                key: key.trim(),
+                                values: validValues
+                            });
+                        }
+                    }
+                });
+            }
 
         const newProduct = new Product({
             productName: products.productName,
@@ -118,24 +129,13 @@ const addProducts = async (req, res) => {
             status: 'Available',
             isBlocked: false,
             highlights,
+            specifications
         });
 
         await newProduct.save();
-        
-        // Add delay before deletion
-        setTimeout(async () => {
-            try {
-                await fs.unlink(tempPath);
-            } catch (unlinkError) {
-                console.log('Could not delete temp file:', unlinkError.message);
-                // Continue execution even if delete fails
-            }
-        }, 1000);
-
         return res.status(200).json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Error saving product:", error);
-        // Clean up any remaining files
         if (req.files) {
             for (const file of req.files) {
                 try {
@@ -148,6 +148,8 @@ const addProducts = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message || "An error occurred while adding the product" });
     }
 };
+
+
 
 const getAllProducts = async (req, res) => {
     try {
@@ -273,6 +275,8 @@ const safeDelete = async (filePath, maxRetries = 3) => {
     }
 };
 
+
+
 const editProduct = async (req, res) => {
     try {
         const id = req.params.id;
@@ -282,20 +286,46 @@ const editProduct = async (req, res) => {
         }
 
         const data = req.body;
+        
 
-        // Case-insensitive product name check, excluding the current product
-        const productExists = await Product.findOne({
-            _id: { $ne: id },
-            productName: { $regex: new RegExp(`^${data.productName}$`, 'i') }
-        });
-
-        if (productExists) {
-            // Clean up any uploaded files
-            if (req.files) {
-                await Promise.all(req.files.map(file => safeDelete(file.path)));
-            }
-            return res.status(400).json({ success: false, message: "Product name already exists" });
+        const categoryId = await Category.findOne({ name: data.category });
+        if (!categoryId) {
+            return res.status(400).json({ success: false, message: "Invalid Category name" });
         }
+
+        // Process specifications
+        const specifications = [];
+        if (data.specKey) {
+            const specKeys = Array.isArray(data.specKey) ? data.specKey : [data.specKey];
+            specKeys.forEach((key) => {
+                if (key && key.trim()) {
+                    // Look for specValue[key] or fallback to specValue[][] if key doesn't match
+                    let values = data.specValue && data.specValue[key] ? data.specValue[key] : [];
+                    if (!Array.isArray(values)) {
+                        values = [values];
+                    }
+                    // Handle stray specValue[][] if it exists
+                    if (data['specValue[][]'] && !values.length) {
+                        values = Array.isArray(data['specValue[][]']) ? data['specValue[][]'] : [data['specValue[][]']];
+                    }
+                    const validValues = values
+                        .map(v => v?.trim())
+                        .filter(v => v);
+                    if (validValues.length > 0) {
+                        specifications.push({
+                            key: key.trim(),
+                            values: validValues
+                        });
+                    }
+                }
+            });
+        }
+
+        
+
+        const newHighlights = data.highlights.split('\n')
+            .map(h => h.trim())
+            .filter(h => h.length > 0);
 
         const images = [];
         if (req.files && req.files.length > 0) {
@@ -305,46 +335,23 @@ const editProduct = async (req, res) => {
                 const productImagePath = path.join(productImagesDir, filename);
                 const reImagePath = path.join(reImageDir, filename);
 
-                try {
-                    // Process images first
-                    await Promise.all([
-                        sharp(tempPath)
-                            .resize(600, 600, { fit: 'cover', position: 'center' })
-                            .jpeg({ quality: 90 })
-                            .toFile(productImagePath),
-                        sharp(tempPath)
-                            .resize(600, 600, { fit: 'cover', position: 'center' })
-                            .jpeg({ quality: 90 })
-                            .toFile(reImagePath)
-                    ]);
+                await Promise.all([
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
+                        .jpeg({ quality: 90 })
+                        .toFile(productImagePath),
+                    sharp(tempPath)
+                        .resize(600, 600, { fit: 'cover', position: 'center' })
+                        .jpeg({ quality: 90 })
+                        .toFile(reImagePath)
+                ]);
 
-                    images.push(filename);
-
-                    // Schedule temp file deletion for later
-                    setTimeout(async () => {
-                        await safeDelete(tempPath);
-                    }, 2000); // Wait 2 seconds before attempting deletion
-
-                } catch (error) {
-                    console.warn(`Warning: Error processing image ${filename}:`, error);
-                    // Continue with other files even if one fails
-                }
+                images.push(filename);
+                setTimeout(async () => {
+                    await safeDelete(tempPath);
+                }, 2000);
             }
         }
-
-        const categoryId = await Category.findOne({ name: data.category });
-        if (!categoryId) {
-            return res.status(400).json({ success: false, message: "Invalid Category name" });
-        }
-
-        // Process highlights
-        const newHighlights = data.highlights.split('\n')
-            .map(h => h.trim())
-            .filter(h => h.length > 0);
-
-        // Check if highlights have actually changed
-        const currentHighlights = product.highlights || [];
-        const highlightsChanged = JSON.stringify(currentHighlights.sort()) !== JSON.stringify(newHighlights.sort());
 
         const updateFields = {
             productName: data.productName,
@@ -355,26 +362,28 @@ const editProduct = async (req, res) => {
             salePrice: data.salePrice || 0,
             quantity: data.quantity,
             color: data.color,
-            highlights: newHighlights, // Always include highlights in updateFields
+            highlights: newHighlights,
+            specifications: specifications
         };
 
         if (images.length > 0) {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
 
-        
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            { $set: updateFields },
+            { new: true, runValidators: true }
+        );
 
-        const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, { new: true });
+        
 
         return res.status(200).json({ 
             success: true, 
-            message: "Product updated successfully",
-            highlightsChanged // Include this in response for debugging
+            message: "Product updated successfully"
         });
     } catch (error) {
         console.error("Error editing product:", error);
-        
-        // Clean up any remaining temp files with delay
         if (req.files) {
             setTimeout(async () => {
                 for (const file of req.files) {
@@ -385,6 +394,8 @@ const editProduct = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+
 
 const deleteSingleImage = async (req, res) => {
     try {

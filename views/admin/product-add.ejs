@@ -259,11 +259,6 @@
                                 <div id="description-error" class="error-message"></div>
                             </div>
 
-                            <div class="mb-4">
-                                <label class="form-label">Product Highlights (One per line)</label>
-                                <textarea placeholder="Enter each highlight on a new line" name="highlights" class="form-control border" rows="4"></textarea>
-                                <div id="highlights-error" class="error-message"></div>
-                            </div>
 
                             <div class="row">
                                 <div class="col-lg-4">
@@ -309,6 +304,28 @@
                                 </select>
                                 <div id="category-error" class="error-message"></div>
                             </div>
+
+
+                            <div class="mb-4">
+                                <label class="form-label">Product Specifications</label>
+                                <div class="specification-entries mb-2">
+                                    <!-- Initial specification entry -->
+                                    <div class="specification-entry d-flex mb-2">
+                                        <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
+                                        <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
+                                        <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSpecification()">Add Specification</button>
+                                <div id="specifications-error" class="error-message"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">Product Highlights (One per line)</label>
+                                <textarea placeholder="Enter each highlight on a new line" name="highlights" class="form-control border" rows="4"></textarea>
+                                <div id="highlights-error" class="error-message"></div>
+                            </div>
+
 
                             <div class="card mb-4">
                                 <div class="card-header">
@@ -651,71 +668,90 @@
 }
 
 
-    class FormValidator {
+class FormValidator {
         static async validate() {
-            this.clearErrors();
-            const form = document.getElementById('productForm');
-            const imageManager = window.imageManager;
-            let isValid = true;
+        this.clearErrors();
+        const form = document.getElementById('productForm');
+        const imageManager = window.imageManager;
+        let isValid = true;
 
-            // Basic validations remain the same
-            const validations = [
-                { field: 'productName', errorId: 'productName-error', message: 'Please enter a product name', check: v => v.trim() === '' },
-                { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
-                { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) < 0 },
-                { field: 'quantity', errorId: 'quantity-error', message: 'Please enter a valid quantity', check: v => !v || isNaN(v) || Number(v) < 0 },
-                { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' }
-            ];
+        const validations = [
+            { field: 'productName', errorId: 'productName-error', message: 'Please enter a product name', check: v => v.trim() === '' },
+            { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
+            { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) < 0 },
+            { field: 'quantity', errorId: 'quantity-error', message: 'Please enter a valid quantity', check: v => !v || isNaN(v) || Number(v) < 0 },
+            { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' }
+        ];
 
-            for (const val of validations) {
-                const value = form.elements[val.field].value;
-                if (val.check(value)) {
-                    this.displayError(val.errorId, val.message);
-                    isValid = false;
-                }
-            }
-
-            // Additional async validation for product name
-            if (isValid) {
-                const productName = form.elements['productName'].value;
-                try {
-                    const response = await fetch(`/admin/checkProductName?name=${encodeURIComponent(productName)}`);
-                    const data = await response.json();
-                    if (data.exists) {
-                        this.displayError('productName-error', 'This product name already exists');
-                        isValid = false;
-                    }
-                } catch (error) {
-                    console.error('Error checking product name:', error);
-                }
-            }
-
-            const regularPrice = Number(form.elements['regularPrice'].value);
-            const salePrice = form.elements['salePrice'].value;
-            if (salePrice) {
-                if (isNaN(salePrice) || Number(salePrice) < 0) {
-                    this.displayError('salePrice-error', 'Please enter a valid sale price');
-                    isValid = false;
-                } else if (Number(salePrice) >= regularPrice) {
-                    this.displayError('salePrice-error', 'Sale price must be less than regular price');
-                    isValid = false;
-                }
-            }
-
-            if (imageManager.getImageCount() === 0) {
-                this.displayError('images-error', 'Please upload at least one image');
+        for (const val of validations) {
+            const value = form.elements[val.field].value;
+            if (val.check(value)) {
+                this.displayError(val.errorId, val.message);
                 isValid = false;
             }
-
-            // Add validation for highlights and specifications
-            const highlights = form.elements['highlights'].value.trim();
-            if (!highlights) {
-                this.displayError('highlights-error', 'Please add at least one highlight');
-                isValid = false;
-            }
-
-            return isValid;
         }
+
+        if (isValid) {
+            const productName = form.elements['productName'].value;
+            try {
+                const response = await fetch(`/admin/checkProductName?name=${encodeURIComponent(productName)}`);
+                const data = await response.json();
+                if (data.exists) {
+                    this.displayError('productName-error', 'This product name already exists');
+                    isValid = false;
+                }
+            } catch (error) {
+                console.error('Error checking product name:', error);
+            }
+        }
+
+        const regularPrice = Number(form.elements['regularPrice'].value);
+        const salePrice = form.elements['salePrice'].value;
+        if (salePrice) {
+            if (isNaN(salePrice) || Number(salePrice) < 0) {
+                this.displayError('salePrice-error', 'Please enter a valid sale price');
+                isValid = false;
+            } else if (Number(salePrice) >= regularPrice) {
+                this.displayError('salePrice-error', 'Sale price must be less than regular price');
+                isValid = false;
+            }
+        }
+
+        if (imageManager.getImageCount() === 0) {
+            this.displayError('images-error', 'Please upload at least one image');
+            isValid = false;
+        }
+
+        const highlights = form.elements['highlights'].value.trim();
+        if (!highlights) {
+            this.displayError('highlights-error', 'Please add at least one highlight');
+            isValid = false;
+        }
+
+        // Validate specifications
+        const specKeys = form.elements['specKey[]'];
+        const specValues = form.elements['specValue[]'];
+        let hasValidSpec = false;
+        
+        for (let i = 0; i < specKeys.length; i++) {
+            const key = specKeys[i].value.trim();
+            const value = specValues[i].value.trim();
+            
+            if (key && value) {
+                hasValidSpec = true;
+            } else if ((key && !value) || (!key && value)) {
+                this.displayError('specifications-error', 'Please provide both key and value for specifications');
+                isValid = false;
+            }
+        }
+
+        if (!hasValidSpec) {
+            this.displayError('specifications-error', 'Please add at least one complete specification');
+            isValid = false;
+        }
+
+        return isValid;
+    }
 
         static async submit() {
             if (!this.validate()) {
@@ -754,23 +790,23 @@
         static clearErrors() {
             document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
         }
-    }
+}
 
-    function addSpecification() {
-        const container = document.querySelector('.specification-entries');
-        const newEntry = document.createElement('div');
-        newEntry.className = 'specification-entry d-flex mb-2';
-        newEntry.innerHTML = `
-            <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
-            <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
-            <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
-        `;
-        container.appendChild(newEntry);
-    }
+function addSpecification() {
+    const container = document.querySelector('.specification-entries');
+    const newEntry = document.createElement('div');
+    newEntry.className = 'specification-entry d-flex mb-2';
+    newEntry.innerHTML = `
+        <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
+        <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
+        <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
+    `;
+    container.appendChild(newEntry);
+}
 
-    function removeSpecification(button) {
-        button.closest('.specification-entry').remove();
-    }
+function removeSpecification(button) {
+    button.closest('.specification-entry').remove();
+}
 
     
    

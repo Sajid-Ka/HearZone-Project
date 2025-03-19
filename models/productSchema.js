@@ -1,43 +1,55 @@
+// productSchema.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const productSchema = new Schema({
     productName: {
-         type: String,
-          required: true },
+        type: String,
+        required: true
+    },
     description: {
-         type: String,
-          required: true },
+        type: String,
+        required: true
+    },
     brand: { 
         type: Schema.Types.ObjectId, 
         required: true,
-        ref: "Brand" }, 
+        ref: "Brand"
+    }, 
     category: { 
         type: Schema.Types.ObjectId, 
         ref: "Category", 
-        required: true }, 
+        required: true
+    }, 
     regularPrice: { 
         type: Number, 
-        required: true },
+        required: true
+    },
     salePrice: { 
         type: Number, 
-        required: true },
-    createdOn:{
-        type:Date,
-        default:Date.now,
-        required:true},
+        required: true
+    },
+    createdOn: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
     quantity: { 
         type: Number, 
-        default: 0 },
+        default: 0
+    },
     color: { 
         type: String, 
-        required: true },
+        required: true
+    },
     productImage: { 
         type: [String], 
-        required: true }, 
+        required: true
+    }, 
     isBlocked: { 
         type: Boolean, 
-        default: false },
+        default: false
+    },
     status: {
         type: String,
         enum: ["Available", "out of Stock", "Discontinued"],
@@ -47,7 +59,17 @@ const productSchema = new Schema({
     highlights: {
         type: [String],
         default: []
-    }
+    },
+    specifications: [{
+        key: {
+            type: String,
+            required: true
+        },
+        values: [{
+            type: String,
+            required: true
+        }]
+    }]
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
