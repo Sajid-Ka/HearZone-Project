@@ -362,10 +362,7 @@ const editProduct = async (req, res) => {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
 
-        // Log changes for debugging
-        console.log('Current highlights:', currentHighlights);
-        console.log('New highlights:', newHighlights);
-        console.log('Highlights changed:', highlightsChanged);
+        
 
         const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, { new: true });
 
