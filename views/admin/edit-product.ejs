@@ -735,7 +735,21 @@ function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    // Validate file size
+    const gallery = event.target.closest('.image-gallery');
+    const totalImages = gallery.querySelectorAll('.image-item').length;
+    
+    // Check if we've reached the maximum limit of 4 images
+    if (totalImages >= 4) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Maximum limit reached',
+            text: 'You can only upload up to 4 images'
+        });
+        event.target.value = '';
+        return;
+    }
+    
+    // Rest of the validation code
     if (file.size > 5 * 1024 * 1024) { 
         Swal.fire({
             icon: 'error',
@@ -758,7 +772,6 @@ function handleImageUpload(event) {
         return;
     }
 
-    // Create preview immediately without cropping
     const reader = new FileReader();
     reader.onload = function(e) {
         const parent = event.target.parentElement;
@@ -787,9 +800,9 @@ function handleImageUpload(event) {
         
         gallery.replaceChild(newImageItem, parent);
         
-        // Add new upload button if needed
-        const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
-        if (totalItems < 4) {
+        // Add new upload button only if total images is less than 4
+        const currentImages = gallery.querySelectorAll('.image-item').length;
+        if (currentImages < 4) {
             const existingUploadBtn = gallery.querySelector('.add-image-btn');
             if (!existingUploadBtn) {
                 gallery.appendChild(createUploadButton());
@@ -862,9 +875,11 @@ function removeNewImage(button) {
     
     imageItem.remove();
 
-    // Check if we need to add an upload button
-    const totalItems = gallery.querySelectorAll('.image-item, .add-image-btn').length;
-    if (totalItems < 4) {
+    // Check total number of current images
+    const currentImages = gallery.querySelectorAll('.image-item').length;
+    
+    // Only add an upload button if we have less than 4 images total
+    if (currentImages < 4) {
         const existingUploadBtn = gallery.querySelector('.add-image-btn');
         if (!existingUploadBtn) {
             gallery.appendChild(createUploadButton());
