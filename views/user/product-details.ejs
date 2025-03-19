@@ -347,6 +347,80 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+    /* Add these new styles for the details box */
+    .product-details-box {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        margin: 2rem 0;
+        padding: 2rem;
+    }
+
+    .details-section {
+        margin-bottom: 2rem;
+    }
+
+    .details-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .details-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f8f9fa;
+    }
+
+    .highlights-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .highlights-list li {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+        position: relative;
+    }
+
+    .highlights-list li:before {
+        content: "•";
+        color: #0d6efd;
+        font-size: 1.5rem;
+        position: absolute;
+        left: 0;
+        top: -0.25rem;
+    }
+
+    .specs-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .specs-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .specs-table th, .specs-table td {
+        padding: 1rem;
+        border: none;
+    }
+
+    .specs-table th {
+        width: 30%;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .specs-table td {
+        color: #4a5568;
+    }
 </style>
 
 <!-- Add this before closing </head> -->
@@ -461,7 +535,27 @@
     </div>
 </div>
 
-<!-- Add this after the product info section -->
+<!-- After the product info container and before the reviews section -->
+<div class="container">
+    <div class="product-details-box">
+        <div class="row">
+            <div class="col-12 details-section">
+                <h3 class="details-title">Highlights</h3>
+                <ul class="highlights-list">
+                    <% if (product.highlights && product.highlights.length > 0) { %>
+                        <% product.highlights.forEach(highlight => { %>
+                            <li><%= highlight %></li>
+                        <% }); %>
+                    <% } else { %>
+                        <li>No Spec available</li>
+                    <% } %>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Then the reviews section continues as before -->
 <div class="review-section mt-5">
     <h3>Customer Reviews</h3>
     <div class="review-summary mb-4">

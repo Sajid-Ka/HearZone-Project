@@ -259,6 +259,12 @@
                                 <div id="description-error" class="error-message"></div>
                             </div>
 
+                            <div class="mb-4">
+                                <label class="form-label">Product Highlights (One per line)</label>
+                                <textarea placeholder="Enter each highlight on a new line" name="highlights" class="form-control border" rows="4"></textarea>
+                                <div id="highlights-error" class="error-message"></div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-lg-4">
                                     <div class="mb-4">
@@ -701,6 +707,13 @@
                 isValid = false;
             }
 
+            // Add validation for highlights and specifications
+            const highlights = form.elements['highlights'].value.trim();
+            if (!highlights) {
+                this.displayError('highlights-error', 'Please add at least one highlight');
+                isValid = false;
+            }
+
             return isValid;
         }
 
@@ -743,7 +756,21 @@
         }
     }
 
-    
+    function addSpecification() {
+        const container = document.querySelector('.specification-entries');
+        const newEntry = document.createElement('div');
+        newEntry.className = 'specification-entry d-flex mb-2';
+        newEntry.innerHTML = `
+            <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
+            <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
+            <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
+        `;
+        container.appendChild(newEntry);
+    }
+
+    function removeSpecification(button) {
+        button.closest('.specification-entry').remove();
+    }
 
     
    

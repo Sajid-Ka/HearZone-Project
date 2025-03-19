@@ -99,6 +99,11 @@ const addProducts = async (req, res) => {
         if (!categoryId) return res.status(400).json({ success: false, message: "Invalid Category name" });
         if (!brandDoc) return res.status(400).json({ success: false, message: "Invalid Brand name" });
 
+        // Process highlights only
+        const highlights = req.body.highlights.split('\n')
+            .map(h => h.trim())
+            .filter(h => h.length > 0);
+
         const newProduct = new Product({
             productName: products.productName,
             description: products.description,
@@ -112,6 +117,7 @@ const addProducts = async (req, res) => {
             productImage: images,
             status: 'Available',
             isBlocked: false,
+            highlights,
         });
 
         await newProduct.save();
@@ -331,6 +337,15 @@ const editProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Category name" });
         }
 
+        // Process highlights
+        const newHighlights = data.highlights.split('\n')
+            .map(h => h.trim())
+            .filter(h => h.length > 0);
+
+        // Check if highlights have actually changed
+        const currentHighlights = product.highlights || [];
+        const highlightsChanged = JSON.stringify(currentHighlights.sort()) !== JSON.stringify(newHighlights.sort());
+
         const updateFields = {
             productName: data.productName,
             description: data.descriptionData,
@@ -340,14 +355,25 @@ const editProduct = async (req, res) => {
             salePrice: data.salePrice || 0,
             quantity: data.quantity,
             color: data.color,
+            highlights: newHighlights, // Always include highlights in updateFields
         };
 
         if (images.length > 0) {
             updateFields.productImage = [...(product.productImage || []), ...images];
         }
 
-        await Product.findByIdAndUpdate(id, updateFields);
-        return res.status(200).json({ success: true, message: "Product updated successfully" });
+        // Log changes for debugging
+        console.log('Current highlights:', currentHighlights);
+        console.log('New highlights:', newHighlights);
+        console.log('Highlights changed:', highlightsChanged);
+
+        const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, { new: true });
+
+        return res.status(200).json({ 
+            success: true, 
+            message: "Product updated successfully",
+            highlightsChanged // Include this in response for debugging
+        });
     } catch (error) {
         console.error("Error editing product:", error);
         

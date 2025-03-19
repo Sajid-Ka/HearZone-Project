@@ -286,6 +286,14 @@
                             <input name="descriptionData" value="<%=product.description%>"  class="form-control border" rows="4">
                                 <div id="description-error" class="error-message"></div>
                         </div>
+
+                        <!-- Add these new sections -->
+                        <div class="mb-4">
+                            <label class="form-label">Product highlights (One per line)</label>
+                            <textarea name="highlights" class="form-control border" rows="4"><%=product.highlights ? product.highlights.join('\n') : ''%></textarea>
+                            <div id="highlights-error" class="error-message"></div>
+                        </div>
+
                         <div class="row">
                             <div class="col-lg-4">
                                 <div class="mb-4">
@@ -549,6 +557,12 @@ function validateAndSubmit() {
 }
 
 function checkForChanges() {
+    console.log("Checking for changes...");
+    
+    // Get all current file inputs with files
+    const newImageInputs = document.querySelectorAll('input[type="file"][name="images"]');
+    const hasNewImages = Array.from(newImageInputs).some(input => input.files && input.files.length > 0);
+    
     const currentData = {
         productName: document.getElementsByName('productName')[0].value.trim(),
         description: document.getElementsByName('descriptionData')[0].value.trim(),
@@ -557,7 +571,8 @@ function checkForChanges() {
         salePrice: document.getElementsByName('salePrice')[0].value || '0',
         quantity: document.getElementsByName('quantity')[0].value,
         color: document.getElementsByName('color')[0].value,
-        category: document.getElementsByName('category')[0].value
+        category: document.getElementsByName('category')[0].value,
+        highlights: document.getElementsByName('highlights')[0].value.trim()
     };
 
     const originalData = {
@@ -568,17 +583,29 @@ function checkForChanges() {
         salePrice: document.getElementsByName('salePrice')[0].defaultValue || '0',
         quantity: document.getElementsByName('quantity')[0].defaultValue,
         color: document.getElementsByName('color')[0].defaultValue,
-        category: document.getElementsByName('category')[0].getAttribute('data-original-value') || document.getElementsByName('category')[0].value
+        category: document.getElementsByName('category')[0].getAttribute('data-original-value') || document.getElementsByName('category')[0].value,
+        highlights: document.getElementsByName('highlights')[0].defaultValue.trim()
     };
 
-    const hasNewImages = Array.from(document.querySelectorAll('input[type="file"]'))
-        .some(input => input.files && input.files.length > 0);
+    // Process highlights for comparison
+    const currentHighlights = currentData.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0);
+    const originalHighlights = originalData.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0);
+    
+    const highlightsChanged = JSON.stringify(currentHighlights.sort()) !== JSON.stringify(originalHighlights.sort());
 
     const changes = {};
     let hasChanges = false;
 
     Object.keys(currentData).forEach(key => {
-        if (String(currentData[key]) !== String(originalData[key])) {
+        if (key === 'highlights') {
+            if (highlightsChanged) {
+                changes[key] = {
+                    from: originalHighlights,
+                    to: currentHighlights
+                };
+                hasChanges = true;
+            }
+        } else if (String(currentData[key]) !== String(originalData[key])) {
             changes[key] = {
                 from: originalData[key],
                 to: currentData[key]
@@ -587,15 +614,18 @@ function checkForChanges() {
         }
     });
 
-    
-    const hasImageChanges = deletedImages.length > 0 || hasNewImages;
-
+    // Log changes for debugging
     console.log('Changes detected:', changes);
-    console.log('Has image changes:', hasImageChanges, 'Deleted images:', deletedImages, 'New images:', hasNewImages);
+    console.log('Has image changes:', hasNewImages || deletedImages.length > 0);
+    console.log('New images detected:', hasNewImages);
+    console.log('Deleted images:', deletedImages);
+    console.log('Original highlights:', originalHighlights);
+    console.log('Current highlights:', currentHighlights);
+    console.log('Highlights changed:', highlightsChanged);
 
-    return hasChanges || hasImageChanges;
+    // Return true if there are any changes including new or deleted images
+    return hasChanges || hasNewImages || deletedImages.length > 0;
 }
-
 
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -951,6 +981,22 @@ function cancelEdit() {
             window.location.href = '/admin/products';
         }
     });
+}
+
+function addSpecification() {
+    const container = document.querySelector('.specification-entries');
+    const newEntry = document.createElement('div');
+    newEntry.className = 'specification-entry d-flex mb-2';
+    newEntry.innerHTML = `
+        <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
+        <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
+        <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
+    `;
+    container.appendChild(newEntry);
+}
+
+function removeSpecification(button) {
+    button.closest('.specification-entry').remove();
 }
            
        </script>
