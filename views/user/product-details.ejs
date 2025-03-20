@@ -101,28 +101,49 @@
         background: #ffffff;
         border-radius: 15px;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        font-family: 'Arial', sans-serif;
     }
 
-    .product-info h2 {
-        font-size: 28px;
+   /* Brand Section */
+    .product-brand {
+        margin-bottom: 15px;
+    }
+
+    .brand-label {
+        font-size: 14px;
         font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+    }
+
+    .brand-name {
+        font-size: 16px;
+        font-weight: 500;
         color: #2c3e50;
+        margin-left: 5px;
+    }
+
+    /* Price Section */
+    .price-section {
         margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
     }
 
     .price-tag {
-        font-size: 32px;
+        font-size: 28px;
         color: #0d6efd;
-        margin: 20px 0;
         display: flex;
         align-items: center;
         gap: 12px;
+        margin-bottom: 8px;
     }
 
     .original-price {
         text-decoration: line-through;
         color: #6c757d;
-        font-size: 24px;
+        font-size: 20px;
     }
 
     .offer-badge {
@@ -130,9 +151,64 @@
         color: white;
         padding: 6px 12px;
         border-radius: 25px;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         box-shadow: 0 4px 15px rgba(255, 71, 87, 0.2);
+    }
+
+    .offer-text {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    /* Description */
+    .product-description {
+        margin-bottom: 25px;
+        padding: 15px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .product-description p {
+        margin: 0;
+        font-size: 15px;
+        color: #4a5568;
+        line-height: 1.6;
+    }
+
+    /* Features */
+    .product-features {
+        margin-bottom: 25px;
+    }
+
+    .product-features ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .product-features li {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #4a5568;
+        margin-bottom: 12px;
+    }
+
+    .product-features i {
+        font-size: 16px;
+        color: #0d6efd;
+        margin-right: 8px;
+    }
+
+    /* Action Section (Quantity and Add to Cart) */
+    .action-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 25px;
     }
 
     .detail-qty {
@@ -174,10 +250,49 @@
         transform: translateY(-2px);
     }
 
+    .out-of-stock-message {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        background-color: #fee2e2;
+        color: #ef4444;
+        border-radius: 0.5rem;
+    }
+
+    .out-of-stock-message p {
+        margin: 0.5rem 0 0;
+        font-size: 0.875rem;
+    }
+
+    /* Meta Information */
     .product-meta {
-        margin-top: 30px;
         padding-top: 20px;
         border-top: 1px solid #dee2e6;
+    }
+
+    .product-meta ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .product-meta li {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 8px;
+    }
+
+    .product-meta a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .product-meta a:hover {
+        text-decoration: underline;
+    }
+
+    .product-meta .in-stock {
+        font-weight: 500;
     }
 
     .detail-extralink {
@@ -422,6 +537,63 @@
         color: #4a5568;
     }
 
+    /* Navigation Buttons Styles */
+    .nav-buttons-container {
+        position: sticky; /* Changed from fixed to sticky */
+        top: 130px; /* Will stick just below the header */
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding: 10px 20px;
+        border-radius: 50px;
+        transition: opacity 0.3s ease;
+        opacity: 0%;
+        margin: 0 auto;
+        max-width: 600px;
+        margin-top: 20px;
+    }
+
+    .nav-buttons-container.visible {
+        opacity: 1;
+    }
+
+    .nav-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 20px;
+        background: #f8f9fa;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .nav-button:hover {
+        background: #0d6efd;
+        color: #ffffff;
+        transform: translateY(-2px);
+    }
+
+    .nav-button.active {
+        background: #0d6efd;
+        color: #ffffff;
+    }
+
+    /* Adjust body padding to prevent overlap with header */
+    body {
+        padding-top: 0; /* Remove this since we're using sticky positioning */
+    }
+
+    /* Ensure the container stays within its parent */
+    .container {
+        position: relative;
+    }
+
     /* Add these styles to your existing CSS */
     .related-products-section {
         margin: 2rem 0;
@@ -534,210 +706,219 @@
         </div>
         <div class="col-md-6">
             <div class="product-info">
-                <div class="d-flex align-items-center">
-                    <h2 class="mb-0"><%= product.productName %></h2>
-                    <div class="ms-3">
-                        <span style="color: #ffd700; font-size: 20px;">
-                            <%= product.averageRating %> ★
-                        </span>
+                <!-- Brand -->
+                <div class="product-brand">
+                    <span class="brand-label">Brand:</span>
+                    <span class="brand-name"><%= product.brand.brandName || 'Unknown' %></span>
+                </div>
+        
+                <!-- Price and Offer -->
+                <div class="price-section">
+                    <div class="price-tag">
+                        ₹<%= product.salePrice.toLocaleString('en-IN') %>
+                        <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
+                        <% if(totalOffer > 0) { %>
+                            <span class="offer-badge"><%= totalOffer %>% OFF</span>
+                        <% } %>
+                    </div>
+                    <div class="offer-text">
+                        <% if (!totalOffer) { %>
+                            <span>No Offers</span>
+                        <% } else { %>
+                            <span><%= totalOffer %>% Offer</span>
+                        <% } %>
                     </div>
                 </div>
-                <div class="price-tag">
-                    ₹<%= product.salePrice.toLocaleString('en-IN') %>
-                    <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
-                    <% if(totalOffer > 0) { %>
-                        <span class="offer-badge"><%= totalOffer %>% OFF</span>
-                    <% } %>
-                </div>
-                <div class="product-detail-rating">
-                    <div class="pro-details-brand">
-                        <span> Brand: <a href="#"><%= product.brand.brandName || 'Unknown' %></a></span>
-                    </div>
-                    <div class="product-rate-cover text-end">
-                        <div class="product-rate d-inline-block">
-                            <div class="product-rating" style="width: 90%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="clearfix product-price-cover">
-                    <div class="product-price primary-color float-left">
-                        <span class="save-price font-md color3 ml-15">
-                            <% if (!totalOffer) { %>
-                                No Offers
-                            <% } else { %>
-                                <%= totalOffer %>% Offer
-                            <% } %>
-                        </span>
-                    </div>
-                </div>
-                <div class="bt-1 border-color-1 mt-15 mb-15"></div>
-                <div class="short-desc mb-30">
+        
+                <!-- Description -->
+                <div class="product-description">
                     <p><%= product.description || 'No description available' %></p>
                 </div>
-                <div class="product_sort_info font-xs mb-30">
+        
+                <!-- Features -->
+                <div class="product-features">
                     <ul>
-                        <li class="mb-10"><i class="fi-rs-crown mr-5"></i> 1 Year Brand Warranty</li>
-                        <li class="mb-10"><i class="fi-rs-refresh mr-5"></i> 30 Day Return Policy</li>
-                        <li><i class="fi-rs-credit-card mr-5"></i> Cash on Delivery available</li>
+                        <li><i class="fi-rs-crown"></i> 1 Year Brand Warranty</li>
+                        <li><i class="fi-rs-refresh"></i> 30 Day Return Policy</li>
+                        <li><i class="fi-rs-credit-card"></i> Cash on Delivery available</li>
                     </ul>
                 </div>
-                <div class="bt-1 border-color-1 mt-30 mb-30"></div>
-                <div class="detail-extralink">
+        
+                <!-- Quantity and Add to Cart -->
+                <div class="action-section">
                     <% if (quantity > 0) { %>
-                    <div class="detail-qty">
-                        <a href="#" class="qty-down" onclick="updateQuantity(-1); return false;">-</a>
-                        <span class="qty-val" id="quantity">1</span>
-                        <a href="#" class="qty-up" onclick="updateQuantity(1); return false;">+</a>
-                    </div>
-                    <div class="product-extra-link2">
-                        <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
-                        <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
-                    </div>
+                        <div class="detail-qty">
+                            <a href="#" class="qty-down" onclick="updateQuantity(-1); return false;">-</a>
+                            <span class="qty-val" id="quantity">1</span>
+                            <a href="#" class="qty-up" onclick="updateQuantity(1); return false;">+</a>
+                        </div>
+                        <div class="product-extra-link2">
+                            <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
+                            <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
+                        </div>
                     <% } else { %>
-                    <div class="out-of-stock-message" style="width: 100%; text-align: center; padding: 1rem; background-color: #fee2e2; color: #ef4444; border-radius: 0.5rem; margin-bottom: 1rem;">
-                        <strong>Out of Stock</strong>
-                        <p style="margin: 0.5rem 0 0; font-size: 0.875rem;">This product is currently unavailable</p>
-                    </div>
+                        <div class="out-of-stock-message">
+                            <strong>Out of Stock</strong>
+                            <p>This product is currently unavailable</p>
+                        </div>
                     <% } %>
                 </div>
-                <ul class="product-meta font-xs color-grey mt-50">
-                    <li class="mb-5">Stock Code: <a href="#">FWM15VKT</a></li>
-                    <li class="mb-5">Category: <a href="#" rel="tag"><%= category ? category.name : '' %></a></li>
-                    <li>Availability: <span class="in-stock text-success ml-5"><%= quantity %> items in Stock</span></li>
-                </ul>
+        
+                <!-- Meta Information -->
+                <div class="product-meta">
+                    <ul>
+                        <li>Stock Code: <a href="#">FWM15VKT</a></li>
+                        <li>Category: <a href="#" rel="tag"><%= category ? category.name : '' %></a></li>
+                        <li>Availability: <span class="in-stock text-success"><%= quantity %> items in Stock</span></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Navigation Buttons -->
+<div class="nav-buttons-container" id="navButtons">
+    <button class="nav-button" onclick="scrollToSection('product-details-box')">Spec</button>
+    <button class="nav-button" onclick="scrollToSection('related-products-section')">Related Products</button>
+    <button class="nav-button" onclick="scrollToSection('review-section')">Reviews</button>
 </div>
 
 <!-- After the product info container and before the reviews section -->
 <div class="container">
-    <div class="product-details-box">
-        <div class="row">
-            <div class="col-12 details-section">
-                <h3 class="details-title">Specifications</h3>
-                <% if (product.specifications && product.specifications.length > 0) { %>
-                    <table class="specs-table">
-                        <% product.specifications.forEach(spec => { %>
-                            <tr>
-                                <th><%= spec.key %></th>
-                                <td><%= spec.values.join(', ') %></td> 
-                            </tr>
-                        <% }); %>
-                    </table>
-                <% } else { %>
-                    <p>No specifications available</p>
-                <% } %>
-            </div>
-            <div class="col-12 details-section">
-                <h3 class="details-title">Highlights</h3>
-                <ul class="highlights-list">
-                    <% if (product.highlights && product.highlights.length > 0) { %>
-                        <% product.highlights.forEach(highlight => { %>
-                            <li><%= highlight %></li>
-                        <% }); %>
-                    <% } else { %>
-                        <li>No highlights available</li>
-                    <% } %>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Related Products Section -->
-<!-- Related Products Section -->
-<div class="container">
-    <div class="related-products-section">
-        <h3 class="related-products-title">Related Products</h3>
-        <% if (relatedProducts && relatedProducts.length > 0) { %>
-            <div class="row g-4">
-                <% relatedProducts.forEach(prod => { %>
-                <div class="col-md-4">
-                    <a href="/product-details?id=<%= prod._id %>" class="text-decoration-none">
-                        <div class="related-product-card">
-                            <img src="/uploads/re-image/<%= prod.productImage[0] %>" 
-                                 alt="<%= prod.productName %>" 
-                                 class="related-product-image">
-                            <div class="related-product-info">
-                                <h4 class="related-product-name"><%= prod.productName %></h4>
-                                <div class="d-flex align-items-center">
-                                    <span class="related-product-price">
-                                        ₹<%= prod.displayPrice %>
-                                    </span>
-                                    <% if (prod.hasDiscount) { %>
-                                        <span class="related-product-original">
-                                            ₹<%= prod.regularPrice.toLocaleString('en-IN') %>
-                                        </span>
-                                        <span class="related-discount-badge">
-                                            <%= prod.discountBadge %>
-                                        </span>
-                                    <% } %>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                <% }); %>
-            </div>
-        <% } else { %>
-            <p>No related products found.</p>
-        <% } %>
-    </div>
-</div>
-
-
-<!-- Then the reviews section continues as before -->
-<div class="review-section mt-5">
-    <h3>Customer Reviews</h3>
-    <div class="review-summary mb-4">
-        <div class="rating-stats">
-            <div class="average-rating">
-                <span class="rating-number">0.0</span>
-                <div class="stars"></div>
-                <span class="total-reviews">(0 reviews)</span>
-            </div>
-            <div class="rating-bars"></div>
-        </div>
-    </div>
-
-    <% if (user) { %>
-        <div class="review-form mb-4">
-            <h4>Write a Review</h4>
-            <form id="reviewForm">
-                <div class="rating-input mb-3">
-                    <label>Rating:</label>
-                    <div class="star-rating">
-                        <input type="radio" name="rating" value="5" id="star5">
-                        <label for="star5">★</label>
-                        <input type="radio" name="rating" value="4" id="star4">
-                        <label for="star4">★</label>
-                        <input type="radio" name="rating" value="3" id="star3">
-                        <label for="star3">★</label>
-                        <input type="radio" name="rating" value="2" id="star2">
-                        <label for="star2">★</label>
-                        <input type="radio" name="rating" value="1" id="star1">
-                        <label for="star1">★</label>
+    <div class="product-details-box" id="product-details-box">
+        <div class="container">
+            <div class="product-details-box">
+                <div class="row">
+                    <div class="col-12 details-section">
+                        <h3 class="details-title">Specifications</h3>
+                        <% if (product.specifications && product.specifications.length > 0) { %>
+                            <table class="specs-table">
+                                <% product.specifications.forEach(spec => { %>
+                                    <tr>
+                                        <th><%= spec.key %></th>
+                                        <td><%= spec.values.join(', ') %></td> 
+                                    </tr>
+                                <% }); %>
+                            </table>
+                        <% } else { %>
+                            <p>No specifications available</p>
+                        <% } %>
+                    </div>
+                    <div class="col-12 details-section">
+                        <h3 class="details-title">Highlights</h3>
+                        <ul class="highlights-list">
+                            <% if (product.highlights && product.highlights.length > 0) { %>
+                                <% product.highlights.forEach(highlight => { %>
+                                    <li><%= highlight %></li>
+                                <% }); %>
+                            <% } else { %>
+                                <li>No highlights available</li>
+                            <% } %>
+                        </ul>
                     </div>
                 </div>
-                <div class="form-group mb-3">
-                    <label for="comment">Your Review:</label>
-                    <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-review-submit" id="submitReview" disabled>Submit Review</button>
-            </form>
+            </div>
         </div>
-    <% } else { %>
-        <div class="login-prompt mb-4">
-            <p>Please <a href="/login">login</a> to write a review.</p>
-        </div>
-    <% } %>
-
-    <div class="reviews-list">
-        <!-- Reviews will be loaded here dynamically -->
     </div>
 </div>
 
+<!-- Related Products Section -->
+<div class="container">
+    <div class="related-products-section" id="related-products-section">
+        <div class="container">
+            <div class="related-products-section">
+                <h3 class="related-products-title">Related Products</h3>
+                <% if (relatedProducts && relatedProducts.length > 0) { %>
+                    <div class="row g-4">
+                        <% relatedProducts.forEach(prod => { %>
+                        <div class="col-md-4">
+                            <a href="/product-details?id=<%= prod._id %>" class="text-decoration-none">
+                                <div class="related-product-card">
+                                    <img src="/uploads/re-image/<%= prod.productImage[0] %>" 
+                                        alt="<%= prod.productName %>" 
+                                        class="related-product-image">
+                                    <div class="related-product-info">
+                                        <h4 class="related-product-name"><%= prod.productName %></h4>
+                                        <div class="d-flex align-items-center">
+                                            <span class="related-product-price">
+                                                ₹<%= prod.displayPrice %>
+                                            </span>
+                                            <% if (prod.hasDiscount) { %>
+                                                <span class="related-product-original">
+                                                    ₹<%= prod.regularPrice.toLocaleString('en-IN') %>
+                                                </span>
+                                                <span class="related-discount-badge">
+                                                    <%= prod.discountBadge %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <p>No related products found.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Then the reviews section continues as before -->
+<div class="review-section mt-5" id="review-section">
+    <div class="review-section mt-5">
+        <h3>Customer Reviews</h3>
+        <div class="review-summary mb-4">
+            <div class="rating-stats">
+                <div class="average-rating">
+                    <span class="rating-number">0.0</span>
+                    <div class="stars"></div>
+                    <span class="total-reviews">(0 reviews)</span>
+                </div>
+                <div class="rating-bars"></div>
+            </div>
+        </div>
+
+        <% if (user) { %>
+            <div class="review-form mb-4">
+                <h4>Write a Review</h4>
+                <form id="reviewForm">
+                    <div class="rating-input mb-3">
+                        <label>Rating:</label>
+                        <div class="star-rating">
+                            <input type="radio" name="rating" value="5" id="star5">
+                            <label for="star5">★</label>
+                            <input type="radio" name="rating" value="4" id="star4">
+                            <label for="star4">★</label>
+                            <input type="radio" name="rating" value="3" id="star3">
+                            <label for="star3">★</label>
+                            <input type="radio" name="rating" value="2" id="star2">
+                            <label for="star2">★</label>
+                            <input type="radio" name="rating" value="1" id="star1">
+                            <label for="star1">★</label>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="comment">Your Review:</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-review-submit" id="submitReview" disabled>Submit Review</button>
+                </form>
+            </div>
+        <% } else { %>
+            <div class="login-prompt mb-4">
+                <p>Please <a href="/login">login</a> to write a review.</p>
+            </div>
+        <% } %>
+
+        <div class="reviews-list">
+            <!-- Reviews will be loaded here dynamically -->
+        </div>
+    </div>
+</div>
 <div id="fullscreenContainer" class="fullscreen-container">
     <span class="close-fullscreen" onclick="closeFullscreen()">×</span>
     <img id="fullscreenImage" class="fullscreen-image" src="" alt="Fullscreen view">
@@ -987,6 +1168,51 @@
             });
         }
     }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const navButtons = document.getElementById('navButtons');
+        const mainImage = document.querySelector('.main-image');
+
+        function handleScroll() {
+            const scrollPosition = window.scrollY;
+            const mainImageBottom = mainImage.getBoundingClientRect().bottom + window.scrollY;
+            const viewportHeight = window.innerHeight;
+
+            // Show buttons after scrolling past main image
+            if (scrollPosition > mainImageBottom - viewportHeight/2) {
+                navButtons.classList.add('visible');
+            } else {
+                navButtons.classList.remove('visible');
+            }
+        }
+
+        // Initial check and scroll listener
+        handleScroll();
+        window.addEventListener('scroll', handleScroll);
+    });
+
+    // scrollToSection function remains mostly the same
+    function scrollToSection(sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            const offset = 120; // Keep offset for spacing
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - offset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+
+            // Highlight active button
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+    }
+
+
 </script>
 
 <%- include("../../views/partials/user/footer") %>
