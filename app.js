@@ -32,30 +32,29 @@ uploadDirs.forEach(dir => {
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: true,
-    saveUninitialized: true, // Changed to true
+    saveUninitialized: true, 
     store: MongoStore.create({ 
         mongoUrl: process.env.MONGODB_URI,
         collectionName: "sessions",
-        ttl: 24 * 60 * 60, // Session TTL in seconds
-        autoRemove: 'native', // Enable automatic removal of expired sessions
-        touchAfter: 24 * 3600 // Only update session once per 24 hours
+        ttl: 24 * 60 * 60, 
+        autoRemove: 'native', 
+        touchAfter: 24 * 3600 
     }),
     cookie: {
         secure: false, 
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
-        rolling: true // Resets maxAge on every request
+        rolling: true 
     }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Add this middleware to preserve admin session
+
 app.use((req, res, next) => {
     if (req.session.admin) {
         res.locals.admin = req.session.admin;
-        // Touch the session to keep it alive
         req.session.touch();
     }
     next();
@@ -88,7 +87,14 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
+
+app.use('/admin', (req, res) => {
+    console.log("404 Error - URL not found:", req.originalUrl);
+    res.status(404).render('admin-error'); 
+});
+
 app.use((req, res) => {
+    console.log("404 Error - URL not found:", req.originalUrl);
     res.status(404).render('page-404');
 });
 

@@ -10,94 +10,102 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
+        // Find product and handle case where isListed might be undefined
         const product = await Product.findById(productId)
             .populate('category')
-            .populate('brand', 'brandName -_id');
-
-        const reviews = await Review.find({ productId: product._id });
-        const averageRating = reviews.length > 0 
-            ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
-            : '0.0';
-
-        const avgRating = reviews.length > 0 
-            ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
-            : null;
+            .populate('brand');
 
         if (!product) {
             return res.status(404).render('user/page-404');
         }
 
-        const relatedProducts = await Product.find({
-            category: product.category._id,
-            _id: { $ne: productId },
-            isListed: true
+        // Treat undefined isListed as true to avoid false negatives
+        const isProductListed = product.isListed !== false;
+
+        if (!isProductListed) {
+            return res.status(404).render('user/page-404');
+        }
+
+        // Get related products by category with more lenient conditions
+        let relatedProducts = await Product.find({
+            category: product.category?._id,
+            _id: { $ne: product._id },
+            $or: [
+                { isListed: true },
+                { isListed: { $exists: false } }
+            ]
         })
-        .populate('category')
-        .populate({
-            path: 'brand',
-            select: 'brandName -_id'
-        })
-        .limit(4);
+        .limit(3)
+        .populate('brand');
 
-        const discountedPrice = product.price - (product.price * ((product.category?.offer || 0) + (product.productOffer || 0)) / 100);
+        // If we don't have enough products by category, try brand
+        if (relatedProducts.length < 3 && product.brand?._id) {
+            const brandProducts = await Product.find({
+                brand: product.brand._id,
+                _id: { $ne: product._id },
+                category: { $ne: product.category?._id },
+                $or: [
+                    { isListed: true },
+                    { isListed: { $exists: false } }
+                ]
+            })
+            .limit(3 - relatedProducts.length)
+            .populate('brand');
 
-        const userId = req.session.user ? req.session.user.id : null;
-        let userData = userId ? await User.findById(userId) : null;
+            relatedProducts = [...relatedProducts, ...brandProducts];
+        }
 
-        const productFeatures = {
-            highlights: product.description?.split('\n').filter(item => item.trim()),
-            specifications: {
-                brand: product.brand.brandName || 'N/A',
-                category: product.category?.name,
-                connectivity: product.connectivity || 'N/A',
-                type: product.type || 'N/A'
-            }
-        };
+        // Process related products for display with null checks
+        const enhancedRelatedProducts = relatedProducts.map(prod => {
+            const productOffer = prod.productOffer || 0;
+            const categoryOffer = prod.category?.offer || 0;
+            const totalOffer = productOffer + categoryOffer;
+            const regularPrice = prod.regularPrice || 0;
+            const salePrice = prod.salePrice || regularPrice;
 
-        const productImages = product.images || [];
-        
-        const priceInfo = {
-            originalPrice: product.price,
-            discountedPrice: discountedPrice.toFixed(2),
-            totalDiscount: ((product.category?.offer || 0) + (product.productOffer || 0)).toFixed(0),
-            savings: (product.price - discountedPrice).toFixed(2),
-            brandName: product.brand?.brandName || 'N/A'  
-        };
+            return {
+                _id: prod._id,
+                productName: prod.productName || 'Unnamed Product',
+                productImage: prod.productImage || '',
+                regularPrice: regularPrice,
+                salePrice: salePrice,
+                displayPrice: salePrice.toLocaleString('en-IN'),
+                hasDiscount: regularPrice > salePrice,
+                discountBadge: regularPrice > salePrice ? 
+                    `${Math.round((1 - salePrice/regularPrice) * 100)}% OFF` : ''
+            };
+        });
 
-        const breadcrumb = [
-            { name: 'Home', url: '/' },
-            { name: product.category?.name, url: `/category/${product.category?._id}` },
-            { name: product.name, url: '#' }
-        ];
+        // Calculate reviews and average rating with fallback
+        const reviews = await Review.find({ productId: product._id });
+        const averageRating = reviews.length > 0 
+            ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
+            : '0.0';
 
-        const totalOffer = (product.category?.offer || 0) + (product.productOffer || 0);
+        // Calculate total offer with safe division
+        const regularPrice = product.regularPrice || 0;
+        const salePrice = product.salePrice || regularPrice;
+        const totalOffer = regularPrice > 0 
+            ? Math.round(((regularPrice - salePrice) / regularPrice) * 100)
+            : 0;
 
-        const enhancedRelatedProducts = relatedProducts.map(prod => ({
-            ...prod.toObject(),
-            brand: prod.brand.brandName,
-            displayPrice: prod.price.toLocaleString('en-IN'),
-            hasDiscount: prod.productOffer > 0,
-            discountBadge: prod.productOffer > 0 ? `${prod.productOffer}% OFF` : ''
-        }));
-
+        // Render the page with all the data
         res.render('product-details', {
-            user: userData,
+            user: req.session.user ? await User.findById(req.session.user.id) : null,
             product: {
                 ...product.toObject(),
                 averageRating,
-                brand: product.brand.brandName,
-                salePrice: product.salePrice,
-                regularPrice: product.regularPrice
+                quantity: product.quantity || 0
             },
             relatedProducts: enhancedRelatedProducts,
             totalOffer,
-            category: product.category,
-            quantity: product.quantity
+            category: product.category || {},
+            quantity: product.quantity || 0
         });
 
     } catch (error) {
         console.error('Product details error:', error);
-        res.status(500).render('user/page-404');
+        res.status(500).render('user/page-500', { error: error.message });
     }
 };
 
