@@ -6,6 +6,7 @@ const customerController = require('../controllers/admin/customerController');
 const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
+const couponController = require('../controllers/admin/couponController');
 
 // Import the configured multer instance only once
 const upload = require('../helpers/multer');
@@ -50,5 +51,12 @@ router.get('/unblockProduct', productController.unblockProduct);
 router.get('/editProduct', productController.getEditProduct);
 router.post('/editProduct/:id', upload.array("images",4), productController.editProduct);
 router.post('/deleteImage', productController.deleteSingleImage);
+
+//coupon
+router.get('/coupons', couponController.getCouponPage);
+router.get('/coupons/add-page', couponController.getAddCouponPage);
+router.post('/coupons/add', couponController.createCoupon);
+router.get('/coupons/delete/:id', couponController.deleteCoupon);
+
 
 module.exports = router;

@@ -4,6 +4,7 @@ const userController = require('../controllers/user/userController');
 const productController = require('../controllers/user/productController');
 const profileController = require('../controllers/user/profileController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
+const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
 const reviewController = require('../controllers/user/reviewController');
 
@@ -60,7 +61,7 @@ router.get('/auth/google/callback',
   }
 );
 
-// Update these routes with more specific paths and validation
+// review routes
 router.post('/review/add', isLogout, reviewController.addReview);
 router.get('/review/product/:productId', reviewController.getProductReviews);
 router.get('/review/full/:productId', (req, res, next) => {
@@ -71,5 +72,10 @@ router.get('/review/full/:productId', (req, res, next) => {
     reviewController.getFullReviews(req, res, next);
 });
 router.post('/review/delete/:reviewId', isLogout, reviewController.deleteReview);
+
+//coupon routes
+router.get('/coupon/available', couponController.getAvailableCoupons);
+
+
 
 module.exports = router;

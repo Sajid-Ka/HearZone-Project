@@ -162,6 +162,42 @@
         font-weight: 500;
     }
 
+    /* coupon section */
+    .coupon-section {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .coupon-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        margin: 5px 0;
+        background: white;
+        border: 1px dashed #0d6efd;
+        border-radius: 5px;
+    }
+    .coupon-code {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .coupon-details {
+        font-size: 0.9rem;
+        color: #666;
+    }
+    .copy-btn {
+        background: #0d6efd;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .copy-btn:hover {
+        background: #0d5ecf;
+    }
+
     /* Description */
     .product-description {
         margin-bottom: 25px;
@@ -718,7 +754,7 @@
                         ₹<%= product.salePrice.toLocaleString('en-IN') %>
                         <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
                         <% if(totalOffer > 0) { %>
-                            <span class="offer-badge"><%= totalOffer %>% OFF</span>
+                            <span class="offer-badge"><%= totalOffer %></span>
                         <% } %>
                     </div>
                     <div class="offer-text">
@@ -727,6 +763,13 @@
                         <% } else { %>
                             <span><%= totalOffer %>% Offer</span>
                         <% } %>
+                    </div>
+                    
+                    <!-- Coupon Section -->
+                    <div class="coupon-section mt-3" id="couponSection">
+                        <h6>Available Coupons:</h6>
+                        <div id="couponList">
+                        </div>
                     </div>
                 </div>
         
@@ -1023,6 +1066,7 @@
     // Reviews functionality
     document.addEventListener('DOMContentLoaded', function() {
         loadReviews();
+        loadCoupons(); // Add this line to load coupons when the page loads
 
         const reviewForm = document.getElementById('reviewForm');
         if (reviewForm) {
@@ -1032,13 +1076,32 @@
             });
         }
 
-        // Add textarea event listener
         const commentTextarea = document.getElementById('comment');
         const submitButton = document.getElementById('submitReview');
         
-        commentTextarea.addEventListener('input', function() {
-            submitButton.disabled = this.value.trim().length === 0;
-        });
+        if (commentTextarea && submitButton) {
+            commentTextarea.addEventListener('input', function() {
+                submitButton.disabled = this.value.trim().length === 0;
+            });
+        }
+
+        const navButtons = document.getElementById('navButtons');
+        const mainImage = document.querySelector('.main-image');
+
+        function handleScroll() {
+            const scrollPosition = window.scrollY;
+            const mainImageBottom = mainImage.getBoundingClientRect().bottom + window.scrollY;
+            const viewportHeight = window.innerHeight;
+
+            if (scrollPosition > mainImageBottom - viewportHeight/2) {
+                navButtons.classList.add('visible');
+            } else {
+                navButtons.classList.remove('visible');
+            }
+        }
+
+        handleScroll();
+        window.addEventListener('scroll', handleScroll);
     });
 
     async function loadReviews() {
@@ -1213,7 +1276,7 @@
     }
 
 
-    <!-- In product-details.ejs, within renderReviews function -->
+    // <!-- In product-details.ejs, within renderReviews function -->
     function renderReviews(reviews) {
         const reviewsList = document.querySelector('.reviews-list');
         const userId = '<%= user ? user.id : "" %>';  // Add user ID from session
@@ -1301,6 +1364,56 @@
                 }
             }
         });
+    }
+
+
+    async function loadCoupons() {
+        try {
+            const response = await fetch('/coupon/available');
+            const coupons = await response.json();
+            
+            const couponList = document.getElementById('couponList');
+            if (coupons.length > 0) {
+                couponList.innerHTML = coupons.map(coupon => `
+                    <div class="coupon-item">
+                        <div>
+                            <span class="coupon-code">${coupon.code}</span>
+                            <span class="coupon-details">
+                                - ${coupon.discount}% off 
+                                ${coupon.minOrderValue > 0 ? `(Min ₹${coupon.minOrderValue})` : ''}
+                                till ${new Date(coupon.expirationDate).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <button class="copy-btn" onclick="copyCoupon('${coupon.code}')">Copy</button>
+                    </div>
+                `).join('');
+            } else {
+                couponList.innerHTML = '<p>No coupons available</p>';
+            }
+        } catch (error) {
+            console.error('Error loading coupons:', error);
+            document.getElementById('couponList').innerHTML = '<p>Error loading coupons</p>';
+        }
+    }
+
+    function copyCoupon(code) {
+        navigator.clipboard.writeText(code)
+            .then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Coupon code ${code} copied to clipboard`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to copy coupon code'
+                });
+            });
     }
 
 
