@@ -1,14 +1,22 @@
+// controllers/user/reviewController.js
 const Review = require('../../models/reviewSchema');
 const Product = require('../../models/productSchema');
+
+
 
 const addReview = async (req, res) => {
     try {
         const { productId, rating, comment } = req.body;
         const userId = req.session.user.id;
-        const adminSession = req.session.admin; // Store admin session
+        const adminSession = req.session.admin;
 
-        // Check if user has already reviewed this product
-        const existingReview = await Review.findOne({ productId, userId });
+        // Check only active reviews (not deleted) for existing review
+        const existingReview = await Review.findOne({ 
+            productId, 
+            userId, 
+            isDeleted: { $ne: true }  // Only count non-deleted reviews
+        });
+        
         if (existingReview) {
             return res.status(400).json({
                 success: false,
@@ -21,23 +29,27 @@ const addReview = async (req, res) => {
             userId,
             username: req.session.user.name,
             rating: parseInt(rating),
-            comment
+            comment,
+            isDeleted: false  // Explicitly set for new reviews
         });
 
         await review.save();
 
-        // Update product average rating
-        const reviews = await Review.find({ productId });
-        const avgRating = reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length;
+        // Update product average rating with only active reviews
+        const reviews = await Review.find({ 
+            productId, 
+            isDeleted: { $ne: true } 
+        });
+        const avgRating = reviews.length > 0 
+            ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+            : 0;
         await Product.findByIdAndUpdate(productId, { rating: avgRating });
 
-        // Preserve admin session if it exists
         if (adminSession) {
             req.session.admin = adminSession;
-            await req.session.save(); // Explicitly save session
+            await req.session.save();
         }
 
-        // Touch the session to keep it alive
         req.session.touch();
 
         res.status(200).json({
@@ -59,16 +71,23 @@ const addReview = async (req, res) => {
     }
 };
 
+
 const getProductReviews = async (req, res) => {
     try {
         const { productId } = req.params;
-        const reviews = await Review.find({ productId })
-            .sort({ createdAt: -1 })
-            .select('-__v -productId');
+        // Handle existing reviews by using $ne: true instead of strictly false
+        const reviews = await Review.find({ 
+            productId,
+            isDeleted: { $ne: true }  // Show reviews where isDeleted is not true (includes null/undefined)
+        })
+        .sort({ createdAt: -1 })
+        .select('-__v -productId');
 
         const stats = {
             totalReviews: reviews.length,
-            averageRating: reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length || 0,
+            averageRating: reviews.length > 0 
+                ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+                : 0,
             ratingDistribution: {
                 5: reviews.filter(r => r.rating === 5).length,
                 4: reviews.filter(r => r.rating === 4).length,
@@ -82,7 +101,7 @@ const getProductReviews = async (req, res) => {
             success: true,
             reviews,
             stats,
-            allReviewsCount: reviews.length // Add this line
+            allReviewsCount: reviews.length
         });
     } catch (error) {
         console.error('Get reviews error:', error);
@@ -93,11 +112,11 @@ const getProductReviews = async (req, res) => {
     }
 };
 
+
 const getFullReviews = async (req, res) => {
     try {
         const productId = req.params.productId;
         
-        // Validate ObjectId
         if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(404).render('page-404');
         }
@@ -107,12 +126,17 @@ const getFullReviews = async (req, res) => {
             return res.status(404).render('page-404');
         }
 
-        const reviews = await Review.find({ productId })
-            .sort({ createdAt: -1 });
+        const reviews = await Review.find({ 
+            productId,
+            isDeleted: { $ne: true }  // Show reviews where isDeleted is not true
+        })
+        .sort({ createdAt: -1 });
 
         const stats = {
             totalReviews: reviews.length,
-            averageRating: reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length || 0,
+            averageRating: reviews.length > 0 
+                ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+                : 0,
             ratingDistribution: {
                 5: reviews.filter(r => r.rating === 5).length,
                 4: reviews.filter(r => r.rating === 4).length,
@@ -122,7 +146,7 @@ const getFullReviews = async (req, res) => {
             }
         };
 
-        res.render('reviews', {  // Changed from 'user/full-reviews' to 'user/reviews'
+        res.render('reviews', {
             product,
             reviews,
             stats,
@@ -134,8 +158,69 @@ const getFullReviews = async (req, res) => {
     }
 };
 
+
+const deleteReview = async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        const userId = req.session.user.id;
+
+        const review = await Review.findById(reviewId);
+        if (!review) {
+            return res.status(404).json({
+                success: false,
+                message: 'Review not found'
+            });
+        }
+
+        if (review.userId.toString() !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only delete your own reviews'
+            });
+        }
+
+        // Optional: Time limit check (24 hours)
+        const timeLimit = 24 * 60 * 60 * 1000;
+        const timeSinceCreation = Date.now() - new Date(review.createdAt).getTime();
+        if (timeSinceCreation > timeLimit) {
+            return res.status(403).json({
+                success: false,
+                message: 'Review can only be deleted within 24 hours of posting'
+            });
+        }
+
+        // Soft delete
+        review.isDeleted = true;
+        review.deletedAt = new Date();
+        await review.save();
+
+        // Update product rating with only active reviews
+        const activeReviews = await Review.find({ 
+            productId: review.productId, 
+            isDeleted: { $ne: true }
+        });
+        const avgRating = activeReviews.length > 0 
+            ? activeReviews.reduce((acc, curr) => acc + curr.rating, 0) / activeReviews.length 
+            : 0;
+        await Product.findByIdAndUpdate(review.productId, { rating: avgRating });
+
+        res.status(200).json({
+            success: true,
+            message: 'Review deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete review error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete review'
+        });
+    }
+};
+
+
 module.exports = {
     addReview,
     getProductReviews,
-    getFullReviews
+    getFullReviews,
+    deleteReview
 };

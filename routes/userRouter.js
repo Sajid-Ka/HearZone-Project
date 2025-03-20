@@ -70,5 +70,6 @@ router.get('/review/full/:productId', (req, res, next) => {
     }
     reviewController.getFullReviews(req, res, next);
 });
+router.post('/review/delete/:reviewId', isLogout, reviewController.deleteReview);
 
 module.exports = router;

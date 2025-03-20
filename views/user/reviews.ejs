@@ -119,6 +119,24 @@
         margin-right: 8px;
     }
 
+    /* Add to your existing CSS */
+    .btn-danger.btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .review-header div {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .reviews-page {
@@ -157,67 +175,88 @@
 <br>
 <br>
 
-        <div class="back-link">
-            <a href="/product-details?id=<%= product._id %>" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Back to Product
-            </a>
-        </div>
-
-        <div class="product-info">
-            <div class="row align-items-center">
-                <div class="col-md-3">
-                    <img src="/uploads/product-images/<%= product.productImage[0] %>" 
-                         alt="<%= product.productName %>" 
-                         class="img-fluid rounded" 
-                         style="max-width: 200px;">
-                </div>
-                <div class="col-md-9">
-                    <h2><%= product.productName %></h2>
-                    <p class="text-muted"><%= product.description %></p>
+<div class="reviews-list">
+    <% reviews.forEach(review => { %>
+        <div class="review-item">
+            <div class="review-header">
+                <span class="reviewer-name"><%= review.username %></span>
+                <div>
+                    <span class="review-date">
+                        <%= new Date(review.createdAt).toLocaleDateString() %>
+                    </span>
+                    <% if (user && review.userId.toString() === user.id) { %>
+                        <button class="btn btn-danger btn-sm ms-2" 
+                                onclick="confirmDelete('<%= review._id %>')">
+                            Delete
+                        </button>
+                    <% } %>
                 </div>
             </div>
-        </div>
-
-        <div class="review-stats">
-            <h4>Review Summary</h4>
-            <div class="d-flex align-items-center">
-                <div class="average-rating"><%= stats.averageRating.toFixed(1) %></div>
-                <div class="rating-info">
-                    <div class="rating">
-                        <%= '★'.repeat(Math.round(stats.averageRating)) %>
-                        <%= '☆'.repeat(5 - Math.round(stats.averageRating)) %>
-                    </div>
-                    <div class="review-count"><%= stats.totalReviews %> reviews</div>
+            <div class="review-rating">
+                <div class="rating">
+                    <%= '★'.repeat(review.rating) %>
+                    <%= '☆'.repeat(5 - review.rating) %>
                 </div>
             </div>
+            <div class="review-comment">
+                <%= review.comment %>
+            </div>
         </div>
-
-        <div class="reviews-list">
-            <% reviews.forEach(review => { %>
-                <div class="review-item">
-                    <div class="review-header">
-                        <span class="reviewer-name"><%= review.username %></span>
-                        <span class="review-date">
-                            <%= new Date(review.createdAt).toLocaleDateString() %>
-                        </span>
-                    </div>
-                    <div class="review-rating">
-                        <div class="rating">
-                            <%= '★'.repeat(review.rating) %>
-                            <%= '☆'.repeat(5 - review.rating) %>
-                        </div>
-                    </div>
-                    <div class="review-comment">
-                        <%= review.comment %>
-                    </div>
-                </div>
-            <% }) %>
-        </div>
-    </div>
+    <% }) %>
 </div>
+
+
 <br>
 <br>
 <br>
 <br>
+
+<script>
+    async function confirmDelete(reviewId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to delete this review?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/review/delete/${reviewId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+    
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire(
+                            'Deleted!',
+                            'Your review has been deleted.',
+                            'success'
+                        ).then(() => {
+                            location.reload();  // Refresh page
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error!',
+                            data.message || 'Failed to delete review',
+                            'error'
+                        );
+                    }
+                } catch (error) {
+                    Swal.fire(
+                        'Error!',
+                        'Failed to delete review',
+                        'error'
+                    );
+                }
+            }
+        });
+    }
+    </script>
 
 <%-include("../../views/partials/user/footer") %>
