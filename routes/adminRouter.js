@@ -52,12 +52,12 @@ router.get('/editProduct', productController.getEditProduct);
 router.post('/editProduct/:id', upload.array("images",4), productController.editProduct);
 router.post('/deleteImage', productController.deleteSingleImage);
 
-//coupon
+// coupon routes
 router.get('/coupons', couponController.getCouponPage);
 router.get('/coupons/add-page', couponController.getAddCouponPage);
 router.post('/coupons/add', couponController.createCoupon);
-router.get('/coupons/delete/:id', couponController.deleteCoupon);
 router.post('/coupons/delete/:id', couponController.deleteCoupon);
+router.post('/coupons/toggle/:id', couponController.toggleCouponStatus);
 
 
 module.exports = router;

@@ -2,7 +2,7 @@ const Coupon = require('../../models/couponSchema');
 
 const getCouponPage = async (req, res) => {
   try {
-    const coupons = await Coupon.find({ isActive: true }); // Only active coupons
+    const coupons = await Coupon.find(); // Show all coupons regardless of status
     res.render('admin/manageCoupons', { coupons });
   } catch (error) {
     console.error(error);
@@ -18,6 +18,7 @@ const createCoupon = async (req, res) => {
   try {
     const { code, discount, expirationDate, usageLimit, minOrderValue } = req.body;
 
+    // Validation logic remains the same
     if (!code) return res.status(400).json({ field: 'code', message: 'Coupon code is required' });
     if (!discount) return res.status(400).json({ field: 'discount', message: 'Discount is required' });
     if (!expirationDate) return res.status(400).json({ field: 'expirationDate', message: 'Expiration date is required' });
@@ -39,7 +40,8 @@ const createCoupon = async (req, res) => {
       expirationDate,
       usageLimit,
       minOrderValue,
-      usedCount: 0
+      usedCount: 0,
+      isActive: true
     });
 
     await coupon.save();
@@ -53,7 +55,6 @@ const createCoupon = async (req, res) => {
 const deleteCoupon = async (req, res) => {
   try {
     const couponId = req.params.id;
-
     if (!couponId.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ message: 'Invalid coupon ID' });
     }
@@ -63,12 +64,36 @@ const deleteCoupon = async (req, res) => {
       return res.status(404).json({ message: 'Coupon not found' });
     }
 
-    // Soft delete: Set isActive to false
-    await Coupon.findByIdAndUpdate(couponId, { isActive: false });
-
-    res.status(200).json({ message: 'Coupon deleted successfully' });
+    // Hard delete
+    await Coupon.findByIdAndDelete(couponId);
+    res.status(200).json({ message: 'Coupon permanently deleted' });
   } catch (error) {
     console.error('Error in deleteCoupon:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const toggleCouponStatus = async (req, res) => {
+  try {
+    const couponId = req.params.id;
+    if (!couponId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid coupon ID' });
+    }
+
+    const coupon = await Coupon.findById(couponId);
+    if (!coupon) {
+      return res.status(404).json({ message: 'Coupon not found' });
+    }
+
+    coupon.isActive = !coupon.isActive;
+    await coupon.save();
+
+    res.status(200).json({ 
+      message: `Coupon ${coupon.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: coupon.isActive 
+    });
+  } catch (error) {
+    console.error('Error in toggleCouponStatus:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -77,5 +102,6 @@ module.exports = {
   getCouponPage,
   getAddCouponPage,
   createCoupon,
-  deleteCoupon
+  deleteCoupon,
+  toggleCouponStatus
 };
