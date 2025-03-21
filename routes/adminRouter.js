@@ -57,6 +57,7 @@ router.get('/coupons', couponController.getCouponPage);
 router.get('/coupons/add-page', couponController.getAddCouponPage);
 router.post('/coupons/add', couponController.createCoupon);
 router.get('/coupons/delete/:id', couponController.deleteCoupon);
+router.post('/coupons/delete/:id', couponController.deleteCoupon);
 
 
 module.exports = router;

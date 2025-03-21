@@ -344,105 +344,46 @@ const loadShoppingPage = async (req, res) => {
     }
 };
 
+
+
 const filterProduct = async (req, res) => {
     try {
-        const user = req.session.user;
         const categoryId = req.query.category;
-        const brandId = req.query.brand;
         const page = parseInt(req.query.page) || 1;
         const itemsPerPage = 9;
 
-       
         const queryFilter = {
             isBlocked: false,
-            quantity: { $gt: 0 }
         };
 
         if (categoryId) {
             queryFilter.category = new mongoose.Types.ObjectId(categoryId);
         }
 
-        if (brandId) {
-            queryFilter.brand = new mongoose.Types.ObjectId(brandId);
-        }
-
-        const sortOption = req.query.sort;
-        let sortQuery = { createdOn: -1 }; // default sorting
-
-        switch(sortOption) {
-            case 'priceAsc':
-                sortQuery = { salePrice: 1 };
-                break;
-            case 'priceDesc':
-                sortQuery = { salePrice: -1 };
-                break;
-            case 'nameAsc':
-                sortQuery = { productName: 1 };
-                break;
-            case 'nameDesc':
-                sortQuery = { productName: -1 };
-                break;
-        }
-
         const totalProducts = await Product.countDocuments(queryFilter);
         const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
-        let query = Product.find(queryFilter)
+        const products = await Product.find(queryFilter)
             .populate('brand')
-            .populate('category');
-
-        // Apply collation only for name sorting
-        if (sortOption === 'nameAsc' || sortOption === 'nameDesc') {
-            query = query.collation({ locale: 'en', strength: 2 });
-        }
-
-        const products = await query
-            .sort(sortQuery)
+            .populate('category')
+            .sort({ createdOn: -1 })
             .skip((page - 1) * itemsPerPage)
             .limit(itemsPerPage)
             .lean();
 
         const categories = await Category.find({ isListed: true }).lean();
         const brands = await Brand.find({ isBlocked: false }).lean();
-        
-        let userData = null;
-        if (user) {
-            userData = await User.findById(user.id);
-            if (userData && (categoryId || brandId)) {
-                const searchEntry = {
-                    category: categoryId || null,
-                    brand: brandId || null,
-                    searchedOn: new Date()
-                };
-                userData.searchHistory.push(searchEntry);
-                await userData.save();
-            }
-        }
-
-        // Calculate actual ratings
-        const productsWithRatings = await Promise.all(products.map(async (product) => {
-            const reviews = await Review.find({ productId: product._id });
-            const rating = reviews.length > 0 
-                ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
-                : '0.0';
-            const reviewCount = reviews.length;
-            return {
-                ...product,
-                rating,
-                reviewCount
-            };
-        }));
 
         res.render('shop', {
-            user: userData,
-            products: productsWithRatings,
+            user: req.session.user ? await User.findById(req.session.user.id) : null,
+            products,
             category: categories,
             brand: brands,
             totalPages,
             currentPage: page,
             selectedCategory: categoryId || null,
-            selectedBrand: brandId || null,
-            selectedSort: sortOption
+            selectedBrand: null,
+            selectedSort: null
         });
     } catch (error) {
         console.error("Filter product error", error);

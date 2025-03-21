@@ -351,6 +351,12 @@
     font-size: 0.9rem;
   }
 
+  .filter-item a.active {
+    color: var(--primary-color);
+    background-color: rgba(79, 70, 229, 0.1);
+    font-weight: 600;
+  }
+
   @media (max-width: 992px) {
     .product-list-container {
       flex-direction: column;
@@ -560,7 +566,8 @@
             <ul>
               <% for(let i=0; i<category.length; i++) { %>
                 <li class="filter-item">
-                  <a href="/filter?category=<%=category[i]._id%><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>">
+                  <a href="/filter?category=<%=category[i]._id%><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %>"
+                     class="<%= selectedCategory === category[i]._id.toString() ? 'active' : '' %>">
                     <%= category[i].name %>
                   </a>
                 </li>

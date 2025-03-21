@@ -718,7 +718,7 @@
 
 <%- include('../../views/partials/user/breadcrumb', {
     breadcrumbs: [
-        { text: category ? category.name : 'Category', url: `/shop?category=${category ? category._id : ''}` },
+        { text: category ? category.name : 'Category', url: category ? `/filter?category=${category._id}` : '/shop' },
         { text: product.productName, url: '#', active: true }
     ]
 }) %>

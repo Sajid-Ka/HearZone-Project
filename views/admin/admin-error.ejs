@@ -1,45 +1,70 @@
 <%- include("../../views/partials/admin/header") %>
+
 <style>
-  body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      text-align: center;
-      padding: 20px;
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+  }
+
+  .page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .content-wrap {
+    flex: 1 0 auto;
   }
 
   h1 {
-      color: #333;
+    color: #333;
+    margin: 0 0 20px 0;
   }
 
   p {
-      color: #666;
-      margin-bottom: 20px;
+    color: #666;
+    margin: 0 0 20px 0;
   }
 
   button {
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
   }
 
   button:hover {
-      background-color: #b30000;
+    background-color: #b30000;
+  }
+
+  footer {
+    flex-shrink: 0;
+    width: 100%;
+    margin-top: 20px;
   }
 </style>
 
+<div class="page-container">
+  <div class="content-wrap">
+    <h1>Error Page Admin</h1>
+    <p>An error occurred.</p>
+    <button onclick="godashboard()">Go to Home Page</button>
+  </div>
+  <footer>
+    <%- include("../../views/partials/admin/footer") %>
+  </footer>
+</div>
 
-  <h1>Error Page Admin</h1>
-  <p>An error occurred.</p>
-  <button onclick="godashboard()">Go to Home Page</button>
-
-  <script>
-      function godashboard() {
-          window.location.href = "/admin/dashboard";
-      }
-  </script>
-
-<%- include("../../views/partials/admin/footer") %>
+<script>
+  function godashboard() {
+    window.location.href = "/admin/dashboard";
+  }
+</script>

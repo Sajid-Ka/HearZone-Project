@@ -164,6 +164,7 @@ const deleteReview = async (req, res) => {
         const { reviewId } = req.params;
         const userId = req.session.user.id;
 
+        // Find the review by ID
         const review = await Review.findById(reviewId);
         if (!review) {
             return res.status(404).json({
@@ -172,6 +173,7 @@ const deleteReview = async (req, res) => {
             });
         }
 
+        // Check if the user is authorized to delete the review
         if (review.userId.toString() !== userId) {
             return res.status(403).json({
                 success: false,
@@ -180,7 +182,7 @@ const deleteReview = async (req, res) => {
         }
 
         // Optional: Time limit check (24 hours)
-        const timeLimit = 24 * 60 * 60 * 1000;
+        const timeLimit = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         const timeSinceCreation = Date.now() - new Date(review.createdAt).getTime();
         if (timeSinceCreation > timeLimit) {
             return res.status(403).json({
@@ -189,16 +191,13 @@ const deleteReview = async (req, res) => {
             });
         }
 
-        // Soft delete
-        review.isDeleted = true;
-        review.deletedAt = new Date();
-        await review.save();
+        // Hard delete the review from the database
+        await Review.findByIdAndDelete(reviewId);
 
-        // Update product rating with only active reviews
+        // Update product rating with remaining active reviews
         const activeReviews = await Review.find({ 
-            productId: review.productId, 
-            isDeleted: { $ne: true }
-        });
+            productId: review.productId
+        }); // No need to filter isDeleted since we're hard deleting
         const avgRating = activeReviews.length > 0 
             ? activeReviews.reduce((acc, curr) => acc + curr.rating, 0) / activeReviews.length 
             : 0;

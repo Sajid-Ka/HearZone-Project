@@ -1,20 +1,34 @@
 <%- include("../../views/partials/admin/header") %>
 
 <style>
-  body {
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f4f7fa;
-    margin: 0;
+  }
+
+  .page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     padding: 20px;
   }
+
+  .content-wrap {
+    flex: 1 0 auto;
+  }
+
   h1 {
     color: #2c3e50;
     text-align: center;
-    margin-bottom: 30px;
+    margin: 0 0 30px 0;
     font-size: 2.5em;
     text-transform: uppercase;
     letter-spacing: 2px;
   }
+
   form {
     background: #ffffff;
     padding: 25px;
@@ -23,16 +37,19 @@
     max-width: 500px;
     margin: 0 auto;
   }
+
   .form-group {
     margin-bottom: 20px;
     position: relative;
   }
+
   label {
     display: block;
     font-weight: 600;
     color: #34495e;
     margin-bottom: 8px;
   }
+
   input {
     width: 100%;
     padding: 10px;
@@ -41,11 +58,13 @@
     font-size: 1em;
     transition: border-color 0.3s ease;
   }
+
   input:focus {
     border-color: #3498db;
     outline: none;
     box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
   }
+
   button {
     background-color: #3498db;
     color: white;
@@ -57,169 +76,184 @@
     transition: background-color 0.3s ease, transform 0.2s ease;
     width: 100%;
   }
+
   button:hover {
     background-color: #2980b9;
     transform: translateY(-2px);
   }
+
   .error-message {
     color: #e74c3c;
     font-size: 0.9em;
     margin-top: 5px;
     display: none;
   }
+
   .error input {
     border-color: #e74c3c;
   }
+
+  footer {
+    flex-shrink: 0;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 768px) {
+    form {
+      width: 90%;
+    }
+  }
 </style>
 
-<h1>Add New Coupon</h1>
-<form id="addCouponForm" action="/admin/coupons/add" method="POST">
-    <div class="form-group">
+<div class="page-container">
+  <div class="content-wrap">
+    <h1>Add New Coupon</h1>
+    <form id="addCouponForm" action="/admin/coupons/add" method="POST">
+      <div class="form-group">
         <label>Code</label>
         <input type="text" name="code" placeholder="e.g., SAVE20">
         <span class="error-message"></span>
-    </div>
-    <div class="form-group">
+      </div>
+      <div class="form-group">
         <label>Discount (%)</label>
         <input type="number" name="discount" min="0" max="100" placeholder="e.g., 20">
         <span class="error-message"></span>
-    </div>
-    <div class="form-group">
+      </div>
+      <div class="form-group">
         <label>Expiration Date</label>
         <input type="date" name="expirationDate">
         <span class="error-message"></span>
-    </div>
-    <div class="form-group">
+      </div>
+      <div class="form-group">
         <label>Usage Limit</label>
         <input type="number" name="usageLimit" min="1" placeholder="e.g., 100">
         <span class="error-message"></span>
-    </div>
-    <div class="form-group">
+      </div>
+      <div class="form-group">
         <label>Minimum Order Value</label>
         <input type="number" name="minOrderValue" min="0" placeholder="e.g., 500">
         <span class="error-message"></span>
-    </div>
-    <button type="submit">Add Coupon</button>
-</form>
+      </div>
+      <button type="submit">Add Coupon</button>
+    </form>
+  </div>
+  <footer>
+    <%- include("../../views/partials/admin/footer") %>
+  </footer>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    document.getElementById('addCouponForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+  document.getElementById('addCouponForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = this;
+    const inputs = form.querySelectorAll('input');
+    let hasErrors = false;
 
-        const form = this;
-        const inputs = form.querySelectorAll('input');
-        let hasErrors = false;
-
-        // Reset previous error states
-        inputs.forEach(input => {
-            const formGroup = input.closest('.form-group');
-            formGroup.classList.remove('error');
-            const errorSpan = formGroup.querySelector('.error-message');
-            errorSpan.style.display = 'none';
-            errorSpan.textContent = '';
-        });
-
-        // Client-side validation with specific messages
-        inputs.forEach(input => {
-            const formGroup = input.closest('.form-group');
-            const errorSpan = formGroup.querySelector('.error-message');
-            const value = input.value.trim();
-            const name = input.name;
-
-            if (!value) {
-                errorSpan.textContent = `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
-                formGroup.classList.add('error');
-                errorSpan.style.display = 'block';
-                hasErrors = true;
-            } else {
-                switch (name) {
-                    case 'discount':
-                        if (value < 0 || value > 100) {
-                            errorSpan.textContent = 'Discount must be between 0 and 100';
-                            formGroup.classList.add('error');
-                            errorSpan.style.display = 'block';
-                            hasErrors = true;
-                        }
-                        break;
-                    case 'usageLimit':
-                        if (value < 1) {
-                            errorSpan.textContent = 'Usage limit must be at least 1';
-                            formGroup.classList.add('error');
-                            errorSpan.style.display = 'block';
-                            hasErrors = true;
-                        }
-                        break;
-                    case 'minOrderValue':
-                        if (value < 0) {
-                            errorSpan.textContent = 'Minimum order value cannot be negative';
-                            formGroup.classList.add('error');
-                            errorSpan.style.display = 'block';
-                            hasErrors = true;
-                        }
-                        break;
-                    case 'expirationDate':
-                        const today = new Date().toISOString().split('T')[0];
-                        if (value < today) {
-                            errorSpan.textContent = 'Expiration date cannot be in the past';
-                            formGroup.classList.add('error');
-                            errorSpan.style.display = 'block';
-                            hasErrors = true;
-                        }
-                        break;
-                }
-            }
-        });
-
-        if (hasErrors) {
-            return; // Stop submission if there are errors
-        }
-
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Coupon added successfully',
-                    confirmButtonColor: '#3085d6'
-                }).then(() => {
-                    window.location.href = '/admin/coupons';
-                });
-            } else {
-                if (result.field && result.message) {
-                    const formGroup = document.querySelector(`input[name="${result.field}"]`).closest('.form-group');
-                    const errorSpan = formGroup.querySelector('.error-message');
-                    errorSpan.textContent = result.message;
-                    formGroup.classList.add('error');
-                    errorSpan.style.display = 'block';
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: result.message || 'Failed to add coupon',
-                        confirmButtonColor: '#d33'
-                    });
-                }
-            }
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Server Error',
-                text: 'Something went wrong. Please try again.',
-                confirmButtonColor: '#d33'
-            });
-        }
+    inputs.forEach(input => {
+      const formGroup = input.closest('.form-group');
+      formGroup.classList.remove('error');
+      const errorSpan = formGroup.querySelector('.error-message');
+      errorSpan.style.display = 'none';
+      errorSpan.textContent = '';
     });
-</script>
 
-<%- include("../../views/partials/admin/footer") %>
+    inputs.forEach(input => {
+      const formGroup = input.closest('.form-group');
+      const errorSpan = formGroup.querySelector('.error-message');
+      const value = input.value.trim();
+      const name = input.name;
+
+      if (!value) {
+        errorSpan.textContent = `${name.charAt(0).toUpperCase() + name.slice(1)} is required`;
+        formGroup.classList.add('error');
+        errorSpan.style.display = 'block';
+        hasErrors = true;
+      } else {
+        switch (name) {
+          case 'discount':
+            if (value < 0 || value > 100) {
+              errorSpan.textContent = 'Discount must be between 0 and 100';
+              formGroup.classList.add('error');
+              errorSpan.style.display = 'block';
+              hasErrors = true;
+            }
+            break;
+          case 'usageLimit':
+            if (value < 1) {
+              errorSpan.textContent = 'Usage limit must be at least 1';
+              formGroup.classList.add('error');
+              errorSpan.style.display = 'block';
+              hasErrors = true;
+            }
+            break;
+          case 'minOrderValue':
+            if (value < 0) {
+              errorSpan.textContent = 'Minimum order value cannot be negative';
+              formGroup.classList.add('error');
+              errorSpan.style.display = 'block';
+              hasErrors = true;
+            }
+            break;
+          case 'expirationDate':
+            const today = new Date().toISOString().split('T')[0];
+            if (value < today) {
+              errorSpan.textContent = 'Expiration date cannot be in the past';
+              formGroup.classList.add('error');
+              errorSpan.style.display = 'block';
+              hasErrors = true;
+            }
+            break;
+        }
+      }
+    });
+
+    if (hasErrors) return;
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Coupon added successfully',
+          confirmButtonColor: '#3085d6'
+        }).then(() => {
+          window.location.href = '/admin/coupons';
+        });
+      } else {
+        if (result.field && result.message) {
+          const formGroup = document.querySelector(`input[name="${result.field}"]`).closest('.form-group');
+          const errorSpan = formGroup.querySelector('.error-message');
+          errorSpan.textContent = result.message;
+          formGroup.classList.add('error');
+          errorSpan.style.display = 'block';
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: result.message || 'Failed to add coupon',
+            confirmButtonColor: '#d33'
+          });
+        }
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Server Error',
+        text: 'Something went wrong. Please try again.',
+        confirmButtonColor: '#d33'
+      });
+    }
+  });
+</script>
