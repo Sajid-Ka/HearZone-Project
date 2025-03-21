@@ -764,14 +764,14 @@
                             <span><%= totalOffer %>% Offer</span>
                         <% } %>
                     </div>
-                    
+                    <br>
                     <!-- Coupon Section -->
-                    <div class="coupon-section mt-3" id="couponSection">
+                    <!-- <div class="coupon-section mt-3" id="couponSection">
                         <h6>Available Coupons:</h6>
                         <div id="couponList">
                         </div>
                     </div>
-                </div>
+                </div> -->
         
                 <!-- Description -->
                 <div class="product-description">
@@ -1066,7 +1066,7 @@
     // Reviews functionality
     document.addEventListener('DOMContentLoaded', function() {
         loadReviews();
-        loadCoupons(); // Add this line to load coupons when the page loads
+        //loadCoupons(); 
 
         const reviewForm = document.getElementById('reviewForm');
         if (reviewForm) {
@@ -1367,7 +1367,7 @@
     }
 
 
-    async function loadCoupons() {
+    /*async function loadCoupons() {
         try {
             const response = await fetch('/coupon/available');
             const coupons = await response.json();
@@ -1394,9 +1394,9 @@
             console.error('Error loading coupons:', error);
             document.getElementById('couponList').innerHTML = '<p>Error loading coupons</p>';
         }
-    }
+    }*
 
-    function copyCoupon(code) {
+    /*function copyCoupon(code) {
         navigator.clipboard.writeText(code)
             .then(() => {
                 Swal.fire({
@@ -1414,7 +1414,7 @@
                     text: 'Failed to copy coupon code'
                 });
             });
-    }
+    }*/
 
 
 </script>
