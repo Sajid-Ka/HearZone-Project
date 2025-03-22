@@ -1,4 +1,5 @@
 const User = require('../../models/userSchema');
+const Address = require('../../models/addressSchema');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const env = require('dotenv').config();
@@ -27,7 +28,7 @@ const sendVerificationEmail = async (email, otp) => {
         });
 
         const mailOptions = {
-            from: process.env.NODEMAILER_EMAIL,
+            from: process.env.NODEMAILER_EMAIL,nodemon, 
             to: email,
             subject: "OTP for Password-reset",
             text: `Your OTP is ${otp}`,
@@ -174,6 +175,128 @@ const postNewPassword = async (req,res)=>{
 }
 
 
+const getProfilePage = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const user = await User.findById(userId);
+        const addressDoc = await Address.findOne({ userId });
+
+        res.render('user/profile', { 
+            user,
+            addresses: addressDoc ? addressDoc.addresses : [],
+            message: null 
+        });
+    } catch (error) {
+        console.error("Profile Page Error:", error);
+        res.status(500).render('page-404');
+    }
+};
+
+const getEditProfilePage = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const user = await User.findById(userId);
+        res.render('user/edit-profile', { user, message: null });
+    } catch (error) {
+        console.error("Edit Profile Page Error:", error);
+        res.status(500).render('page-404');
+    }
+};
+
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const { name, email } = req.body;
+        let updateData = { name };
+
+        if (email !== req.session.user.email) {
+            const otp = generateOtp();
+            const emailSent = await sendVerificationEmail(email, otp);
+            
+            if (!emailSent) {
+                return res.render('user/edit-profile', {
+                    user: await User.findById(userId),
+                    message: "Failed to send verification email"
+                });
+            }
+            
+            req.session.newEmail = email;
+            req.session.emailOtp = otp;
+            return res.render('verify-otp', { 
+                action: 'verify-email-otp',
+                heading: 'Verify New Email',
+                title: 'Verify New Email',
+                message: null 
+            });
+        }
+
+        await User.findByIdAndUpdate(userId, updateData);
+        req.session.user.name = name;
+        res.redirect('/profile');
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        res.status(500).render('page-404');
+    }
+};
+
+const verifyEmailOtp = async (req, res) => {
+    try {
+        const enteredOtp = req.body.otp.toString();
+        const storedOtp = req.session.emailOtp.toString();
+
+        if (enteredOtp === storedOtp) {
+            const userId = req.session.user.id;
+            const newEmail = req.session.newEmail;
+            
+            await User.findByIdAndUpdate(userId, { email: newEmail });
+            req.session.user.email = newEmail;
+            
+            delete req.session.newEmail;
+            delete req.session.emailOtp;
+            
+            res.json({ 
+                success: true, 
+                message: "Email updated successfully",
+                redirectUrl: '/profile' 
+            });
+        } else {
+            res.json({ 
+                success: false, 
+                message: "Invalid OTP" 
+            });
+        }
+    } catch (error) {
+        console.error("Email OTP Verification Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Server Error" 
+        });
+    }
+};
+
+// Note: You might want to add a resend function for email change OTP
+const resendEmailOtp = async (req, res) => {
+    try {
+        const email = req.session.newEmail;
+        if (!email) {
+            return res.status(400).json({ success: false, message: "No email found in session" });
+        }
+
+        const otp = generateOtp();
+        req.session.emailOtp = otp;
+        const emailSent = await sendVerificationEmail(email, otp);
+        
+        if (emailSent) {
+            return res.json({ success: true, message: "OTP resent successfully" });
+        } else {
+            return res.json({ success: false, message: "Failed to resend OTP" });
+        }
+    } catch (error) {
+        console.error("Resend Email OTP Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
 module.exports = {
     getForgotPassPage,
     forgotEmailValid,
@@ -181,4 +304,9 @@ module.exports = {
     getResetPassPage,
     resendOtp,
     postNewPassword,
+    getProfilePage,
+    getEditProfilePage,
+    updateProfile,
+    verifyEmailOtp,
+    resendEmailOtp
 };

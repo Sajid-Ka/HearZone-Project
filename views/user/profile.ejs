@@ -1,0 +1,55 @@
+<%- include('../partials/user/header') %>
+
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<div class="container mt-5">
+    <h2>User Profile</h2>
+    <% if (message) { %>
+        <div class="alert alert-info"><%= message %></div>
+    <% } %>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <img src="/uploads/<%= user.profileImage %>" alt="Profile" class="rounded-circle" style="width: 100px; height: 100px;">
+            <h3><%= user.name %></h3>
+            <p>Email: <%= user.email %></p>
+            <a href="/edit-profile" class="btn btn-primary">Edit Profile</a>
+            <a href="/forgot-password" class="btn btn-secondary">Change Password</a>
+        </div>
+    </div>
+
+    <h3>Addresses</h3>
+    <% if (addresses.length > 0) { %>
+        <% addresses.forEach(address => { %>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5><%= address.addressType %> Address</h5>
+                    <p>Name: <%= address.name %></p>
+                    <p><%= address.city %>, <%= address.state %> - <%= address.pinCode %></p>
+                    <p>Landmark: <%= address.landmark %></p>
+                    <p>Phone: <%= address.phone %></p>
+                    <% if (address.altPhone) { %>
+                        <p>Alt Phone: <%= address.altPhone %></p>
+                    <% } %>
+                    <% if (address.isDefault) { %>
+                        <span class="badge bg-success">Default</span>
+                    <% } %>
+                </div>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p>No addresses found.</p>
+    <% } %>
+</div>
+
+<br>
+<br>
+<br>
+
+<%- include('../partials/user/footer') %>

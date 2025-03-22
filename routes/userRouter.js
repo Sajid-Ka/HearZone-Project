@@ -42,6 +42,13 @@ router.get('/reset-password', profileController.getResetPassPage);
 router.post('/reset-password', profileController.postNewPassword);
 router.post('/resend-forgot-otp', profileController.resendOtp);
 
+//profile management routs
+router.get('/profile', isLogout, profileController.getProfilePage);
+router.get('/edit-profile', isLogout, profileController.getEditProfilePage);
+router.post('/edit-profile', isLogout, profileController.updateProfile);
+router.post('/verify-email-otp', isLogout, profileController.verifyEmailOtp);
+router.post('/resend-email-otp', isLogout, profileController.resendEmailOtp);
+
 router.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );

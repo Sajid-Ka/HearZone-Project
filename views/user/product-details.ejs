@@ -1,5 +1,21 @@
 <%- include("../../views/partials/user/header") %>
 <style>
+
+    
+
+    
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
+    .footer-container{
+        margin-left: -111.3px;
+        margin-bottom: -22px;
+        margin-right: -111.5px;
+    }
+
     .breadcrumb-section {
         border-bottom: 1px solid #eee;
     }
@@ -971,6 +987,15 @@
 <br>
 <br>
 
+
+    <div class="footer-container">
+        <footer>
+            <%- include("../../views/partials/user/footer") %>
+        </footer>
+    </div>
+<
+
+
 <script>
     function updateQuantity(change) {
         const qtyElement = document.getElementById('quantity');
@@ -1419,4 +1444,5 @@
 
 </script>
 
-<%- include("../../views/partials/user/footer") %>
+
+        

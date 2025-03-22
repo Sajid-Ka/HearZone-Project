@@ -6,7 +6,7 @@
     <meta name="keywords" content="Male_Fashion, unica, creative, html" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>HearZone</title>
+    <title><%= title || 'Email Verification' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="css/font-awesome.min.css" type="text/css" />
@@ -230,14 +230,11 @@ function resendOTP() {
     clearInterval(timerInterval);
     document.getElementById('otp').disabled = false;
     document.getElementById("timerValue").classList.remove("expired");
-    startTimer();
-
-    const action = document.querySelector('input[name="action"]').value;
-    const resendUrl = action === 'verify-email-otp' ? '/resend-email-otp' : '/resend-otp';
-
+    startTimer(); // This will hide the button again and start the timer
+    
     $.ajax({
         type: "POST",
-        url: resendUrl,
+        url: "resend-otp",
         success: function(response) {
             if (response.success) {
                 Swal.fire({
@@ -245,23 +242,16 @@ function resendOTP() {
                     title: "OTP Resent Successfully",
                     showConfirmButton: false,
                     timer: 1500,
-                });
+                })
             } else {
                 Swal.fire({
                     icon: "error",
                     title: "Error",
-                    text: response.message || "Failed to resend OTP",
-                });
+                    text: "An error occurred while resending OTP. Please try again",
+                })
             }
-        },
-        error: function() {
-            Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: "An error occurred while resending OTP",
-            });
         }
-    });
+    })
     return false;
 }
 
