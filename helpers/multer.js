@@ -2,19 +2,22 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = path.join(__dirname, '../public/uploads/product-images');
+const productImagesDir = path.join(__dirname, '../public/uploads/product-images');
 const tempDir = path.join(__dirname, '../public/uploads/temp');
 const reImageDir = path.join(__dirname, '../public/uploads/re-image');
+const profileImagesDir = path.join(__dirname, '../public/uploads/profile-images'); // Add profile images directory
 
-[tempDir, uploadDir, reImageDir].forEach(dir => {
+// Ensure all directories exist
+[tempDir, productImagesDir, reImageDir, profileImagesDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
 });
 
-const storage = multer.diskStorage({
+// General storage for temporary uploads
+const tempStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, tempDir);  // Store in temp directory first
+        cb(null, tempDir);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -22,6 +25,19 @@ const storage = multer.diskStorage({
     }
 });
 
+// Separate storage for profile images
+const profileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, profileImagesDir);
+    },
+    filename: (req, file, cb) => {
+        const userId = req.session.user.id;
+        const uniqueSuffix = Date.now(); // Simplified to match updateProfileImage
+        cb(null, `${userId}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
+});
+
+// File filter to allow only images
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
         cb(null, true);
@@ -30,12 +46,17 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
+// Upload configurations
 const upload = multer({
-    storage: storage,
+    storage: tempStorage,
     fileFilter: fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024 
-    }
+    limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-module.exports = upload;
+const profileUpload = multer({
+    storage: profileStorage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 }  // 10MB limit
+});
+
+module.exports = { upload, profileUpload };

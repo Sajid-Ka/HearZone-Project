@@ -4,6 +4,10 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 const env = require('dotenv').config();
 const session = require('express-session');
+const upload = require('../../helpers/multer');
+const path = require('path');
+const fs = require('fs').promises;
+const sharp = require('sharp');
 
 function generateOtp() {
     const digits = "1234567890";
@@ -178,20 +182,36 @@ const postNewPassword = async (req,res)=>{
 const getProfilePage = async (req, res) => {
     try {
         const userId = req.session.user.id;
+        
+
         const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        
+        req.session.user = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            profileImage: user.profileImage
+        };
+        
+
         const addressDoc = await Address.findOne({ userId });
 
-        res.render('user/profile', { 
+        
+        res.render('user/profile', {
             user,
             addresses: addressDoc ? addressDoc.addresses : [],
             message: null,
-            currentRoute: req.path // Pass the current route
+            currentRoute: req.path
         });
     } catch (error) {
         console.error("Profile Page Error:", error);
         res.status(500).render('page-404');
     }
 };
+
 
 const getEditProfilePage = async (req, res) => {
     try {
@@ -302,6 +322,85 @@ const resendEmailOtp = async (req, res) => {
     }
 };
 
+
+
+const updateProfileImage = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('User not found in database');
+        }
+        
+
+        // Delete old image if it exists
+        if (user.profileImage) {
+            const oldImagePath = path.join(__dirname, '../../public/uploads/profile-images', user.profileImage);
+            try {
+                if (await fs.access(oldImagePath).then(() => true).catch(() => false)) {
+                    await fs.unlink(oldImagePath);
+                    
+                } else {
+                    console.log(`Old profile image not found: ${oldImagePath}`);
+                }
+            } catch (unlinkError) {
+                console.error(`Failed to delete old image: ${oldImagePath}`, unlinkError);
+            }
+        }
+
+        const file = req.file;
+        if (!file) {
+            throw new Error('No file uploaded');
+        }
+
+        const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
+        const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
+
+        
+
+        // Resize and save to a temporary file
+        await sharp(inputFilePath)
+            .resize(200, 200, { fit: 'cover', withoutEnlargement: true })
+            .toFile(tempFilePath);
+
+        
+
+        // Replace the original file with the processed one
+        await fs.rename(tempFilePath, inputFilePath);
+        
+
+        // Update database
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profileImage: file.filename },
+            { new: true }
+        );
+        if (!updatedUser) {
+            throw new Error('Failed to update user profile image in database');
+        }
+        
+
+        // Update session
+        req.session.user.profileImage = file.filename;
+        
+
+        res.redirect('/profile');
+    } catch (error) {
+        console.error("Update Profile Image Error:", error);
+        if (req.file) {
+            try {
+                await fs.unlink(req.file.path);
+                console.log(`Cleaned up failed upload: ${req.file.path}`);
+            } catch (unlinkError) {
+                console.error(`Failed to clean up: ${req.file.path}`, unlinkError);
+            }
+        }
+        res.status(500).render('page-404');
+    }
+};
+
+
 module.exports = {
     getForgotPassPage,
     forgotEmailValid,
@@ -313,5 +412,6 @@ module.exports = {
     getEditProfilePage,
     updateProfile,
     verifyEmailOtp,
-    resendEmailOtp
+    resendEmailOtp,
+    updateProfileImage
 };

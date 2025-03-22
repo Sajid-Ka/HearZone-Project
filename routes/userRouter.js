@@ -7,6 +7,7 @@ const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
 const reviewController = require('../controllers/user/reviewController');
+const multer = require('../helpers/multer');
 
 // Define routes without creating circular dependencies
 router.get('/', userController.loadHomepage);
@@ -48,6 +49,7 @@ router.get('/edit-profile', isLogout, profileController.getEditProfilePage);
 router.post('/edit-profile', isLogout, profileController.updateProfile);
 router.post('/verify-email-otp', isLogout, profileController.verifyEmailOtp);
 router.post('/resend-email-otp', isLogout, profileController.resendEmailOtp);
+router.post('/update-profile-image', multer.profileUpload.single('profileImage'), profileController.updateProfileImage);
 
 router.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })

@@ -43,6 +43,12 @@
         margin-bottom: 15px;
     }
 
+    .profile-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
     /* Mobile Responsiveness */
     @media (max-width: 768px) {
         .sidebar {
@@ -58,9 +64,12 @@
 
 <div class="col-md-2 sidebar">
     <div class="d-flex flex-column align-items-center">
-        <!-- Profile Image -->
         <div class="profile-img">
-            <i class="bi bi-person" style="font-size: 40px; color: #ecf0f1;"></i>
+            <% if (user.profileImage) { %>
+                <img src="/uploads/profile-images/<%= user.profileImage %>" alt="Profile" class="rounded-circle">
+            <% } else { %>
+                <i class="bi bi-person" style="font-size: 40px; color: #ecf0f1;"></i>
+            <% } %>
         </div>
         <h5 class="text-center mb-3"><%= user.name %></h5>
     </div>

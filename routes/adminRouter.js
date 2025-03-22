@@ -9,7 +9,7 @@ const productController = require('../controllers/admin/productController');
 const couponController = require('../controllers/admin/couponController');
 
 // Import the configured multer instance only once
-const upload = require('../helpers/multer');
+const multer = require('../helpers/multer');
 
 router.get('/pageError', adminController.pageError);
 
@@ -37,19 +37,20 @@ router.get('/deleteCategory', categoryController.deleteCategory);
 
 //brand
 router.get('/brands', brandController.getAllBrands);
-router.post('/brands/add', upload.single('brandImage'), brandController.addBrand);
-router.post('/brands/update', upload.single('brandImage'), brandController.updateBrand);
+router.post('/brands/add', multer.upload.single('brandImage'), brandController.addBrand);
+router.post('/brands/update', multer
+    .upload.single('brandImage'), brandController.updateBrand);
 router.post('/brands/toggle', brandController.toggleBrandStatus);
 router.post('/brands/delete', brandController.deleteBrand);
 
 //product 
 router.get('/addProducts', productController.getProductAddPage);
-router.post('/addProducts', upload.array("images",4), productController.addProducts);
+router.post('/addProducts', multer.upload.array("images",4), productController.addProducts);
 router.get('/products', productController.getAllProducts);
 router.get('/blockProduct', productController.blockProduct);
 router.get('/unblockProduct', productController.unblockProduct);
 router.get('/editProduct', productController.getEditProduct);
-router.post('/editProduct/:id', upload.array("images",4), productController.editProduct);
+router.post('/editProduct/:id', multer.upload.array("images",4), productController.editProduct);
 router.post('/deleteImage', productController.deleteSingleImage);
 
 // coupon routes
