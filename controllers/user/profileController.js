@@ -184,7 +184,8 @@ const getProfilePage = async (req, res) => {
         res.render('user/profile', { 
             user,
             addresses: addressDoc ? addressDoc.addresses : [],
-            message: null 
+            message: null,
+            currentRoute: req.path // Pass the current route
         });
     } catch (error) {
         console.error("Profile Page Error:", error);
@@ -196,7 +197,11 @@ const getEditProfilePage = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const user = await User.findById(userId);
-        res.render('user/edit-profile', { user, message: null });
+        res.render('user/edit-profile', { 
+            user, 
+            message: null, 
+            currentRoute: req.path // Pass the current route
+        });
     } catch (error) {
         console.error("Edit Profile Page Error:", error);
         res.status(500).render('page-404');

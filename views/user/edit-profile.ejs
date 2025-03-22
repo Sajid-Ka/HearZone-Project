@@ -1,34 +1,129 @@
 <%- include('../partials/user/header') %>
 
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f5f5f5;
+    }
+
+    /* Profile Section */
+    .card {
+        background: white;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h4 {
+        font-weight: 600;
+        color: #444;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #555;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #ddd;
+    }
+
+    .form-control:focus {
+        border-color: #f1c40f;
+        box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
+    }
+
+    /* Buttons */
+    .btn-dark {
+        background-color: #222;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-dark:hover {
+        background-color: #f1c40f;
+        color: #222;
+    }
+
+    .btn-danger {
+        background-color: #e74c3c;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+        background-color: #c0392b;
+    }
+
+    /* Profile Picture */
+    .rounded-circle {
+        background: #444;
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
 <br>
 <br>
 <br>
 <br>
 <br>
-<br>
-<br>
 
-<div class="container mt-5">
-    <h2>Edit Profile</h2>
-    <% if (message) { %>
-        <div class="alert alert-danger"><%= message %></div>
-    <% } %>
-    
-    <form action="/edit-profile" method="POST">
-        <div class="mb-3">
-            <label for="name" class="form-label">Name</label>
-            <input type="text" class="form-control" id="name" name="name" value="<%= user.name %>" required>
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Sidebar Partial Include -->
+        <%- include('../partials/user/profile/sidebar') %>
+
+        <!-- Profile Edit Section -->
+        <div class="col-md-9">
+            <h2>My Account</h2>
+            <div class="card p-4">
+                <h4>Edit Your Profile</h4>
+                <form action="/edit-profile" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="fullName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="fullName" name="fullName" value="<%= user.name %>" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="<%= user.phone || '' %>">
+                        </div>
+                    </div>
+                    <h5 class="mt-4">Password Changes</h5>
+                    <div class="mb-3">
+                        <input type="password" class="form-control" id="currentPassword" name="currentPassword" placeholder="Current Password">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" placeholder="New Password">
+                        </div>
+                        <div class="col-md-6">
+                            <input type="password" class="form-control" id="confirmNewPassword" name="confirmNewPassword" placeholder="Confirm New Password">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a href="/profile" class="btn btn-link text-muted me-2">Cancel</a>
+                        <button type="submit" class="btn btn-dark">Save Changes</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-        <a href="/profile" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>
-
 
 <br>
 <br>
