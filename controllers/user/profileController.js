@@ -332,7 +332,6 @@ const updateProfileImage = async (req, res) => {
         if (!user) {
             throw new Error('User not found in database');
         }
-        
 
         // Delete old image if it exists
         if (user.profileImage) {
@@ -340,7 +339,6 @@ const updateProfileImage = async (req, res) => {
             try {
                 if (await fs.access(oldImagePath).then(() => true).catch(() => false)) {
                     await fs.unlink(oldImagePath);
-                    
                 } else {
                     console.log(`Old profile image not found: ${oldImagePath}`);
                 }
@@ -357,18 +355,13 @@ const updateProfileImage = async (req, res) => {
         const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
         const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
 
-        
-
         // Resize and save to a temporary file
         await sharp(inputFilePath)
             .resize(200, 200, { fit: 'cover', withoutEnlargement: true })
             .toFile(tempFilePath);
 
-        
-
         // Replace the original file with the processed one
         await fs.rename(tempFilePath, inputFilePath);
-        
 
         // Update database
         const updatedUser = await User.findByIdAndUpdate(
@@ -379,13 +372,22 @@ const updateProfileImage = async (req, res) => {
         if (!updatedUser) {
             throw new Error('Failed to update user profile image in database');
         }
-        
 
         // Update session
         req.session.user.profileImage = file.filename;
-        
 
-        res.redirect('/profile');
+        // Instead of redirect, render the profile page with a success message
+        const addressDoc = await Address.findOne({ userId });
+        res.render('user/profile', {
+            user: updatedUser,
+            addresses: addressDoc ? addressDoc.addresses : [],
+            message: {
+                type: 'success',
+                text: 'Profile image updated successfully!'
+            },
+            currentRoute: '/profile'
+        });
+
     } catch (error) {
         console.error("Update Profile Image Error:", error);
         if (req.file) {

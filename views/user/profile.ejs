@@ -1,5 +1,8 @@
 <%- include('../partials/user/header') %>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.js"></script>
+
 <style>
     body {
         font-family: 'Poppins', sans-serif;
@@ -94,6 +97,11 @@
     .profile-image-container:hover .upload-btn {
         opacity: 1;
     }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -104,7 +112,7 @@
     <div class="row">
         <%- include('../partials/user/profile/sidebar') %>
 
-        <div class="col-md-9">
+       <div class="col-md-9">
             <h2>My Account</h2>
             <div class="card p-4">
                 <div class="d-flex align-items-center mb-4">
@@ -128,9 +136,9 @@
                 </div>
 
                 <h4>Profile Details</h4>
-                <% if (message) { %>
+                <!-- <% if (message) { %>
                     <div class="alert alert-info"><%= message %></div>
-                <% } %>
+                <% } %> -->
 
                 <div class="profile-info mb-3">
                     <p><strong>Full Name:</strong> <%= user.name || 'Not provided' %></p>
@@ -144,9 +152,12 @@
                 </div>
             </div>
 
-            <% if (addresses && addresses.length > 0) { %>
-                <div class="card p-4 mt-4">
+            <div class="card p-4 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4>Saved Addresses</h4>
+                    <a href="/add-address" class="btn btn-primary btn-sm">Add New Address</a>
+                </div>
+                <% if (addresses && addresses.length > 0) { %>
                     <% addresses.forEach((address, index) => { %>
                         <div class="profile-info mb-3">
                             <p><strong>Address <%= index + 1 %>:</strong></p>
@@ -154,12 +165,28 @@
                             <p><strong>Country:</strong> <%= address.country %></p>
                         </div>
                     <% }) %>
-                </div>
-            <% } %>
+                <% } else { %>
+                    <div class="profile-info mb-3">
+                        <p class="text-muted">Address not added</p>
+                    </div>
+                <% } %>
+            </div>
         </div>
     </div>
 </div>
 
 <br><br><br>
+
+<script>
+    <% if (message) { %>
+        new Noty({
+            type: '<%= message.type || "success" %>',
+            layout: 'topRight',
+            text: '<%= message.text %>',
+            timeout: 3000,
+            theme: 'bootstrap-v4'
+        }).show();
+    <% } %>
+</script>
 
 <%- include('../partials/user/footer') %>

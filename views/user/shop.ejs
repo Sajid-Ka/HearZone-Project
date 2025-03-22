@@ -503,6 +503,11 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+  .filter-item a.active {
+      color: var(--primary-color);
+      background-color: rgba(79, 70, 229, 0.1);
+      font-weight: 600;
+  }
 </style>
 <br>
 <br>
@@ -579,17 +584,18 @@
         <div class="filter-section">
           <div class="filter-title">Brands</div>
           <div class="category-brand-container">
-            <ul>
-              <% for(let i=0; i<brand.length; i++) { %>
-                <li class="filter-item">
-                  <a href="/filter?brand=<%=brand[i]._id%><%= selectedCategory ? '&category=' + selectedCategory : '' %>">
-                    <%= brand[i].brandName %>
-                  </a>
-                </li>
-              <% } %>
-            </ul>
+              <ul>
+                  <% for(let i=0; i<brand.length; i++) { %>
+                      <li class="filter-item">
+                          <a href="/filter?<%= selectedCategory ? 'category=' + selectedCategory + '&' : '' %>brand=<%=brand[i]._id%>"
+                             class="<%= selectedBrand === brand[i]._id.toString() ? 'active' : '' %>">
+                              <%= brand[i].brandName %>
+                          </a>
+                      </li>
+                  <% } %>
+              </ul>
           </div>
-        </div>
+      </div>
         
         <div class="price-filter">
           <div class="filter-title">Price Range</div>
@@ -662,19 +668,20 @@
 
     <div class="pagination">
       <% if (currentPage > 1) { %>
-        <a href="?page=<%= currentPage - 1 %><%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %><%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %><%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">Prev</a>
+          <a href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Prev</a>
       <% } %>
-
+  
       <% for (let i = 1; i <= totalPages; i++) { %>
-        <a class="<%= currentPage === i ? 'active' : '' %>" href="?page=<%= i %><%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %><%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %><%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">
-          <%= i %>
-        </a>
+          <a class="<%= currentPage === i ? 'active' : '' %>" 
+             href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">
+              <%= i %>
+          </a>
       <% } %>
-
+  
       <% if (currentPage < totalPages) { %>
-        <a href="?page=<%= currentPage + 1 %><%= typeof selectedCategory !== 'undefined' && selectedCategory ? '&category=' + selectedCategory : '' %><%= typeof selectedBrand !== 'undefined' && selectedBrand ? '&brand=' + selectedBrand : '' %><%= typeof gt !== 'undefined' && gt !== null ? '&gt=' + gt : '' %><%= typeof lt !== 'undefined' && lt !== null ? '&lt=' + lt : '' %>">Next</a>
+          <a href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Next</a>
       <% } %>
-    </div>
+  </div>
   </section>
 </div>
 <br>

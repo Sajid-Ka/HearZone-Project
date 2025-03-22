@@ -349,15 +349,21 @@ const loadShoppingPage = async (req, res) => {
 const filterProduct = async (req, res) => {
     try {
         const categoryId = req.query.category;
+        const brandId = req.query.brand;
         const page = parseInt(req.query.page) || 1;
         const itemsPerPage = 9;
 
+        // Build query filter dynamically
         const queryFilter = {
             isBlocked: false,
         };
 
         if (categoryId) {
             queryFilter.category = new mongoose.Types.ObjectId(categoryId);
+        }
+
+        if (brandId) {
+            queryFilter.brand = new mongoose.Types.ObjectId(brandId);
         }
 
         const totalProducts = await Product.countDocuments(queryFilter);
@@ -382,14 +388,17 @@ const filterProduct = async (req, res) => {
             totalPages,
             currentPage: page,
             selectedCategory: categoryId || null,
-            selectedBrand: null,
-            selectedSort: null
+            selectedBrand: brandId || null,
+            selectedSort: null,
+            gt: null,
+            lt: null
         });
     } catch (error) {
         console.error("Filter product error", error);
         res.redirect('/pageNotFound');
     }
 };
+
 
 const filterByPrice = async (req, res) => {
     try {
