@@ -4,144 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HearZone - Email Verification</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <style>
         body, html {
             height: 100%;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            font-family: "Nunito Sans", sans-serif;
             overflow: hidden;
+            background: #f4f7fa; /* Light background */
         }
-        .verification-container {
-            min-height: 100vh;
+        .container {
             display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 20px;
+            align-items: center;
+            height: 100%;
         }
-        .verification-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        .verification_wrap {
             width: 100%;
-            max-width: 420px;
-            padding: 2.5rem;
-            transition: transform 0.3s ease;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 5px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        .verification-card:hover {
-            transform: translateY(-5px);
-        }
-        .card-title {
-            font-size: 1.8rem;
+        .heading_s1 h3 {
+            margin: 0;
+            font-size: 24px;
             font-weight: 600;
-            color: #1a1a1a;
+            color: #333;
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
         }
         .form-control {
-            border-radius: 8px;
+            border-radius: 4px;
             padding: 0.8rem 1rem;
-            font-size: 1.1rem;
-            border: 2px solid #e1e1e1;
-            transition: all 0.3s ease;
-        }
-        .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-        }
-        .timer-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            margin: 1.5rem 0;
+            font-size: 1rem;
+            border: 1px solid #ddd;
         }
         .otp-timer {
-            width: 70px;
-            height: 70px;
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 14px;
+            position: relative;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            background: #f8f9fa;
-            border: 3px solid #007bff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: #007bff;
-            transition: all 0.3s ease;
-        }
-        .otp-timer.expired {
-            border-color: #dc3545;
-            color: #dc3545;
-            background: #fff5f5;
+            line-height: 60px;
+            text-align: center;
+            background: #f2f2f2;
+            border: 2px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         #timerValue {
-            font-size: 1.5rem;
+            display: block;
+            font-size: 24px;
             font-weight: bold;
+            color: #333;
+            line-height: 60px;
         }
-        .btn {
-            padding: 0.8rem;
-            font-weight: 500;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+        #timerValue.expired {
+            font-size: 14px;
+            color: red;
         }
         .btn-primary {
-            background: #007bff;
+            background-color: #007bff;
             border: none;
             width: 100%;
+            margin-top: 10px;
+            display: block;
+            padding: 0.8rem;
         }
         .btn-primary:hover {
-            background: #0056b3;
-            transform: translateY(-1px);
+            background-color: #0056b3;
         }
         .btn-secondary {
             width: 100%;
-            margin-top: 1rem;
+            background-color: #6c757d;
+            border: none;
+            margin-top: 10px;
             display: none;
+            padding: 0.8rem;
         }
-        .back-link {
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .alert-danger {
+            margin-top: 15px;
             text-align: center;
-            margin-top: 1.5rem;
         }
-        .back-link a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
+        .text-center {
+            text-align: center;
+            margin-top: 15px;
         }
-        .back-link a:hover {
-            text-decoration: underline;
+        .text-muted {
+            color: #6c757d;
+            text-align: center;
+        }
+        .pt-25 {
+            padding-top: 25px;
         }
     </style>
 </head>
 <body>
-    <div class="verification-container">
-        <div class="verification-card">
-            <div class="card-title"><%= heading || 'Email Verification Page' %></div> <!-- Dynamic heading -->
-            <form id="otpForm" onsubmit="return validateOTPForm()">
-                <input type="hidden" name="action" value="<%= action || 'verify-otp' %>"> <!-- Dynamic action -->
-                <div class="form-group">
-                    <label for="otp">Enter OTP:</label>
-                    <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
+    <div class="container">
+        <div class="verification_wrap">
+            <div class="padding_eight_all bg-white">
+                <div class="heading_s1">
+                    <h3><%= heading || 'Email Verification' %></h3>
                 </div>
-                <button type="submit" class="btn btn-primary">Verify Email</button>
-                <div class="timer-container">
-                    <div id="otpTimer" class="otp-timer">
-                        <span id="timerValue">60</span>
+                <form id="otpForm" onsubmit="return validateOTPForm()">
+                    <input type="hidden" name="action" value="<%= action || 'verify-otp' %>">
+                    <div class="form-group">
+                        <label for="otp">Enter OTP:</label>
+                        <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
                     </div>
-                    <button type="button" class="btn btn-secondary" id="resendBtn" onclick="resendOTP()">Resend OTP</button>
+                    <button type="submit" class="btn btn-primary">Verify Email</button>
+                    <div class="form-group text-center">
+                        <div id="otpTimer" class="otp-timer">
+                            <span id="timerValue">60</span>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="resendBtn" onclick="resendOTP()">Resend OTP</button>
+                    </div>
+                    <% if (locals.message && message.length > 0) { %>
+                        <div class="alert alert-danger"><%= message %></div>
+                    <% } %>
+                </form>
+                <div class="text-muted text-center pt-25">
+                    <% if (action === 'verify-email-otp') { %>
+                        <a href="/profile">Back to Profile</a>
+                    <% } else { %>
+                        Already verified? <a href="/login">Login now</a>
+                    <% } %>
                 </div>
-                <% if (locals.message && message.length > 0) { %>
-                    <div class="alert alert-danger"><%= message %></div>
-                <% } %>
-            </form>
-            <div class="back-link">
-                <% if (action === 'verify-email-otp') { %>
-                    <a href="/profile">Back to Profile</a>
-                <% } else { %>
-                    Already verified? <a href="/login">Login now</a>
-                <% } %>
             </div>
         </div>
     </div>
@@ -158,7 +158,7 @@
         function startTimer() {
             clearInterval(timerInterval);
             timer = 60;
-            resendBtn.style.display = "none"; // Hide resend button when timer starts
+            resendBtn.style.display = "none";
 
             timerInterval = setInterval(() => {
                 timer--;
@@ -168,7 +168,7 @@
                     document.getElementById("timerValue").classList.add("expired");
                     document.getElementById("timerValue").textContent = "Expired";
                     document.getElementById("otp").disabled = true;
-                    resendBtn.style.display = "block"; // Show resend button when timer expires
+                    resendBtn.style.display = "block";
                 }
             }, 1000);
         }

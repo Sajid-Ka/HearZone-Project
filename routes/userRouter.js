@@ -10,7 +10,7 @@ const passport = require('passport');
 const reviewController = require('../controllers/user/reviewController');
 const multer = require('../helpers/multer');
 
-// Public routes
+// Public routes (no authentication required)
 router.get('/', userController.loadHomepage);
 router.get('/shop', userController.loadShoppingPage);
 router.post('/search', userController.searchProducts);
@@ -24,10 +24,18 @@ router.get('/product-details', async (req, res, next) => {
     }
 });
 
-// Apply userAuth middleware
+// Forgot Password routes (public but can use user data if available)
+router.get('/forgot-password', forgotPasswordController.getForgotPassPage);
+router.post('/forgot-email-valid', forgotPasswordController.forgotEmailValid);
+router.post('/verify-passForgot-otp', forgotPasswordController.verifyForgotPassOtp);
+router.get('/reset-password', forgotPasswordController.getResetPassPage);
+router.post('/reset-password', forgotPasswordController.postNewPassword);
+router.post('/resend-forgot-otp', forgotPasswordController.resendOtp);
+
+// Apply userAuth middleware to protected routes
 router.use(userAuth);
 
-// Auth routes
+// Auth routes (protected by isLogin where appropriate)
 router.get('/signup', isLogin, userController.loadSignup);
 router.post('/signup', isLogin, userController.signup);
 router.post('/verify-otp', isLogin, userController.verifyOtp);
@@ -36,22 +44,14 @@ router.get('/login', isLogin, userController.loadLogin);
 router.post('/login', isLogin, userController.login);
 router.get('/logout', isLogout, userController.logout);
 
-// Forgot Password routes
-router.get('/forgot-password', forgotPasswordController.getForgotPassPage);
-router.post('/forgot-email-valid', forgotPasswordController.forgotEmailValid);
-router.post('/verify-passForgot-otp', forgotPasswordController.verifyForgotPassOtp);
-router.get('/reset-password', forgotPasswordController.getResetPassPage);
-router.post('/reset-password', forgotPasswordController.postNewPassword);
-router.post('/resend-forgot-otp', forgotPasswordController.resendOtp);
-
-// Profile management routes
+// Profile management routes (protected)
 router.get('/profile', isLogout, profileController.getProfilePage);
 router.get('/edit-profile', isLogout, profileController.getEditProfilePage);
 router.post('/edit-profile', isLogout, profileController.updateProfile);
 router.get('/verify-email-otp', isLogout, profileController.getVerifyEmailOtpPage);
 router.post('/verify-email-otp', isLogout, profileController.verifyEmailOtp);
 router.post('/resend-email-otp', isLogout, profileController.resendEmailOtp);
-router.post('/update-profile-image', multer.profileUpload.single('profileImage'), profileController.updateProfileImage);
+router.post('/update-profile-image', multer.profileUpload.single('profileImage'), isLogout, profileController.updateProfileImage);
 
 // Google Auth routes
 router.get('/auth/google',
@@ -73,7 +73,7 @@ router.get('/auth/google/callback',
     }
 );
 
-// Review routes
+// Review routes (protected)
 router.post('/review/add', isLogout, reviewController.addReview);
 router.get('/review/product/:productId', reviewController.getProductReviews);
 router.get('/review/full/:productId', (req, res, next) => {
@@ -84,7 +84,7 @@ router.get('/review/full/:productId', (req, res, next) => {
 });
 router.post('/review/delete/:reviewId', isLogout, reviewController.deleteReview);
 
-// Coupon routes
-router.get('/coupon/available', couponController.getAvailableCoupons);
+// Coupon routes (protected)
+router.get('/coupon/available', isLogout, couponController.getAvailableCoupons);
 
 module.exports = router;

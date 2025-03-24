@@ -1,6 +1,7 @@
 const User = require('../../models/userSchema');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose'); // Add this line
 require('dotenv').config();
 
 function generateOtp() {
@@ -53,7 +54,19 @@ const securePassword = async (password) => {
 
 const getForgotPassPage = async (req, res) => {
     try {
-        res.render('forgot-password', { message: null });
+        let userEmail = null;
+        if (req.session.user) {
+            const userId = req.session.user.id || req.session.user._id || req.session.user;
+            if (mongoose.Types.ObjectId.isValid(userId)) {
+                const user = await User.findById(userId);
+                userEmail = user?.email || null;
+            }
+        }
+        console.log("User Email:", userEmail); // Debug log
+        res.render('forgot-password', { 
+            message: null,
+            userEmail: userEmail 
+        });
     } catch (error) {
         console.error("Forgot Password Page error", error);
         res.status(500).render('page-404');

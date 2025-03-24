@@ -4,98 +4,91 @@ const mongoose = require('mongoose');
 const protectedUserRoutes = process.env.PROTECTED_USER_ROUTES?.split(',') || [];
 const protectedAdminRoutes = process.env.PROTECTED_ADMIN_ROUTES?.split(',') || [];
 
-const userAuth = (req, res, next) => {
+const userAuth = async (req, res, next) => {
     const path = req.path;
     if (!protectedUserRoutes.some(route => path.startsWith(route))) {
+        // Even for unprotected routes, set req.user if authenticated
+        if (req.session.user) {
+            try {
+                const userId = req.session.user.id || req.session.user._id || req.session.user;
+                if (!mongoose.Types.ObjectId.isValid(userId)) {
+                    console.error("Invalid ObjectId:", userId);
+                    return next();
+                }
+                const user = await User.findById(userId);
+                if (user && !user.isBlocked) {
+                    req.user = user; // Set req.user for all routes if user exists
+                }
+            } catch (error) {
+                console.error("Error in userAuth middleware", error);
+            }
+        }
         return next();
     }
 
-    if (req.session.user) {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    try {
         const userId = req.session.user.id || req.session.user._id || req.session.user;
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             console.error("Invalid ObjectId:", userId);
+            req.session.destroy();
             return res.redirect('/login');
         }
-        User.findById(userId)
-            .then(data => {
-                if (data && !data.isBlocked) {
-                    next();
-                } else {
-                    res.redirect('/login');
-                }
-            })
-            .catch(error => {
-                console.error("Error in userAuth middleware", error);
-                res.status(500).send("Internal Server error");
-            });
-    } else {
+
+        const user = await User.findById(userId);
+        if (user && !user.isBlocked) {
+            req.user = user;
+            return next();
+        }
+        req.session.destroy();
         res.redirect('/login');
+    } catch (error) {
+        console.error("Error in userAuth middleware", error);
+        res.status(500).send("Internal Server Error");
     }
 };
 
+// Other middleware remains the same
 const adminAuth = (req, res, next) => {
     const path = req.path;
     if (!protectedAdminRoutes.some(route => path.startsWith(route))) {
         return next();
     }
-
     if (req.session.admin) {
         return next();
-    } else {
-        return res.redirect('/admin/login');
     }
+    return res.redirect('/admin/login');
 };
 
 const isAdminAuth = (req, res, next) => {
-    try {
-        if (req.session.admin) {
-            next();
-        } else {
-            res.redirect('/admin/login');
-        }
-    } catch (error) {
-        console.error(error);
-        res.redirect('/admin/login');
+    if (req.session.admin) {
+        return next();
     }
+    res.redirect('/admin/login');
 };
 
 const isAdminLogin = (req, res, next) => {
-    try {
-        if (req.session.admin) {
-            res.redirect('/admin/dashboard');
-        } else {
-            next();
-        }
-    } catch (error) {
-        console.error(error);
-        next(error);
+    if (req.session.admin) {
+        return res.redirect('/admin/dashboard');
     }
+    next();
 };
 
 const isLogin = (req, res, next) => {
-    try {
-        if (req.session.user) {
-            res.redirect('/'); 
-        } else {
-            next();
-        }
-    } catch (error) {
-        console.error(error);
-        next(error);
+    if (req.session.user) {
+        return res.redirect('/'); 
     }
+    next();
 };
 
 const isLogout = (req, res, next) => {
-    try {
-        if (req.session.user) {
-            next();
-        } else {
-            res.redirect('/login');
-        }
-    } catch (error) {
-        console.error(error);
-        next(error);
+    if (req.session.user) {
+        return next();
     }
+    res.redirect('/login');
 };
 
 module.exports = {
