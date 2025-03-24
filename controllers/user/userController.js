@@ -128,8 +128,8 @@ const signup = async (req, res) => {
         // Modified: Pass required variables to the template
         res.render('verify-otp', { 
             message: null,
-            heading: 'Email Verification Page',  // Add default heading
-            action: 'verify-otp'                 // Add default action
+            heading: 'Email Verification Page',  
+            action: 'verify-otp'                 
         });
     } catch (error) {
         console.error('Signup error:', error);
@@ -157,7 +157,7 @@ const verifyOtp = async (req, res) => {
         name: savedUser.name,
         email: savedUser.email
       };
-      console.log('Session set after OTP:', req.session.user);
+      
       delete req.session.userOtp;
       delete req.session.userData;
       res.json({ success: true, redirectUrl: '/' });
