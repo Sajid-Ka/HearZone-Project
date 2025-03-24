@@ -2,12 +2,10 @@ const User = require('../../models/userSchema');
 const Address = require('../../models/addressSchema');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
-const env = require('dotenv').config();
-const session = require('express-session');
-const upload = require('../../helpers/multer');
 const path = require('path');
 const fs = require('fs').promises;
 const sharp = require('sharp');
+require('dotenv').config();
 
 function generateOtp() {
     const digits = "1234567890";
@@ -32,9 +30,9 @@ const sendVerificationEmail = async (email, otp) => {
         });
 
         const mailOptions = {
-            from: process.env.NODEMAILER_EMAIL,  // Removed the erroneous 'nodemon' reference
+            from: process.env.NODEMAILER_EMAIL,
             to: email,
-            subject: "OTP for Password-reset",
+            subject: "OTP for Email Verification",
             text: `Your OTP is ${otp}`,
             html: `<b><h4>Your OTP: ${otp}</h4><br></b>`,
         };
@@ -48,142 +46,18 @@ const sendVerificationEmail = async (email, otp) => {
     }
 };
 
-
-
-const securePassword = async (password)=>{
+const securePassword = async (password) => {
     try {
-
-        const passwordHash = await bcrypt.hash(password,10);
+        const passwordHash = await bcrypt.hash(password, 10);
         return passwordHash;
-        
     } catch (error) {
-        console.error("password Securing Error",error);
-    }
-}
-
-
-const getForgotPassPage = async (req, res) => {
-    try {
-        res.render('forgot-password', { message: null });
-    } catch (error) {
-        console.error("Forgot Password Page error", error);
-        res.status(500).render('page-404');
+        console.error("password Securing Error", error);
     }
 };
-
-const forgotEmailValid = async (req, res) => {
-    try {
-        const { email } = req.body;
-        const findUser = await User.findOne({ email: email });
-        if (findUser) {
-            const otp = generateOtp();
-            const emailSent = await sendVerificationEmail(email, otp);
-            if (emailSent) {
-                req.session.userOtp = otp;
-                req.session.email = email;
-                res.render('forgotPass-otp', { message: null });
-                console.log("Generated OTP: ", otp);
-            } else {
-                res.render("forgot-password", {
-                    message: "Failed to send OTP, Please try Again"
-                });
-            }
-        } else {
-            res.render("forgot-password", {
-                message: "User with this Email Does not Exist"
-            });
-        }
-    } catch (error) {
-        console.error("Error in forgotEmailValid:", error);
-        res.render("forgot-password", {
-            message: "An error occurred. Please try again."
-        });
-    }
-};
-
-const verifyForgotPassOtp = async (req, res) => {
-    try {
-        const enteredOtp = req.body.otp.toString();
-        const storedOtp = req.session.userOtp.toString();
-
-        console.log("Entered OTP:", enteredOtp);
-        console.log("Stored OTP:", storedOtp);
-
-        if (enteredOtp === storedOtp) {
-            res.json({ success: true, redirectUrl: '/reset-password' });
-        } else {
-            res.json({ success: false, message: "Invalid OTP" });
-        }
-    } catch (error) {
-        console.error("Error in OTP verification:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "An error occurred, please try again" 
-        });
-    }
-};
-
-const getResetPassPage = async (req, res) => {
-    try {
-        res.render('reset-password');
-    } catch (error) {
-        console.error("Reset Password Page error", error);
-        res.redirect('/pageNotFound');
-    }
-};
-
-const resendOtp = async (req, res) => {
-    try {
-        const email = req.session.email;
-        if (!email) {
-            return res.status(400).json({ success: false, message: "No email found in session" });
-        }
-
-        const otp = generateOtp();
-        req.session.userOtp = otp;
-        console.log("Resending OTP to email: ", email);
-
-        const emailSend = await sendVerificationEmail(email, otp);
-        if (emailSend) {
-            console.log("Resend OTP: ", otp);
-            return res.status(200).json({ success: true, message: "Resend OTP Successful" });
-        } else {
-            return res.status(500).json({ success: false, message: "Failed to send OTP" });
-        }
-    } catch (error) {
-        console.error("Resend OTP error", error);
-        return res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
-
-
-const postNewPassword = async (req,res)=>{
-    try {
-
-        const {newPass1,newPass2} = req.body;
-        const email = req.session.email;
-        if(newPass1===newPass2){
-            const passwordHash = await securePassword(newPass1);
-            await User.updateOne(
-                {email:email},
-                {$set:{password:passwordHash}}
-            )
-            res.redirect('/login');
-        }else{
-            res.render('reset-password',{message:"Passwords Do not matched"})
-        }
-        
-    } catch (error) {
-        res.redirect('/pageNotFound');
-    }
-}
-
 
 const getProfilePage = async (req, res) => {
     try {
         const userId = req.session.user.id;
-        
-
         const user = await User.findById(userId);
         if (!user) {
             throw new Error('User not found');
@@ -195,11 +69,8 @@ const getProfilePage = async (req, res) => {
             email: user.email,
             profileImage: user.profileImage
         };
-        
 
         const addressDoc = await Address.findOne({ userId });
-
-        
         res.render('user/profile', {
             user,
             addresses: addressDoc ? addressDoc.addresses : [],
@@ -212,7 +83,6 @@ const getProfilePage = async (req, res) => {
     }
 };
 
-
 const getEditProfilePage = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -220,14 +90,13 @@ const getEditProfilePage = async (req, res) => {
         res.render('user/edit-profile', { 
             user, 
             message: null, 
-            currentRoute: req.path // Pass the current route
+            currentRoute: req.path 
         });
     } catch (error) {
         console.error("Edit Profile Page Error:", error);
         res.status(500).render('page-404');
     }
 };
-
 
 const updateProfile = async (req, res) => {
     try {
@@ -249,7 +118,6 @@ const updateProfile = async (req, res) => {
         const phonePattern = /^\d{10}$/;
         const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-        // Name validation
         if (name && name.trim() !== user.name) {
             const namePattern = /^[A-Za-z\s]+$/;
             if (!namePattern.test(name.trim())) {
@@ -262,7 +130,6 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Phone validation
         if (phone && phone.trim() !== '' && phone !== user.phone) {
             if (/[a-zA-Z]/.test(phone)) {
                 errors.phone = "Phone number must contain only numbers";
@@ -274,13 +141,10 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Email change with OTP and validation
         if (email && email !== user.email) {
-            // Validate email format first
             if (!emailPattern.test(email)) {
                 errors.email = "Please enter a valid email address (e.g., example@domain.com)";
             } else {
-                // Check if email is already in use by another user
                 const existingUser = await User.findOne({ email: email });
                 if (existingUser && existingUser._id.toString() !== userId) {
                     errors.email = "This email is already registered with another account";
@@ -306,7 +170,6 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Password validation
         const isPasswordChangeAttempted = currentPassword || newPassword || confirmNewPassword;
         if (isPasswordChangeAttempted) {
             if (!currentPassword) {
@@ -340,12 +203,10 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Return errors if any exist
         if (Object.keys(errors).length > 0) {
             return res.status(400).json({ success: false, errors });
         }
 
-        // Apply updates if changes were made
         if (changesMade) {
             await User.findByIdAndUpdate(userId, updateData);
             if (updateData.name) req.session.user.name = updateData.name;
@@ -372,7 +233,6 @@ const updateProfile = async (req, res) => {
     }
 };
 
-
 const getVerifyEmailOtpPage = async (req, res) => {
     try {
         if (!req.session.newEmail || !req.session.emailOtp) {
@@ -383,14 +243,13 @@ const getVerifyEmailOtpPage = async (req, res) => {
             title: 'Verify New Email',
             action: 'verify-email-otp',
             message: null,
-            currentRoute: '/verify-email-otp' // Add this line to define currentRoute
+            currentRoute: '/verify-email-otp'
         });
     } catch (error) {
         console.error("Get Verify Email OTP Page Error:", error);
         res.status(500).render('page-404');
     }
 };
-
 
 const verifyEmailOtp = async (req, res) => {
     try {
@@ -438,8 +297,6 @@ const verifyEmailOtp = async (req, res) => {
     }
 };
 
-
-// Note: You might want to add a resend function for email change OTP
 const resendEmailOtp = async (req, res) => {
     try {
         const email = req.session.newEmail;
@@ -448,9 +305,9 @@ const resendEmailOtp = async (req, res) => {
         }
 
         const otp = generateOtp();
-        console.log("Generated new OTP for resend:", otp); // Add logging here
+        console.log("Generated new OTP for resend:", otp);
         req.session.emailOtp = otp;
-        console.log("Stored resent OTP in session:", req.session.emailOtp); // Verify session storage
+        console.log("Stored resent OTP in session:", req.session.emailOtp);
         const emailSent = await sendVerificationEmail(email, otp);
         
         if (emailSent) {
@@ -464,18 +321,14 @@ const resendEmailOtp = async (req, res) => {
     }
 };
 
-
-
 const updateProfileImage = async (req, res) => {
     try {
         const userId = req.session.user.id;
-        
         const user = await User.findById(userId);
         if (!user) {
             throw new Error('User not found in database');
         }
 
-        // Delete old image if it exists
         if (user.profileImage) {
             const oldImagePath = path.join(__dirname, '../../public/uploads/profile-images', user.profileImage);
             try {
@@ -497,15 +350,12 @@ const updateProfileImage = async (req, res) => {
         const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
         const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
 
-        // Resize and save to a temporary file
         await sharp(inputFilePath)
             .resize(200, 200, { fit: 'cover', withoutEnlargement: true })
             .toFile(tempFilePath);
 
-        // Replace the original file with the processed one
         await fs.rename(tempFilePath, inputFilePath);
 
-        // Update database
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { profileImage: file.filename },
@@ -515,10 +365,8 @@ const updateProfileImage = async (req, res) => {
             throw new Error('Failed to update user profile image in database');
         }
 
-        // Update session
         req.session.user.profileImage = file.filename;
 
-        // Instead of redirect, render the profile page with a success message
         const addressDoc = await Address.findOne({ userId });
         res.render('user/profile', {
             user: updatedUser,
@@ -544,14 +392,7 @@ const updateProfileImage = async (req, res) => {
     }
 };
 
-
 module.exports = {
-    getForgotPassPage,
-    forgotEmailValid,
-    verifyForgotPassOtp,
-    getResetPassPage,
-    resendOtp,
-    postNewPassword,
     getProfilePage,
     getEditProfilePage,
     updateProfile,
