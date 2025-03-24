@@ -88,7 +88,6 @@
             background-color: #6c757d;
             border: none;
             margin-top: 10px;
-            display: none;
             padding: 0.8rem;
         }
         .btn-secondary:hover {
@@ -109,6 +108,14 @@
         .pt-25 {
             padding-top: 25px;
         }
+        .btn-secondary.disabled {
+            opacity: 0.5;
+            pointer-events: none; /* Prevents clicking while disabled */
+        }
+        .btn-primary.disabled {
+            opacity: 0.5;
+            pointer-events: none; /* Prevents clicking when timer expires */
+        }
     </style>
 </head>
 <body>
@@ -124,12 +131,12 @@
                         <label for="otp">Enter OTP:</label>
                         <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
                     </div>
-                    <button type="submit" class="btn btn-primary">Verify Email</button>
+                    <button type="submit" class="btn btn-primary" id="verifyBtn">Verify Email</button>
                     <div class="form-group text-center">
                         <div id="otpTimer" class="otp-timer">
                             <span id="timerValue">60</span>
                         </div>
-                        <button type="button" class="btn btn-secondary" id="resendBtn" onclick="resendOTP()">Resend OTP</button>
+                        <button type="button" class="btn btn-secondary disabled" id="resendBtn" onclick="resendOTP()">Resend OTP</button>
                     </div>
                     <% if (locals.message && message.length > 0) { %>
                         <div class="alert alert-danger"><%= message %></div>
@@ -150,16 +157,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.getElementById("otp").focus();
-
+    
         let timer = 60;
         let timerInterval;
         const resendBtn = document.getElementById("resendBtn");
-
+        const verifyBtn = document.getElementById("verifyBtn");
+    
         function startTimer() {
             clearInterval(timerInterval);
             timer = 60;
-            resendBtn.style.display = "none";
-
+            resendBtn.classList.add("disabled"); // Disable Resend button with 50% opacity
+            verifyBtn.classList.remove("disabled"); // Ensure Verify button is enabled
+            document.getElementById("otp").disabled = false; // Ensure OTP input is enabled
+    
             timerInterval = setInterval(() => {
                 timer--;
                 document.getElementById("timerValue").textContent = timer;
@@ -168,58 +178,78 @@
                     document.getElementById("timerValue").classList.add("expired");
                     document.getElementById("timerValue").textContent = "Expired";
                     document.getElementById("otp").disabled = true;
-                    resendBtn.style.display = "block";
+                    verifyBtn.classList.add("disabled"); // Disable Verify button
+                    resendBtn.classList.remove("disabled"); // Enable Resend button
                 }
             }, 1000);
         }
         startTimer();
-
+    
         function validateOTPForm() {
+            if (timer <= 0) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Timer Expired",
+                    text: "Please resend OTP to continue.",
+                });
+                return false; // Prevent form submission
+            }
+    
             const otpInput = document.getElementById('otp').value;
-
+            const action = document.querySelector('input[name="action"]').value;
+            const verifyUrl = action === 'verify-email-otp' ? '/verify-email-otp' : '/verify-otp';
+    
             $.ajax({
                 type: "POST",
-                url: "/verify-otp",
-                data: { otp: otpInput },
+                url: verifyUrl,
+                data: { 
+                    otp: otpInput,
+                    action: action // Send action to help server distinguish the context
+                },
                 success: function(response) {
                     if (response.success) {
+                        let successMessage = action === 'verify-email-otp' 
+                            ? 'Email changed successfully!'
+                            : 'Account verified successfully!';
+                        
                         Swal.fire({
                             icon: "success",
                             title: "Success",
-                            text: response.message,
+                            text: successMessage,
                             showConfirmButton: false,
                             timer: 1500,
                         }).then(() => {
-                            window.location.href = response.redirectUrl
-                        })
+                            window.location.href = response.redirectUrl;
+                        });
                     } else {
                         Swal.fire({
                             icon: "error",
                             title: "Error",
                             text: response.message,
-                        })
+                        });
                     }
                 },
-                error: function() {
+                error: function(xhr) {
                     Swal.fire({
                         icon: "error",
-                        title: "Invalid OTP",
-                        text: "Please try again",
-                    })
+                        title: "Error",
+                        text: xhr.responseJSON?.message || "Invalid OTP. Please try again",
+                    });
                 }
-            })
+            });
             return false;
         }
-
+    
         function resendOTP() {
             clearInterval(timerInterval);
             document.getElementById('otp').disabled = false;
             document.getElementById("timerValue").classList.remove("expired");
+            verifyBtn.classList.remove("disabled"); // Explicitly re-enable Verify button
             startTimer();
-
+    
             const action = document.querySelector('input[name="action"]').value;
             const resendUrl = action === 'verify-email-otp' ? '/resend-email-otp' : '/resend-otp';
-
+    
             $.ajax({
                 type: "POST",
                 url: resendUrl,

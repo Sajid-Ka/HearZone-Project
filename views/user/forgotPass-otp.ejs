@@ -78,6 +78,14 @@
     .btn-secondary:hover {
         background-color: #5a6268;
     }
+    .btn-secondary.disabled {
+        opacity: 0.5;
+        pointer-events: none; /* Prevents clicking while disabled */
+    }
+    .btn-primary.disabled {
+        opacity: 0.5;
+        pointer-events: none; /* Prevents clicking when timer expires */
+    }
     .alert-danger {
         margin-top: 15px;
         text-align: center;
@@ -106,12 +114,12 @@
                     <label for="otp">Enter OTP:</label>
                     <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
                 </div>
-                <button type="submit" class="btn btn-primary">Verify OTP</button>
+                <button type="submit" class="btn btn-primary" id="verifyBtn">Verify OTP</button>
                 <div class="form-group text-center">
                     <div id="otpTimer" class="otp-timer">
                         <span id="timerValue">60</span>
                     </div>
-                    <button type="button" class="btn btn-secondary" id="resendBtn" onclick="resendOtp()" style="display: none;">Resend OTP</button>
+                    <button type="button" class="btn btn-secondary disabled" id="resendBtn" onclick="resendOtp()">Resend OTP</button>
                 </div>
                 <% if (locals.message && message.length > 0) { %>
                     <div class="alert alert-danger"><%= message %></div>
@@ -137,11 +145,13 @@
     let timer = 60;
     let timerInterval;
     const resendBtn = document.getElementById("resendBtn");
+    const verifyBtn = document.getElementById("verifyBtn");
 
     function startTimer() {
         clearInterval(timerInterval);
         timer = 60;
-        resendBtn.style.display = "none"; // Hide resend button when timer starts
+        resendBtn.classList.add("disabled"); // Disable Resend button with 50% opacity
+        verifyBtn.classList.remove("disabled"); // Ensure Verify button is enabled
 
         timerInterval = setInterval(() => {
             timer--;
@@ -151,13 +161,23 @@
                 document.getElementById("timerValue").classList.add("expired");
                 document.getElementById("timerValue").textContent = "Expired";
                 document.getElementById("otp").disabled = true;
-                resendBtn.style.display = "block"; // Show resend button when timer expires
+                verifyBtn.classList.add("disabled"); // Disable Verify button when timer expires
+                resendBtn.classList.remove("disabled"); // Enable Resend button when timer expires
             }
         }, 1000);
     }
     startTimer();
 
     function validateOtpForm() {
+        if (timer <= 0) {
+            Swal.fire({
+                icon: "error",
+                title: "Timer Expired",
+                text: "Please resend OTP to continue.",
+            });
+            return false; // Prevent form submission if timer expires
+        }
+
         const otpInput = document.getElementById('otp').value;
         $.ajax({
             type: "POST",
@@ -196,6 +216,7 @@
         clearInterval(timerInterval);
         document.getElementById('otp').disabled = false;
         document.getElementById("timerValue").classList.remove("expired");
+        verifyBtn.classList.remove("disabled"); // Re-enable Verify button after resend
         startTimer();
 
         $.ajax({
@@ -228,4 +249,3 @@
         return false;
     }
 </script>
-

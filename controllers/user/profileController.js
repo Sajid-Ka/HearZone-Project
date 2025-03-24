@@ -307,7 +307,6 @@ const resendEmailOtp = async (req, res) => {
         const otp = generateOtp();
         console.log("Generated new OTP for resend:", otp);
         req.session.emailOtp = otp;
-        console.log("Stored resent OTP in session:", req.session.emailOtp);
         const emailSent = await sendVerificationEmail(email, otp);
         
         if (emailSent) {
