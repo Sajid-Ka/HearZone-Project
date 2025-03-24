@@ -78,6 +78,7 @@ app.set('views', [
     path.join(__dirname, 'views/admin')
 ]);
 app.use(express.static(path.join(__dirname,"public")));
+app.use('/css', express.static(path.join(__dirname, 'public/css')));
 
 app.use('/',userRouter);
 app.use('/admin',adminRouter);
