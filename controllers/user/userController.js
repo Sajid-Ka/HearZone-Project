@@ -125,7 +125,12 @@ const signup = async (req, res) => {
         req.session.userData = { name, phone, email, password };
         console.log('OTP generated:', otp);
 
-        res.render('verify-otp', { message: null });
+        // Modified: Pass required variables to the template
+        res.render('verify-otp', { 
+            message: null,
+            heading: 'Email Verification Page',  // Add default heading
+            action: 'verify-otp'                 // Add default action
+        });
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).render('error', { message: 'Signup failed' });
