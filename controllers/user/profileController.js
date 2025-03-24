@@ -32,7 +32,7 @@ const sendVerificationEmail = async (email, otp) => {
         });
 
         const mailOptions = {
-            from: process.env.NODEMAILER_EMAIL,nodemon, 
+            from: process.env.NODEMAILER_EMAIL,  // Removed the erroneous 'nodemon' reference
             to: email,
             subject: "OTP for Password-reset",
             text: `Your OTP is ${otp}`,
@@ -228,51 +228,190 @@ const getEditProfilePage = async (req, res) => {
     }
 };
 
+
 const updateProfile = async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const { name, email } = req.body;
-        let updateData = { name };
+        const userId = req.session.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "User not authenticated" });
+        }
 
-        if (email !== req.session.user.email) {
-            const otp = generateOtp();
-            const emailSent = await sendVerificationEmail(email, otp);
-            
-            if (!emailSent) {
-                return res.render('user/edit-profile', {
-                    user: await User.findById(userId),
-                    message: "Failed to send verification email"
-                });
+        const { name, email, phone, currentPassword, newPassword, confirmNewPassword } = req.body;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        let updateData = {};
+        let changesMade = false;
+        const errors = {};
+        const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const phonePattern = /^\d{10}$/;
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        // Name validation
+        if (name && name.trim() !== user.name) {
+            const namePattern = /^[A-Za-z\s]+$/;
+            if (!namePattern.test(name.trim())) {
+                errors.name = "Name must contain only letters and spaces";
+            } else if (name.trim().length < 2) {
+                errors.name = "Name must be at least 2 characters long";
+            } else {
+                updateData.name = name.trim();
+                changesMade = true;
             }
+        }
+
+        // Phone validation
+        if (phone && phone.trim() !== '' && phone !== user.phone) {
+            if (/[a-zA-Z]/.test(phone)) {
+                errors.phone = "Phone number must contain only numbers";
+            } else if (!phonePattern.test(phone)) {
+                errors.phone = "Phone number must be exactly 10 digits";
+            } else {
+                updateData.phone = phone.trim();
+                changesMade = true;
+            }
+        }
+
+        // Email change with OTP and validation
+        if (email && email !== user.email) {
+            // Validate email format first
+            if (!emailPattern.test(email)) {
+                errors.email = "Please enter a valid email address (e.g., example@domain.com)";
+            } else {
+                // Check if email is already in use by another user
+                const existingUser = await User.findOne({ email: email });
+                if (existingUser && existingUser._id.toString() !== userId) {
+                    errors.email = "This email is already registered with another account";
+                } else {
+                    const otp = generateOtp();
+                    console.log("Generated OTP for email change:", otp);
+                    const emailSent = await sendVerificationEmail(email, otp);
+                    if (!emailSent) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Failed to send verification email"
+                        });
+                    }
+                    req.session.newEmail = email;
+                    req.session.emailOtp = otp;
+                    console.log("Stored OTP in session:", req.session.emailOtp);
+                    return res.json({
+                        success: true,
+                        requiresOtp: true,
+                        message: "Please verify your new email"
+                    });
+                }
+            }
+        }
+
+        // Password validation
+        const isPasswordChangeAttempted = currentPassword || newPassword || confirmNewPassword;
+        if (isPasswordChangeAttempted) {
+            if (!currentPassword) {
+                errors.currentPassword = "Current password is required";
+            } else {
+                const isMatch = await bcrypt.compare(currentPassword, user.password);
+                if (!isMatch) {
+                    errors.currentPassword = "Current password is incorrect";
+                } else if (!newPassword) {
+                    errors.newPassword = "New password is required";
+                } else if (!confirmNewPassword) {
+                    errors.confirmNewPassword = "Confirm password is required";
+                } else {
+                    const isSameAsCurrent = await bcrypt.compare(newPassword, user.password);
+                    if (isSameAsCurrent) {
+                        errors.newPassword = "New password cannot be the same as current password";
+                    } else if (newPassword !== confirmNewPassword) {
+                        errors.confirmNewPassword = "New passwords do not match";
+                    } else if (!passwordPattern.test(newPassword)) {
+                        errors.newPassword = [];
+                        if (newPassword.length < 8) errors.newPassword.push("Password must be at least 8 characters long");
+                        if (!/(?=.*[A-Z])/.test(newPassword)) errors.newPassword.push("Password must contain at least one uppercase letter");
+                        if (!/(?=.*[a-z])/.test(newPassword)) errors.newPassword.push("Password must contain at least one lowercase letter");
+                        if (!/(?=.*\d)/.test(newPassword)) errors.newPassword.push("Password must contain at least one number");
+                        if (!/(?=.*[@$!%*?&])/.test(newPassword)) errors.newPassword.push("Password must contain at least one special character (@$!%*?&)");
+                    } else {
+                        updateData.password = await securePassword(newPassword);
+                        changesMade = true;
+                    }
+                }
+            }
+        }
+
+        // Return errors if any exist
+        if (Object.keys(errors).length > 0) {
+            return res.status(400).json({ success: false, errors });
+        }
+
+        // Apply updates if changes were made
+        if (changesMade) {
+            await User.findByIdAndUpdate(userId, updateData);
+            if (updateData.name) req.session.user.name = updateData.name;
+            if (updateData.phone) req.session.user.phone = updateData.phone;
             
-            req.session.newEmail = email;
-            req.session.emailOtp = otp;
-            return res.render('verify-otp', { 
-                action: 'verify-email-otp',
-                heading: 'Verify New Email',
-                title: 'Verify New Email',
-                message: null 
+            return res.json({
+                success: true,
+                message: isPasswordChangeAttempted ? 
+                    "Profile and password updated successfully" : 
+                    "Profile updated successfully",
+                redirectUrl: '/profile'
             });
         }
 
-        await User.findByIdAndUpdate(userId, updateData);
-        req.session.user.name = name;
-        res.redirect('/profile');
+        return res.json({ success: false, message: "No changes were made" });
+
     } catch (error) {
         console.error("Update Profile Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error occurred",
+            error: error.message
+        });
+    }
+};
+
+
+const getVerifyEmailOtpPage = async (req, res) => {
+    try {
+        if (!req.session.newEmail || !req.session.emailOtp) {
+            return res.redirect('/profile');
+        }
+        res.render('verify-otp', {
+            heading: 'Verify New Email',
+            title: 'Verify New Email',
+            action: 'verify-email-otp',
+            message: null,
+            currentRoute: '/verify-email-otp' // Add this line to define currentRoute
+        });
+    } catch (error) {
+        console.error("Get Verify Email OTP Page Error:", error);
         res.status(500).render('page-404');
     }
 };
 
+
 const verifyEmailOtp = async (req, res) => {
     try {
         const enteredOtp = req.body.otp.toString();
-        const storedOtp = req.session.emailOtp.toString();
+        const storedOtp = req.session.emailOtp?.toString();
+
+        console.log("Stored OTP from session:", storedOtp);
+        console.log("Entered OTP:", enteredOtp);
+
+        if (!storedOtp) {
+            return res.json({
+                success: false,
+                message: "No OTP found in session. Please try changing email again."
+            });
+        }
 
         if (enteredOtp === storedOtp) {
             const userId = req.session.user.id;
             const newEmail = req.session.newEmail;
             
+            console.log("Updating email to:", newEmail);
             await User.findByIdAndUpdate(userId, { email: newEmail });
             req.session.user.email = newEmail;
             
@@ -299,6 +438,7 @@ const verifyEmailOtp = async (req, res) => {
     }
 };
 
+
 // Note: You might want to add a resend function for email change OTP
 const resendEmailOtp = async (req, res) => {
     try {
@@ -308,7 +448,9 @@ const resendEmailOtp = async (req, res) => {
         }
 
         const otp = generateOtp();
+        console.log("Generated new OTP for resend:", otp); // Add logging here
         req.session.emailOtp = otp;
+        console.log("Stored resent OTP in session:", req.session.emailOtp); // Verify session storage
         const emailSent = await sendVerificationEmail(email, otp);
         
         if (emailSent) {
@@ -413,6 +555,7 @@ module.exports = {
     getProfilePage,
     getEditProfilePage,
     updateProfile,
+    getVerifyEmailOtpPage,
     verifyEmailOtp,
     resendEmailOtp,
     updateProfileImage

@@ -47,6 +47,7 @@ router.post('/resend-forgot-otp', profileController.resendOtp);
 router.get('/profile', isLogout, profileController.getProfilePage);
 router.get('/edit-profile', isLogout, profileController.getEditProfilePage);
 router.post('/edit-profile', isLogout, profileController.updateProfile);
+router.get('/verify-email-otp', isLogout, profileController.getVerifyEmailOtpPage);
 router.post('/verify-email-otp', isLogout, profileController.verifyEmailOtp);
 router.post('/resend-email-otp', isLogout, profileController.resendEmailOtp);
 router.post('/update-profile-image', multer.profileUpload.single('profileImage'), profileController.updateProfileImage);

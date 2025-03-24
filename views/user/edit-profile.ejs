@@ -1,5 +1,7 @@
 <%- include('../partials/user/header') %>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <style>
     body {
         font-family: 'Poppins', sans-serif;
@@ -79,6 +81,15 @@
         color: #2980b9;
         text-decoration: underline;
     }
+    .error-message {
+        font-size: 0.875rem;
+        color: #dc3545;
+        margin-top: 0.25rem;
+    }
+
+    .border-danger {
+        border-color: #dc3545 !important;
+    }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -91,44 +102,47 @@
 
 <div class="container-fluid mt-5">
     <div class="row">
-        <!-- Sidebar Partial Include -->
         <%- include('../partials/user/profile/sidebar') %>
 
-        <!-- Profile Edit Section -->
         <div class="col-md-9">
             <h2>My Account</h2>
             <div class="card p-4">
                 <h4>Edit Your Profile</h4>
-                <form action="/edit-profile" method="POST">
+                <form id="editProfileForm">
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <label for="fullName" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="fullName" name="fullName" value="<%= user.name %>" required>
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="<%= user.name %>" required>
+                            <div class="error-message" id="name-error"></div>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
+                            <div class="error-message" id="email-error"></div>
                         </div>
                         <div class="col-md-6">
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="text" class="form-control" id="phone" name="phone" value="<%= user.phone || '' %>">
+                            <div class="error-message" id="phone-error"></div>
                         </div>
                     </div>
                     <h5 class="mt-4">Password Changes</h5>
                     <div class="mb-3">
                         <input type="password" class="form-control" id="currentPassword" name="currentPassword" placeholder="Current Password">
+                        <div class="error-message" id="currentPassword-error"></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <input type="password" class="form-control" id="newPassword" name="newPassword" placeholder="New Password">
+                            <div class="error-message" id="newPassword-error"></div>
                         </div>
                         <div class="col-md-6">
                             <input type="password" class="form-control" id="confirmNewPassword" name="confirmNewPassword" placeholder="Confirm New Password">
+                            <div class="error-message" id="confirmNewPassword-error"></div>
                         </div>
                     </div>
-                    <!-- Forgot Password Link -->
                     <div class="mb-3 text-end">
                         <a href="/forgot-password" class="forgot-password">Forgot Password?</a>
                     </div>
@@ -145,5 +159,126 @@
 <br>
 <br>
 <br>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function clearErrors() {
+            $('.error-message').text('');
+            $('.form-control').removeClass('border-danger');
+        }
+    
+        function showErrors(errors) {
+            clearErrors();
+            if (errors.name) {
+                $('#name')
+                    .addClass('border-danger')
+                    .next('#name-error')
+                    .text(errors.name);
+            }
+            if (errors.email) {
+                $('#email')
+                    .addClass('border-danger')
+                    .next('#email-error')
+                    .text(errors.email);
+            }
+            if (errors.phone) {
+                $('#phone')
+                    .addClass('border-danger')
+                    .next('#phone-error')
+                    .text(errors.phone);
+            }
+            if (errors.currentPassword) {
+                $('#currentPassword')
+                    .addClass('border-danger')
+                    .next('#currentPassword-error')
+                    .text(errors.currentPassword);
+            }
+            if (errors.newPassword) {
+                $('#newPassword')
+                    .addClass('border-danger')
+                    .next('#newPassword-error')
+                    .html(Array.isArray(errors.newPassword) ? errors.newPassword.join('<br>') : errors.newPassword);
+            }
+            if (errors.confirmNewPassword) {
+                $('#confirmNewPassword')
+                    .addClass('border-danger')
+                    .next('#confirmNewPassword-error')
+                    .text(errors.confirmNewPassword);
+            }
+        }
+    
+        $('#editProfileForm').on('submit', function(e) {
+            e.preventDefault();
+            clearErrors();
+    
+            $.ajax({
+                url: '/edit-profile',
+                method: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        if (response.requiresOtp) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'OTP Required',
+                                text: response.message,
+                                timer: 3000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = '/verify-email-otp';
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                                timer: 3000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = response.redirectUrl;
+                            });
+                        }
+                    } else if (response.errors) {
+                        showErrors(response.errors);
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No Changes',
+                            text: response.message,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON;
+                    if (xhr.status === 400 && response.errors) {
+                        showErrors(response.errors);
+                    } else if (xhr.status === 401) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Unauthorized',
+                            text: 'Please login again',
+                            timer: 3000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = '/login';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response?.message || 'An error occurred while updating profile',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    }
+                }
+            });
+        });
+    });
+</script>
 
 <%- include('../partials/user/footer') %>
