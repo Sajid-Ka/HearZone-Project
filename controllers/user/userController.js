@@ -109,33 +109,23 @@ const loadSignup = async (req, res) => {
 const signup = async (req, res) => {
     try {
         const { name, phone, email, password, cPassword } = req.body;
-
         if (password !== cPassword) {
             return res.render('signup', { message: 'Passwords do not match' });
         }
-
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.render('signup', { message: 'Email already in use' });
         }
-
         const otp = generateOtp();
         const emailSent = await sendVerificationEmail(email, otp);
-
         if (!emailSent) {
             return res.render('signup', { message: 'Failed to send verification email' });
         }
-
+        req.session.signupId = Date.now().toString(); // Unique identifier for this signup
         req.session.userOtp = otp;
         req.session.userData = { name, phone, email, password };
-        console.log('OTP generated:', otp);
-
-        // Modified: Pass required variables to the template
-        res.render('verify-otp', { 
-            message: null,
-            heading: 'Email Verification Page',  
-            action: 'verify-otp'                 
-        });
+        console.log('Signup ID:', req.session.signupId, 'OTP:', otp);
+        res.render('verify-otp', { message: null, heading: 'Email Verification Page', action: 'verify-otp' });
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).render('error', { message: 'Signup failed' });
@@ -144,31 +134,46 @@ const signup = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-      const { otp: otpNum } = req.body;
-      if (otpNum !== req.session.userOtp) {
-        return res.status(400).json({ success: false, message: 'Invalid OTP' });
-      }
-      const userData = req.session.userData;
-      const passwordHash = await securePassword(userData.password);
-      const newUser = new User({
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        password: passwordHash
-      });
-      const savedUser = await newUser.save();
-      req.session.user = {
-        id: savedUser._id.toString(),
-        name: savedUser.name,
-        email: savedUser.email
-      };
-      
-      delete req.session.userOtp;
-      delete req.session.userData;
-      res.json({ success: true, redirectUrl: '/' });
+        const { otp: otpNum } = req.body;
+        if (!req.session.signupId || !req.session.userOtp || !req.session.userData) {
+            return res.status(400).json({ success: false, message: 'Session expired, please sign up again' });
+        }
+        if (otpNum !== req.session.userOtp) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+        const userData = req.session.userData;
+        const passwordHash = await securePassword(userData.password);
+
+        // Recheck email to prevent race conditions
+        const existingUser = await User.findOne({ email: userData.email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Email already in use' });
+        }
+
+        const newUser = new User({
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            password: passwordHash
+            // googleId is omitted, defaults to undefined, not null
+        });
+
+        const savedUser = await newUser.save();
+        req.session.user = {
+            id: savedUser._id.toString(),
+            name: savedUser.name,
+            email: savedUser.email
+        };
+        delete req.session.signupId;
+        delete req.session.userOtp;
+        delete req.session.userData;
+        res.json({ success: true, redirectUrl: '/' });
     } catch (error) {
-      console.error('OTP verification error:', error);
-      res.status(500).json({ success: false, message: 'Verification failed' });
+        console.error('OTP verification error:', error);
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: 'Email or Google ID already in use' });
+        }
+        res.status(500).json({ success: false, message: 'Verification failed' });
     }
 };
 
