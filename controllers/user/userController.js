@@ -216,35 +216,86 @@ const loadLogin = async (req, res) => {
         res.header('Pragma', 'no-cache');
         
         if (req.session.user) {
-            return res.redirect('/'); // Redirect logged-in users to homepage
+            return res.redirect('/');
         }
         
-        res.render('login', { message: null });
+        res.render('login', { 
+            message: null,
+            errors: null,
+            email: null 
+        });
     } catch (error) {
         console.error('Login page load error:', error);
         res.status(500).render('page-404');
     }
 };
 
+
 const login = async (req, res) => {
     try {
-      const { email, password } = req.body;
-      const findUser = await User.findOne({ isAdmin: 0, email });
-      if (!findUser) return res.render('login', { message: 'User not found' });
-      if (findUser.isBlocked) return res.render('login', { message: 'User is blocked' });
-      const passwordMatch = await bcrypt.compare(password, findUser.password);
-      if (!passwordMatch) return res.render('login', { message: 'Incorrect password' });
-  
-      req.session.user = {
-        id: findUser._id.toString(),
-        name: findUser.name,
-        email: findUser.email
-      };
-      
-      res.redirect('/');
+        const { email, password } = req.body;
+        const errors = {};
+
+        // Server-side validation
+        if (!email?.trim()) {
+            errors.email = 'Email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+            errors.email = 'Please enter a valid email';
+        }
+
+        if (!password?.trim()) {
+            errors.password = 'Password is required';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            return res.render('login', {
+                message: null,
+                errors,
+                email
+            });
+        }
+
+        const findUser = await User.findOne({ isAdmin: 0, email });
+        
+        if (!findUser) {
+            return res.render('login', { 
+                message: 'User not found',
+                errors: null,
+                email 
+            });
+        }
+        
+        if (findUser.isBlocked) {
+            return res.render('login', { 
+                message: 'User is blocked',
+                errors: null,
+                email 
+            });
+        }
+        
+        const passwordMatch = await bcrypt.compare(password, findUser.password);
+        if (!passwordMatch) {
+            return res.render('login', { 
+                message: 'Incorrect password',
+                errors: null,
+                email 
+            });
+        }
+
+        req.session.user = {
+            id: findUser._id.toString(),
+            name: findUser.name,
+            email: findUser.email
+        };
+        
+        res.redirect('/');
     } catch (error) {
-      console.error('Login error:', error);
-      res.render('login', { message: 'Login failed' });
+        console.error('Login error:', error);
+        res.render('login', { 
+            message: 'Login failed',
+            errors: null,
+            email: req.body.email 
+        });
     }
 };
 
