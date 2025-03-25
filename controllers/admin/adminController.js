@@ -12,17 +12,17 @@ const pageError = async (req,res)=>{
 
 const loadLogin = async (req, res) => {
     try {
-        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.header('Expires', '-1');
-        res.header('Pragma', 'no-cache');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Expires', '0');
+        res.setHeader('Pragma', 'no-cache');
         
         if (req.session.admin) {
             return res.redirect('/admin/dashboard');
         }
-        res.render("admin-login", { message: null }); 
+        res.render('admin-login', { message: null });
     } catch (error) {
-        console.error("Error loading admin login page:", error);
-        res.redirect("/admin/pageError");
+        console.error('Error loading admin login page:', error);
+        res.redirect('/admin/pageError');
     }
 };
 
@@ -31,51 +31,66 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const admin = await User.findOne({ email, isAdmin: true });
 
-        
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        
         if (!admin) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.setHeader('Expires', '0');
+            res.setHeader('Pragma', 'no-cache');
             return res.render('admin-login', { message: 'Invalid email or password' });
         }
 
         const passwordMatch = await bcrypt.compare(password, admin.password);
         if (!passwordMatch) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.setHeader('Expires', '0');
+            res.setHeader('Pragma', 'no-cache');
             return res.render('admin-login', { message: 'Incorrect password' });
         }
 
-        req.session.admin = admin._id;
+        req.session.admin = admin._id.toString();
+        
+        
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Expires', '0');
+        res.setHeader('Pragma', 'no-cache');
         return res.redirect('/admin/dashboard');
-
     } catch (error) {
-        console.log("Login error:", error);
+        console.error('Login error:', error);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Expires', '0');
+        res.setHeader('Pragma', 'no-cache');
         return res.render('admin-login', { message: 'An error occurred, please try again' });
     }
 };
 
 const loadDashboard = async (req, res) => {
     try {
-        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.header('Expires', '-1');
-        res.header('Pragma', 'no-cache');
         
-        res.render("dashboard");
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Expires', '0');
+        res.setHeader('Pragma', 'no-cache');
+        res.render('dashboard');
     } catch (error) {
-        console.error("Error loading Dashboard:", error);
-        return res.redirect("/admin/pageError");
+        console.error('Error loading Dashboard:', error);
+        return res.redirect('/admin/pageError');
     }
 };
 
 const logout = async (req, res) => {
     try {
-        
-        delete req.session.admin;
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.redirect('/admin/login');
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+                return res.redirect('/admin/pageError');
+            }
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            
+            res.redirect('/admin/login');
+        });
     } catch (error) {
-        console.log("Admin logout Error", error);
-        res.redirect("/admin/pageError");
+        console.error('Admin logout Error:', error);
+        res.redirect('/admin/pageError');
     }
-}
+};
 
 module.exports = {
     loadLogin,

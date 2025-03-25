@@ -31,21 +31,22 @@ uploadDirs.forEach(dir => {
 
 // Session Configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret', // Ensure a fallback if env is missing
-    resave: false, // Only save session if modified
-    saveUninitialized: false, // Don’t create sessions for unauthenticated users
+    secret: process.env.SESSION_SECRET || 'fallback-secret',
+    resave: false,
+    saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'sessions',
-        ttl: 24 * 60 * 60, // 1 day in seconds
-        autoRemove: 'native' // Automatically remove expired sessions
+        ttl: 24 * 60 * 60, // 1 day
+        autoRemove: 'native'
     }),
     cookie: {
-        secure: false, // Set to true in production with HTTPS
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 1 day in milliseconds
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
     }
 }));
+
 
 // Passport Initialization
 app.use(passport.initialize());

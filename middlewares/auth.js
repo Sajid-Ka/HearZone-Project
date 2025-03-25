@@ -52,22 +52,63 @@ const userAuth = async (req, res, next) => {
 };
 
 // Other middleware remains the same
-const adminAuth = (req, res, next) => {
+const adminAuth = async (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Expires', '0');
+    res.setHeader('Pragma', 'no-cache');
+
     const path = req.path;
     if (!protectedAdminRoutes.some(route => path.startsWith(route))) {
         return next();
     }
-    if (req.session.admin) {
-        return next();
+
+    if (!req.session.admin) {
+        
+        return res.redirect('/admin/login');
     }
-    return res.redirect('/admin/login');
+
+    try {
+        const adminId = req.session.admin;
+        if (!mongoose.Types.ObjectId.isValid(adminId)) {
+            
+            req.session.destroy();
+            return res.redirect('/admin/login');
+        }
+
+        const admin = await User.findOne({ _id: adminId, isAdmin: true });
+        if (!admin) {
+            
+            req.session.destroy();
+            return res.redirect('/admin/login');
+        }
+
+        req.admin = admin;
+        next();
+    } catch (error) {
+        console.error('Error in adminAuth middleware:', error);
+        req.session.destroy();
+        res.redirect('/admin/login');
+    }
 };
 
-const isAdminAuth = (req, res, next) => {
-    if (req.session.admin) {
-        return next();
+const isAdminAuth = async (req, res, next) => {
+    if (!req.session.admin) {
+        
+        return res.redirect('/admin/login');
     }
-    res.redirect('/admin/login');
+
+    try {
+        const admin = await User.findOne({ _id: req.session.admin, isAdmin: true });
+        if (!admin) {
+            req.session.destroy();
+            return res.redirect('/admin/login');
+        }
+        req.admin = admin;
+        next();
+    } catch (error) {
+        console.error('Error in isAdminAuth:', error);
+        res.redirect('/admin/login');
+    }
 };
 
 const isAdminLogin = (req, res, next) => {
