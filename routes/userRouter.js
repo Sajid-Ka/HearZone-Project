@@ -43,14 +43,35 @@ router.get('/auth/google/callback',
         failureFlash: true
     }),
     (req, res) => {
+        // Set session data
         req.session.user = {
             id: req.user._id,
             name: req.user.name,
             email: req.user.email
         };
+        // Prevent caching of this page
+        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.header('Expires', '-1');
+        res.header('Pragma', 'no-cache');
+        // Redirect to homepage
         res.redirect('/');
     }
 );
+
+// Public routes with cache control
+router.get('/login', isLogin, (req, res) => {
+    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.header('Expires', '-1');
+    res.header('Pragma', 'no-cache');
+    userController.loadLogin(req, res);
+});
+
+router.get('/signup', isLogin, (req, res) => {
+    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.header('Expires', '-1');
+    res.header('Pragma', 'no-cache');
+    userController.loadSignup(req, res);
+});
 
 // Protected routes (require authentication)
 router.use(userAuth); // Apply authentication middleware for all routes below

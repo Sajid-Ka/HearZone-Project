@@ -94,12 +94,17 @@ const loadSignup = async (req, res) => {
         res.header('Expires', '-1');
         res.header('Pragma', 'no-cache');
         
+        if (req.session.user) {
+            return res.redirect('/'); // Redirect logged-in users to homepage
+        }
+        
         res.render('signup', { message: null });
     } catch (err) {
         console.error('Signup page load error:', err);
         res.status(500).render('error', { message: 'Server Error' });
     }
 };
+
 
 const signup = async (req, res) => {
     try {
@@ -196,6 +201,10 @@ const loadLogin = async (req, res) => {
         res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
         res.header('Expires', '-1');
         res.header('Pragma', 'no-cache');
+        
+        if (req.session.user) {
+            return res.redirect('/'); // Redirect logged-in users to homepage
+        }
         
         res.render('login', { message: null });
     } catch (error) {

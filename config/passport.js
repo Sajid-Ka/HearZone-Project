@@ -10,17 +10,14 @@ passport.use(new GoogleStrategy({
 },
 async function(accessToken, refreshToken, profile, done) {
     try {
-        
         let user = await User.findOne({ email: profile.emails[0].value });
         
         if (user) {
-           
             if (!user.googleId) {
                 user.googleId = profile.id;
                 await user.save();
             }
         } else {
-           
             user = await User.create({
                 name: profile.displayName,
                 email: profile.emails[0].value,
