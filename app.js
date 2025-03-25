@@ -10,7 +10,7 @@ const adminRouter = require('./routes/adminRouter');
 const MongoStore = require('connect-mongo');
 const nocache = require('nocache');
 const fs = require('fs');
-
+require('./jobs/cleanupExpiredUsers');
 // Connect to MongoDB
 db();
 
