@@ -128,22 +128,23 @@
     const signForm = document.getElementById("signForm");
 
     function nameValidateChecking() {
-      const nameVal = nameId.value;
-      const namePattern = /^[A-Za-z\s]+$/;
+        const nameVal = nameId.value;
+        const namePattern = /^[A-Za-z\s]+$/; // Only alphabets and spaces
+        const hasNumbers = /\d/.test(nameVal); // Check for any digits
 
-      if (nameVal.trim() === '') {
-        error1.style.display = "block";
-        error1.innerHTML = 'Please enter a valid name';
-        return false;
-      } else if (!namePattern.test(nameVal)) {
-        error1.style.display = "block";
-        error1.innerHTML = "Name can only contain alphabets and spaces";
-        return false;
-      } else {
-        error1.style.display = "none";
-        error1.innerHTML = '';
-        return true;
-      }
+        if (nameVal.trim() === '') {
+            error1.style.display = "block";
+            error1.innerHTML = 'Please enter a valid name';
+        } else if (hasNumbers) {
+            error1.style.display = "block";
+            error1.innerHTML = "Name cannot contain numbers";
+        } else if (!namePattern.test(nameVal)) {
+            error1.style.display = "block";
+            error1.innerHTML = "Name can only contain alphabets and spaces";
+        } else {
+            error1.style.display = "none";
+            error1.innerHTML = '';
+        }
     }
 
     function emailValidateChecking() {
@@ -153,30 +154,29 @@
       if (!emailPattern.test(emailVal)) {
         error2.style.display = 'block';
         error2.innerHTML = "Invalid format";
-        return false;
       } else {
         error2.style.display = 'none';
         error2.innerHTML = "";
-        return true;
       }
     }
 
     function phoneValidateChecking() {
-      const phoneVal = phoneId.value;
+        const phoneVal = phoneId.value;
+        const hasNonDigits = /[^0-9]/.test(phoneVal); // Check for non-numeric characters
 
-      if (phoneVal.trim() === '') {
-        error3.style.display = 'block';
-        error3.innerHTML = "Enter valid phone number";
-        return false;
-      } else if (phoneVal.length < 10 || phoneVal.length > 10) {
-        error3.style.display = 'block';
-        error3.innerHTML = "Enter 10 digits";
-        return false;
-      } else {
-        error3.style.display = 'none';
-        error3.innerHTML = "";
-        return true;
-      }
+        if (phoneVal.trim() === '') {
+            error3.style.display = 'block';
+            error3.innerHTML = "Enter valid phone number";
+        } else if (hasNonDigits) {
+            error3.style.display = 'block';
+            error3.innerHTML = "Phone number can only contain digits";
+        } else if (phoneVal.length !== 10) {
+            error3.style.display = 'block';
+            error3.innerHTML = "Enter exactly 10 digits";
+        } else {
+            error3.style.display = 'none';
+            error3.innerHTML = "";
+        }
     }
 
     function passValidateChecking() {
@@ -187,23 +187,18 @@
       if (passVal.length < 8) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least 8 characters.';
-        return false;
       } else if (!/[A-Z]/.test(passVal)) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least one uppercase letter (A-Z).';
-        return false;
       } else if (!/[a-z]/.test(passVal)) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least one lowercase letter (a-z).';
-        return false;
       } else if (!/\d/.test(passVal)) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least one number (0-9).';
-        return false;
       } else if (!/[@$!%*?&]/.test(passVal)) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least one special character (@$!%*?&).';
-        return false;
       } else {
         error4.style.display = 'none';
         error4.innerHTML = "";
@@ -212,36 +207,35 @@
       if (passVal !== cPassVal) {
         error5.style.display = 'block';
         error5.innerHTML = "Passwords do not match";
-        return false;
       } else {
         error5.style.display = 'none';
         error5.innerHTML = "";
-        return true;
       }
     }
 
-    // Real-time validation on input
-    nameId.addEventListener('input', nameValidateChecking);
-    emailId.addEventListener('input', emailValidateChecking);
-    phoneId.addEventListener('input', phoneValidateChecking);
-    passId.addEventListener('input', passValidateChecking);
-    cPassId.addEventListener('input', passValidateChecking);
-
-    // Form submission validation
     document.addEventListener('DOMContentLoaded', function() {
-      signForm.addEventListener('submit', function(e) {
-        const isNameValid = nameValidateChecking();
-        const isEmailValid = emailValidateChecking();
-        const isPhoneValid = phoneValidateChecking();
-        const isPassValid = passValidateChecking();
+      // Real-time validation
+      nameId.addEventListener('input', nameValidateChecking);
+      emailId.addEventListener('input', emailValidateChecking);
+      phoneId.addEventListener('input', phoneValidateChecking);
+      passId.addEventListener('input', passValidateChecking);
+      cPassId.addEventListener('input', passValidateChecking);
 
-        if (!isNameValid || !isEmailValid || !isPhoneValid || !isPassValid) {
-          e.preventDefault();
+      // Form submission validation
+      signForm.addEventListener('submit', function(e) {
+        nameValidateChecking();
+        emailValidateChecking();
+        phoneValidateChecking();
+        passValidateChecking();
+
+        if (
+          !nameId || !emailId || !phoneId || !passId || !cPassId ||
+          !error1 || !error2 || !error3 || !error4 || !error5 || !signForm
+        ) {
+          console.error('One or more elements are missing');
         }
 
-        // Debug: Log missing elements (shouldn’t happen with proper HTML)
-        if (!nameId || !emailId || !phoneId || !passId || !cPassId || !error1 || !error2 || !error3 || !error4 || !error5 || !signForm) {
-          console.error('One or more elements are missing');
+        if (error1.innerHTML || error2.innerHTML || error3.innerHTML || error4.innerHTML || error5.innerHTML) {
           e.preventDefault();
         }
       });

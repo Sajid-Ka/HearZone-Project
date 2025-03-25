@@ -116,12 +116,20 @@ const signup = async (req, res) => {
         if (existingUser) {
             return res.render('signup', { message: 'Email already in use' });
         }
+        // Validate name (no numbers)
+        if (/\d/.test(name)) {
+            return res.render('signup', { message: 'Name cannot contain numbers' });
+        }
+        // Validate phone (only digits, exactly 10)
+        if (!/^[0-9]{10}$/.test(phone)) {
+            return res.render('signup', { message: 'Phone number must be exactly 10 digits' });
+        }
         const otp = generateOtp();
         const emailSent = await sendVerificationEmail(email, otp);
         if (!emailSent) {
             return res.render('signup', { message: 'Failed to send verification email' });
         }
-        req.session.signupId = Date.now().toString(); // Unique identifier for this signup
+        req.session.signupId = Date.now().toString();
         req.session.userOtp = otp;
         req.session.userData = { name, phone, email, password };
         console.log('Signup ID:', req.session.signupId, 'OTP:', otp);
