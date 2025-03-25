@@ -161,38 +161,27 @@
 <br>
 
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
 <script>
     $(document).ready(function() {
         function clearErrors() {
             $('.error-message').text('');
             $('.form-control').removeClass('border-danger');
         }
-    
+
         function showErrors(errors) {
             clearErrors();
             if (errors.name) {
-                $('#name')
-                    .addClass('border-danger')
-                    .next('#name-error')
-                    .text(errors.name);
+                $('#name').addClass('border-danger').next('#name-error').text(errors.name);
             }
             if (errors.email) {
-                $('#email')
-                    .addClass('border-danger')
-                    .next('#email-error')
-                    .text(errors.email);
+                $('#email').addClass('border-danger').next('#email-error').text(errors.email);
             }
             if (errors.phone) {
-                $('#phone')
-                    .addClass('border-danger')
-                    .next('#phone-error')
-                    .text(errors.phone);
+                $('#phone').addClass('border-danger').next('#phone-error').text(errors.phone);
             }
             if (errors.currentPassword) {
-                $('#currentPassword')
-                    .addClass('border-danger')
-                    .next('#currentPassword-error')
-                    .text(errors.currentPassword);
+                $('#currentPassword').addClass('border-danger').next('#currentPassword-error').text(errors.currentPassword);
             }
             if (errors.newPassword) {
                 $('#newPassword')
@@ -201,17 +190,14 @@
                     .html(Array.isArray(errors.newPassword) ? errors.newPassword.join('<br>') : errors.newPassword);
             }
             if (errors.confirmNewPassword) {
-                $('#confirmNewPassword')
-                    .addClass('border-danger')
-                    .next('#confirmNewPassword-error')
-                    .text(errors.confirmNewPassword);
+                $('#confirmNewPassword').addClass('border-danger').next('#confirmNewPassword-error').text(errors.confirmNewPassword);
             }
         }
-    
+
         $('#editProfileForm').on('submit', function(e) {
             e.preventDefault();
             clearErrors();
-    
+
             $.ajax({
                 url: '/edit-profile',
                 method: 'POST',
@@ -242,6 +228,13 @@
                         }
                     } else if (response.errors) {
                         showErrors(response.errors);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: 'Please correct the errors in the form.',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
                     } else {
                         Swal.fire({
                             icon: 'info',
@@ -256,6 +249,13 @@
                     const response = xhr.responseJSON;
                     if (xhr.status === 400 && response.errors) {
                         showErrors(response.errors);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: 'Please correct the errors in the form.',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
                     } else if (xhr.status === 401) {
                         Swal.fire({
                             icon: 'error',
