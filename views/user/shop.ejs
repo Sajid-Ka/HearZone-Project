@@ -647,9 +647,6 @@
                     ₹<%=products[i].salePrice.toLocaleString('en-IN')%>
                     <span class="original-price">₹<%=products[i].regularPrice.toLocaleString('en-IN')%></span>
                   </div>
-                  <% if (products[i].quantity === 0) { %>
-                    <p class="out-of-stock-text" style="color: #ef4444; font-size: 0.875rem; margin: 0.5rem 0;">Out of Stock</p>
-                  <% } %>
                 </div>
               </a>
               <button 
@@ -657,7 +654,7 @@
                 onclick="handleAddToCart('<%=products[i]._id%>', <%=products[i].quantity%>)"
                 style="<%= products[i].quantity === 0 ? 'opacity: 0.5; cursor: not-allowed; background-color: #ccc;' : '' %>"
                 <%= products[i].quantity === 0 ? 'disabled' : '' %>
-              >
+                >
                 <%= products[i].quantity === 0 ? 'Out of Stock' : 'Add to Cart' %>
               </button>
             </div>

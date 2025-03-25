@@ -1,0 +1,42 @@
+HearZone-Project/
+├── config/
+│   └── dbConfig.js
+├── controllers/
+│   ├── adminController.js
+│   └── userController.js
+├── middlewares/
+│   ├── auth.js
+│   └── errorHandler.js
+├── models/
+│   ├── userModel.js
+│   ├── productModel.js
+│   ├── categoryModel.js
+│   ├── orderModel.js
+│   └── cartModel.js
+├── public/
+│   ├── css/
+│   ├── js/
+│   ├── images/
+│   └── uploads/
+├── routes/
+│   ├── adminRoutes.js
+│   └── userRoutes.js
+├── utils/
+│   ├── validators.js
+│   └── helpers.js
+├── views/
+│   ├── admin/
+│   │   ├── dashboard.ejs
+│   │   ├── products.ejs
+│   │   └── orders.ejs
+│   ├── user/
+│   │   ├── home.ejs
+│   │   ├── shop.ejs
+│   │   └── cart.ejs
+│   └── partials/
+│       ├── header.ejs
+│       └── footer.ejs
+├── .env
+├── .gitignore
+├── app.js
+└── package.json
