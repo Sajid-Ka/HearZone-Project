@@ -1,7 +1,5 @@
 <%- include("../../views/partials/user/header") %>
 
-<link rel="stylesheet" href="/css/improved-product-styles.css">
-
 <style>
 
     
@@ -150,7 +148,8 @@
     .rating-section .rating {
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: -28px;
+        margin-top: -20px;
     }
 
     .rating-section h2 {
@@ -159,6 +158,34 @@
     }
 
     /* Price Section */
+
+    .rating-section {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #productRating {
+        display: flex;
+        align-items: center;
+    }
+
+    .star-icon {
+        color: #ffd700; /* Gold color for the star */
+        font-size: 1.2rem;
+    }
+
+    .rating-value {
+        background-color: #fff3cd; /* Light yellow background for the badge */
+        color: #000000; /* Dark text color */
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 12px; /* Circular badge */
+        line-height: 1;
+    }
+
     .price-section {
         margin-bottom: 20px;
         padding: 15px;
@@ -973,15 +1000,16 @@
         
         <div class="col-md-6">
             <div class="product-info">
-                <!-- Brand -->
-                <div class="product-brand">
-                    <span class="brand-label">Brand:</span>
-                    <span class="brand-name"><%= product.brand.brandName || 'Unknown' %></span>
-                </div>
         
                 <!-- Price and Offer -->
                 <div class="price-section">
-
+                    <!-- Add Rating Here -->
+                    <div class="rating-section">
+                        <div class="rating" id="productRating">
+                            <span class="star-icon">★</span>
+                            <span class="rating-value" id="ratingValue">0.0</span>
+                        </div>
+                    </div>
                     <h2 style="margin-top: 10px; color: #2c3e50; font-size: 1.8rem; font-weight: 600;">
                         <%= product.productName %>
                     </h2>
@@ -1000,7 +1028,7 @@
                             <span><%= totalOffer %>% Offer</span>
                         <% } %>
                     </div>
-                    <br>
+
                     <!-- Coupon Section -->
                     <!-- <div class="coupon-section mt-3" id="couponSection">
                         <h6>Available Coupons:</h6>
@@ -1012,6 +1040,12 @@
                 <!-- Description -->
                 <div class="product-description">
                     <p><%= product.description || 'No description available' %></p>
+                </div>
+
+                <!-- Brand -->
+                <div class="product-brand">
+                    <span class="brand-label">Brand:</span>
+                    <span class="brand-name"><%= product.brand.brandName || 'Unknown' %></span>
                 </div>
         
                 <!-- Features -->
@@ -1617,6 +1651,30 @@
                 }
             }
         });
+    }
+
+
+    async function loadReviews() {
+        try {
+            const response = await fetch(`/review/product/<%= product._id %>`);
+            const data = await response.json();
+            
+            if (data.success) {
+                updateReviewStats(data.stats);
+                renderReviews(data.reviews);
+                displayProductRating(data.stats); // Update the rating display
+            }
+        } catch (error) {
+            console.error('Error loading reviews:', error);
+        }
+    }
+
+    function displayProductRating(stats) {
+        const ratingValue = document.getElementById('ratingValue');
+        
+        // Update the rating value
+        const averageRating = stats.averageRating || 0;
+        ratingValue.textContent = averageRating.toFixed(1);
     }
 
 
