@@ -1,4 +1,7 @@
 <%- include("../../views/partials/user/header") %>
+
+<link rel="stylesheet" href="/css/improved-product-styles.css">
+
 <style>
 
     
@@ -137,6 +140,22 @@
         font-weight: 500;
         color: #2c3e50;
         margin-left: 5px;
+    }
+
+
+    .rating-section {
+        padding: 15px 0;
+    }
+
+    .rating-section .rating {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .rating-section h2 {
+        margin: 0;
+        line-height: 1.2;
     }
 
     /* Price Section */
@@ -378,6 +397,107 @@
         opacity: 1;
     }
 
+    /* Highlights Section */
+    .highlights-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    .highlight-item {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        border-left: 4px solid #0d6efd;
+        flex: 1 1 calc(50% - 1rem); /* Two items per row with gap */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .highlight-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: #e9ecef;
+    }
+
+    .highlight-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #0d6efd;
+    }
+
+    .highlight-text {
+        font-size: 1rem;
+        color: #4a5568;
+        line-height: 1.5;
+    }
+
+    /* Specifications Section */
+    .specs-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 0;
+    }
+
+    .spec-item {
+        display: flex;
+        align-items: center;
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    .spec-item:hover {
+        background: #f8f9fa;
+        border-color: #0d6efd;
+        transform: translateX(5px);
+    }
+
+    .spec-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #2c3e50;
+    }
+
+    .spec-text {
+        font-size: 1rem;
+        color: #4a5568;
+        line-height: 1.5;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .highlight-item {
+            flex: 1 1 100%; /* One item per row on smaller screens */
+        }
+    }
+
+    /* Title Styling (Optional Enhancement) */
+    .details-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0d6efd; /* Changed border color for consistency */
+        position: relative;
+    }
+
+    .details-title::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 50px;
+        height: 2px;
+        background: #0d6efd;
+    }
     /* Fullscreen viewer styles */
     .fullscreen-container {
         display: none;
@@ -423,40 +543,47 @@
         transform: scale(1.1);
     }
 
-    /* Add this to your existing styles */
+    /* Review Section Refinements */
     .review-section {
-        padding: 2rem;
+        padding: 2.5rem;
         background: white;
-        border-radius: 15px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2.5rem;
+        transition: transform 0.3s ease;
     }
 
-    .star-rating {
-        display: inline-flex;
-        flex-direction: row-reverse;
-        gap: 0.25rem;
+    .review-section:hover {
+        transform: translateY(-5px);
     }
 
-    .star-rating input {
-        display: none;
-    }
-
-    .star-rating label {
-        cursor: pointer;
+    .review-section h3 {
         font-size: 1.5rem;
-        color: #ddd;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 2px solid #f0f7ff;
+        position: relative;
     }
 
-    .star-rating label:hover,
-    .star-rating label:hover ~ label,
-    .star-rating input:checked ~ label {
-        color: #ffd700;
+    .review-section h3::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: #0d6efd;
     }
 
     .rating-stats {
         display: flex;
-        gap: 2rem;
+        gap: 3rem;
         margin-bottom: 2rem;
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
     }
 
     .average-rating {
@@ -464,22 +591,34 @@
     }
 
     .rating-number {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: bold;
+        color: #2c3e50;
+    }
+
+    .total-reviews {
+        color: #6c757d;
+        font-size: 0.9rem;
     }
 
     .rating-bar {
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .rating-label {
+        width: 40px;
+        text-align: right;
+        font-weight: 500;
     }
 
     .progress {
         flex: 1;
-        height: 0.5rem;
+        height: 0.6rem;
         background: #eee;
-        border-radius: 0.25rem;
+        border-radius: 0.3rem;
         overflow: hidden;
     }
 
@@ -488,9 +627,79 @@
         background: #ffd700;
     }
 
+    .rating-count {
+        width: 30px;
+        text-align: right;
+        color: #6c757d;
+    }
+
+    .review-form {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .review-form h4 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1.2rem;
+    }
+
+    .star-rating {
+        display: inline-flex;
+        flex-direction: row-reverse;
+        gap: 0.3rem;
+    }
+
+    .star-rating input {
+        display: none;
+    }
+
+    .star-rating label {
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #ddd;
+        transition: color 0.2s ease;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #ffd700;
+    }
+
+    .btn-review-submit {
+        background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+    }
+
+    .btn-review-submit:not(:disabled):hover {
+        background: linear-gradient(45deg, #0b5ed7, #0a58ca);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3);
+    }
+
+    .btn-review-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     .review-item {
         border-bottom: 1px solid #eee;
-        padding: 1rem 0;
+        padding: 1.2rem 0;
+        transition: transform 0.2s ease;
+    }
+
+    .review-item:hover {
+        transform: translateX(5px);
     }
 
     .review-header {
@@ -500,21 +709,25 @@
         font-size: 0.9rem;
     }
 
+    .reviewer-name {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .review-date {
+        color: #6c757d;
+    }
+
     .rating {
         color: #ffd700;
-        margin: 0.5rem 0;
+        margin: 0.8rem 0;
+        font-size: 1.2rem;
     }
 
-    /* Add these new styles */
-    .btn-review-submit {
-        transition: opacity 0.3s ease;
+    .review-comment {
+        color: #4a5568;
+        line-height: 1.6;
     }
-    
-    .btn-review-submit:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
     /* Add these new styles for the details box */
     .product-details-box {
         background: white;
@@ -756,6 +969,8 @@
                 </div>
             </div>
         </div>
+
+        
         <div class="col-md-6">
             <div class="product-info">
                 <!-- Brand -->
@@ -766,11 +981,16 @@
         
                 <!-- Price and Offer -->
                 <div class="price-section">
+
+                    <h2 style="margin-top: 10px; color: #2c3e50; font-size: 1.8rem; font-weight: 600;">
+                        <%= product.productName %>
+                    </h2>
+                    
                     <div class="price-tag">
                         ₹<%= product.salePrice.toLocaleString('en-IN') %>
                         <span class="original-price">₹<%= product.regularPrice.toLocaleString('en-IN') %></span>
                         <% if(totalOffer > 0) { %>
-                            <span class="offer-badge"><%= totalOffer %></span>
+                            <span class="offer-badge"><%= totalOffer %>%</span>
                         <% } %>
                     </div>
                     <div class="offer-text">
@@ -847,29 +1067,44 @@
 <div class="container">
     <div class="product-details-box" id="product-details-box">
         <div class="row">
+            <!-- Specifications Section -->
             <div class="col-12 details-section">
                 <h3 class="details-title">Specifications</h3>
-                <ul class="highlights-list">
+                <div class="specs-container">
                     <% if (product.specifications && product.specifications.length > 0) { %>
                         <% product.specifications.forEach(spec => { %>
-                            <li><%= spec %></li>
+                            <div class="spec-item">
+                                <span class="spec-icon"></span>
+                                <span class="spec-text"><%= spec %></span>
+                            </div>
                         <% }); %>
                     <% } else { %>
-                        <li>No specifications available</li>
+                        <div class="spec-item">
+                            <span class="spec-icon"></span>
+                            <span class="spec-text">No specifications available</span>
+                        </div>
                     <% } %>
-                </ul>
+                </div>
             </div>
+
+            <!-- Highlights Section -->
             <div class="col-12 details-section">
                 <h3 class="details-title">Highlights</h3>
-                <ul class="highlights-list">
+                <div class="highlights-container">
                     <% if (product.highlights && product.highlights.length > 0) { %>
                         <% product.highlights.forEach(highlight => { %>
-                            <li><%= highlight %></li>
+                            <div class="highlight-item">
+                                <span class="highlight-icon">✨</span>
+                                <span class="highlight-text"><%= highlight %></span>
+                            </div>
                         <% }); %>
                     <% } else { %>
-                        <li>No highlights available</li>
+                        <div class="highlight-item">
+                            <span class="highlight-icon">✨</span>
+                            <span class="highlight-text">No highlights available</span>
+                        </div>
                     <% } %>
-                </ul>
+                </div>
             </div>
         </div>
     </div>
