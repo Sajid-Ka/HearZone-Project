@@ -350,47 +350,13 @@
 
                         <!-- Replace the specifications section -->
                         <div class="mb-4">
-                            <label class="form-label">Product Specifications</label>
-                            <div class="specification-entries mb-2">
-                                <% if (product.specifications && product.specifications.length > 0) { %>
-                                    <% product.specifications.forEach(spec => { %>
-                                        <div class="specification-entry mb-3 p-3 border rounded">
-                                            <div class="d-flex mb-2">
-                                                <input type="text" class="form-control border me-2 spec-key-input" name="specKey[]" value="<%= spec.key %>" placeholder="Key (e.g., Battery Life)">
-                                                <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
-                                            </div>
-                                            <div class="spec-values">
-                                                <% spec.values.forEach(value => { %>
-                                                    <div class="d-flex mb-2 spec-value-entry">
-                                                        <input type="text" class="form-control border me-2" name="specValue[<%= spec.key %>][]" value="<%= value %>" placeholder="Value">
-                                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSpecValue(this)">-</button>
-                                                    </div>
-                                                <% }); %>
-                                            </div>
-                                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addSpecValue(this)">Add Value</button>
-                                        </div>
-                                    <% }); %>
-                                <% } else { %>
-                                    <div class="specification-entry mb-3 p-3 border rounded">
-                                        <div class="d-flex mb-2">
-                                            <input type="text" class="form-control border me-2 spec-key-input" name="specKey[]" placeholder="Key (e.g., Battery Life)">
-                                            <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
-                                        </div>
-                                        <div class="spec-values">
-                                            <div class="d-flex mb-2 spec-value-entry">
-                                                <input type="text" class="form-control border me-2" name="specValue[temp_key][]" placeholder="Value">
-                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSpecValue(this)">-</button>
-                                            </div>
-                                        </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addSpecValue(this)">Add Value</button>
-                                    </div>
-                                <% } %>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSpecification()">Add Specification</button>
+                            <label class="form-label">Product Specifications (One per line)</label>
+                            <textarea name="specifications" class="form-control border" rows="4"><%= product.specifications ? product.specifications.join('\n') : '' %></textarea>
+                            <div id="specifications-error" class="error-message"></div>
                         </div>
 
 
-                        <!-- Add these new sections -->
+                        <!-- Add these highlite sections -->
                         <div class="mb-4">
                             <label class="form-label">Product highlights (One per line)</label>
                             <textarea name="highlights" class="form-control border" rows="4"><%=product.highlights ? product.highlights.join('\n') : ''%></textarea>
@@ -527,24 +493,11 @@ function validateForm() {
     }
 
     // Optional specifications validation - only check if provided
-    const specEntries = document.querySelectorAll('.specification-entry');
-    specEntries.forEach(entry => {
-        const key = entry.querySelector('input[name="specKey[]"]').value.trim();
-        const values = Array.from(entry.querySelectorAll('input[name^="specValue"]'))
-            .map(input => input.value.trim());
-        
-        // Only validate if either key or values are provided
-        if (key || values.some(v => v)) {
-            if (key && !values.some(v => v)) {
-                displayErrorMessage('specifications-error', 'Please provide at least one value for each specification');
-                isValid = false;
-            }
-            if (!key && values.some(v => v)) {
-                displayErrorMessage('specifications-error', 'Please provide a key for specification values');
-                isValid = false;
-            }
-        }
-    });
+    const specifications = document.getElementsByName('specifications')[0].value.trim();
+    if (specifications === '') {
+        displayErrorMessage('specifications-error', 'Please add at least one specification');
+        isValid = false;
+    }
 
     return isValid;
 }
@@ -656,18 +609,10 @@ function checkForChanges() {
     const highlightsChanged = JSON.stringify(currentHighlights.sort()) !== JSON.stringify(originalHighlights.sort());
 
     // Compare specifications
-    const currentSpecs = Array.from(document.querySelectorAll('.specification-entry')).map(entry => {
-        return {
-            key: entry.querySelector('input[name="specKey[]"]').value.trim(),
-            values: Array.from(entry.querySelectorAll('input[name^="specValue"]'))
-                .map(input => input.value.trim())
-                .filter(v => v)
-        };
-    }).filter(spec => spec.key || spec.values.length > 0);
-
+    const currentSpecs = document.getElementsByName('specifications')[0].value
+        .split('\n').map(s => s.trim()).filter(s => s.length > 0);
     const originalSpecs = <%- JSON.stringify(product.specifications || []) %>;
-    const specsChanged = JSON.stringify(currentSpecs.sort((a, b) => a.key.localeCompare(b.key))) !== 
-                        JSON.stringify(originalSpecs.sort((a, b) => a.key.localeCompare(b.key)));
+    const specsChanged = JSON.stringify(currentSpecs.sort()) !== JSON.stringify(originalSpecs.sort());
 
     // Compare basic fields
     let basicFieldsChanged = false;
@@ -1052,96 +997,6 @@ function cancelEdit() {
 }
 
 
-function removeSpecification(button) {
-    const entry = button.closest('.specification-entry');
-    if (document.querySelectorAll('.specification-entry').length > 1) {
-        entry.remove();
-    } else {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Minimum Requirement',
-            text: 'At least one specification is required'
-        });
-    }
-}
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Sync specValue names when specKey changes
-    const specKeyInputs = document.querySelectorAll('.spec-key-input');
-    specKeyInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            const specEntry = this.closest('.specification-entry');
-            const newKey = this.value.trim() || 'temp_key'; // Use temp_key as a fallback
-            const valueInputs = specEntry.querySelectorAll('input[name^="specValue"]');
-            valueInputs.forEach(valInput => {
-                valInput.name = `specValue[${newKey}][]`;
-            });
-        });
-    });
-});
-
-
-function addSpecValue(button) {
-    const specEntry = button.closest('.specification-entry');
-    const keyInput = specEntry.querySelector('input[name="specKey[]"]');
-    const key = keyInput.value.trim() || 'temp_key'; // Use temp_key as a fallback
-    const valuesContainer = specEntry.querySelector('.spec-values');
-    const newValue = document.createElement('div');
-    newValue.className = 'd-flex mb-2 spec-value-entry';
-    newValue.innerHTML = `
-        <input type="text" class="form-control border me-2" name="specValue[${key}][]" placeholder="Value">
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSpecValue(this)">-</button>
-    `;
-    valuesContainer.appendChild(newValue);
-}
-
-
-function addSpecification() {
-    const container = document.querySelector('.specification-entries');
-    const newEntry = document.createElement('div');
-    newEntry.className = 'specification-entry mb-3 p-3 border rounded';
-    newEntry.innerHTML = `
-        <div class="d-flex mb-2">
-            <input type="text" class="form-control border me-2 spec-key-input" name="specKey[]" placeholder="Key (e.g., Battery Life)">
-            <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
-        </div>
-        <div class="spec-values">
-            <div class="d-flex mb-2 spec-value-entry">
-                <input type="text" class="form-control border me-2" name="specValue[temp_key][]" placeholder="Value">
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeSpecValue(this)">-</button>
-            </div>
-        </div>
-        <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addSpecValue(this)">Add Value</button>
-    `;
-    container.appendChild(newEntry);
-
-    // Add event listener to the new specKey input
-    const newKeyInput = newEntry.querySelector('.spec-key-input');
-    newKeyInput.addEventListener('input', function() {
-        const specEntry = this.closest('.specification-entry');
-        const newKey = this.value.trim() || 'temp_key';
-        const valueInputs = specEntry.querySelectorAll('input[name^="specValue"]');
-        valueInputs.forEach(valInput => {
-            valInput.name = `specValue[${newKey}][]`;
-        });
-    });
-}
-
-
-function removeSpecValue(button) {
-    const valueEntry = button.closest('.spec-value-entry');
-    const valuesContainer = valueEntry.parentElement;
-    if (valuesContainer.querySelectorAll('.spec-value-entry').length > 1) {
-        valueEntry.remove();
-    } else {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Minimum Requirement',
-            text: 'At least one value is required per specification'
-        });
-    }
-}
            
        </script>
 

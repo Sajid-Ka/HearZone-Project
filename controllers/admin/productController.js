@@ -35,7 +35,6 @@ const getProductAddPage = async (req, res) => {
 
 const addProducts = async (req, res) => {
     try {
-
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ success: false, message: "Please upload at least one image" });
         }
@@ -47,11 +46,7 @@ const addProducts = async (req, res) => {
         
         if (productExists) {
             for (const file of req.files) {
-                try {
-                    await safeDelete(file.path);
-                } catch (err) {
-                    console.warn(`Warning: Could not delete temp file ${file.path}:`, err.code);
-                }
+                await safeDelete(file.path);
             }
             return res.status(400).json({ success: false, message: "Product Already Exists" });
         }
@@ -64,24 +59,12 @@ const addProducts = async (req, res) => {
             const productImagePath = path.join(productImagesDir, filename);
 
             await Promise.all([
-                sharp(tempPath)
-                    .resize(600, 600, { fit: 'cover', position: 'center' })
-                    .jpeg({ quality: 90 })
-                    .toFile(productImagePath),
-                sharp(tempPath)
-                    .resize(600, 600, { fit: 'cover', position: 'center' })
-                    .jpeg({ quality: 90 })
-                    .toFile(reImagePath)
+                sharp(tempPath).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 90 }).toFile(productImagePath),
+                sharp(tempPath).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 90 }).toFile(reImagePath)
             ]);
 
             images.push(filename);
-            setTimeout(async () => {
-                try {
-                    await safeDelete(tempPath);
-                } catch (err) {
-                    console.warn(`Warning: Could not delete temp file ${tempPath}:`, err.code);
-                }
-            }, 1000);
+            setTimeout(() => safeDelete(tempPath), 1000);
         }
 
         const [categoryId, brandDoc] = await Promise.all([
@@ -92,33 +75,13 @@ const addProducts = async (req, res) => {
         if (!categoryId) return res.status(400).json({ success: false, message: "Invalid Category name" });
         if (!brandDoc) return res.status(400).json({ success: false, message: "Invalid Brand name" });
 
-        // Process highlights if provided
-        let highlights = [];
-        if (products.highlights) {
-            highlights = products.highlights.split('\n')
-                .map(h => h.trim())
-                .filter(h => h.length > 0);
-        }
+        // Process highlights
+        let highlights = products.highlights ? 
+            products.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0) : [];
 
-        // Process specifications if provided
-        let specifications = [];
-        if (products.specKey) {
-            const specKeys = Array.isArray(products.specKey) ? products.specKey : [products.specKey];
-            specKeys.forEach((key, index) => {
-                if (key && key.trim()) {
-                    const values = products[`specValue[${key}]`] || [];
-                    const validValues = (Array.isArray(values) ? values : [values])
-                        .map(v => v?.trim())
-                        .filter(v => v);
-                    if (validValues.length > 0) {
-                        specifications.push({
-                            key: key.trim(),
-                            values: validValues
-                        });
-                    }
-                }
-            });
-        }
+        // Process specifications (similar to highlights)
+        let specifications = products.specifications ? 
+            products.specifications.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [];
 
         const newProduct = new Product({
             productName: products.productName,
@@ -133,8 +96,8 @@ const addProducts = async (req, res) => {
             productImage: images,
             status: 'Available',
             isBlocked: false,
-            highlights: highlights,  // Will be empty array if not provided
-            specifications: specifications  // Will be empty array if not provided
+            highlights,
+            specifications
         });
 
         await newProduct.save();
@@ -143,14 +106,10 @@ const addProducts = async (req, res) => {
         console.error("Error saving product:", error);
         if (req.files) {
             for (const file of req.files) {
-                try {
-                    await safeDelete(file.path);
-                } catch (err) {
-                    console.warn(`Warning: Cleanup failed for ${file.path}:`, err.code);
-                }
+                await safeDelete(file.path);
             }
         }
-        return res.status(500).json({ success: false, message: error.message || "An error occurred while adding the product" });
+        return res.status(500).json({ success: false, message: error.message || "An error occurred" });
     }
 };
 
@@ -297,47 +256,17 @@ const editProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Category name" });
         }
 
-        // Process highlights if provided or explicitly cleared
-        let newHighlights = product.highlights; // Default to existing highlights
-        if ('highlights' in data) { // Check if highlights field exists in the request
-            if (data.highlights && data.highlights.trim()) {
-                // If non-empty highlights are provided, process them
-                newHighlights = data.highlights.split('\n')
-                    .map(h => h.trim())
-                    .filter(h => h.length > 0);
-            } else {
-                // If highlights is empty or only whitespace, clear it
-                newHighlights = [];
-            }
-        }
+        // Process highlights
+        let newHighlights = 'highlights' in data ? 
+            (data.highlights && data.highlights.trim() ? 
+                data.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0) : []) : 
+            product.highlights;
 
-        // Process specifications if provided
-        let specifications = product.specifications;  // Keep existing if not updated
-        if (data.specKey) {
-            specifications = [];
-            const specKeys = Array.isArray(data.specKey) ? data.specKey : [data.specKey];
-            specKeys.forEach((key) => {
-                if (key && key.trim()) {
-                    let values = data.specValue && data.specValue[key] ? data.specValue[key] : [];
-                    if (!Array.isArray(values)) {
-                        values = [values];
-                    }
-                    // Handle stray specValue[][] if it exists
-                    if (data['specValue[][]'] && !values.length) {
-                        values = Array.isArray(data['specValue[][]']) ? data['specValue[][]'] : [data['specValue[][]']];
-                    }
-                    const validValues = values
-                        .map(v => v?.trim())
-                        .filter(v => v);
-                    if (validValues.length > 0) {
-                        specifications.push({
-                            key: key.trim(),
-                            values: validValues
-                        });
-                    }
-                }
-            });
-        }
+        // Process specifications (similar to highlights)
+        let newSpecifications = 'specifications' in data ? 
+            (data.specifications && data.specifications.trim() ? 
+                data.specifications.split('\n').map(s => s.trim()).filter(s => s.length > 0) : []) : 
+            product.specifications;
 
         const images = [];
         if (req.files && req.files.length > 0) {
@@ -348,20 +277,12 @@ const editProduct = async (req, res) => {
                 const reImagePath = path.join(reImageDir, filename);
 
                 await Promise.all([
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(productImagePath),
-                    sharp(tempPath)
-                        .resize(600, 600, { fit: 'cover', position: 'center' })
-                        .jpeg({ quality: 90 })
-                        .toFile(reImagePath)
+                    sharp(tempPath).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 90 }).toFile(productImagePath),
+                    sharp(tempPath).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 90 }).toFile(reImagePath)
                 ]);
 
                 images.push(filename);
-                setTimeout(async () => {
-                    await safeDelete(tempPath);
-                }, 2000);
+                setTimeout(() => safeDelete(tempPath), 2000);
             }
         }
 
@@ -375,7 +296,7 @@ const editProduct = async (req, res) => {
             quantity: data.quantity,
             color: data.color,
             highlights: newHighlights,
-            specifications: specifications
+            specifications: newSpecifications
         };
 
         if (images.length > 0) {
@@ -395,9 +316,9 @@ const editProduct = async (req, res) => {
     } catch (error) {
         console.error("Error editing product:", error);
         if (req.files) {
-            setTimeout(async () => {
+            setTimeout(() => {
                 for (const file of req.files) {
-                    await safeDelete(file.path);
+                    safeDelete(file.path);
                 }
             }, 2000);
         }

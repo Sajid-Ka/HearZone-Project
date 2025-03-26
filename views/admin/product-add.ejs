@@ -307,17 +307,9 @@
 
 
                             <div class="mb-4">
-                                <label class="form-label">Product Specifications</label>
-                                <div class="specification-entries mb-2">
-                                    <!-- Initial specification entry -->
-                                    <div class="specification-entry d-flex mb-2">
-                                        <input type="text" class="form-control border me-2" name="specKey[]" placeholder="Key (e.g., Material)">
-                                        <input type="text" class="form-control border me-2" name="specValue[]" placeholder="Value (e.g., Aluminum)">
-                                        <button type="button" class="btn btn-danger" onclick="removeSpecification(this)">×</button>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSpecification()">Add Specification</button>
-                                <div id="specifications-error" class="error-message"></div>
+                                <label class="form-label">Product Specifications (One per line)</label>
+                                <textarea placeholder="Enter each specification on a new line" name="specifications" class="form-control border" rows="4"></textarea>
+                                <div id="specifications-error" class="-error-message"></div>
                             </div>
 
                             <div class="mb-4">
@@ -680,7 +672,8 @@ class FormValidator {
             { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
             { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) < 0 },
             { field: 'quantity', errorId: 'quantity-error', message: 'Please enter a valid quantity', check: v => !v || isNaN(v) || Number(v) < 0 },
-            { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' }
+            { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' },
+            { field: 'specifications', errorId: 'specifications-error', message: 'Please add at least one specification', check: v => v.trim() === '' }
         ];
 
         for (const val of validations) {

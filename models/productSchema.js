@@ -60,16 +60,10 @@ const productSchema = new Schema({
         type: [String],
         default: []
     },
-    specifications: [{
-        key: {
-            type: String,
-            
-        },
-        values: [{
-            type: String,
-            
-        }]
-    }]
+    specifications: {
+        type: [String],  // Changed to array of strings like highlights
+        default: []
+    }
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
