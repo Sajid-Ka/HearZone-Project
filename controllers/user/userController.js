@@ -333,9 +333,12 @@ const loadShoppingPage = async (req, res) => {
         const limit = 9;
         const skip = (page - 1) * limit;
         const sortOption = req.query.sort;
-        let sortQuery = { createdOn: -1 }; // default sorting
+        let sortQuery = { createdOn: -1 }; // default sorting by newest first
 
         switch(sortOption) {
+            case 'newArrival':
+                sortQuery = { createdOn: -1 }; // Sort by creation date descending (newest first)
+                break;
             case 'priceAsc':
                 sortQuery = { salePrice: 1 };
                 break;
@@ -353,7 +356,6 @@ const loadShoppingPage = async (req, res) => {
         let query = Product.find({
             isBlocked: false,
             category: { $in: categoryIds }
-            // Removed quantity check to show all products
         }).populate('brand');
 
         // Apply collation only for name sorting
@@ -382,8 +384,7 @@ const loadShoppingPage = async (req, res) => {
 
         const totalProducts = await Product.countDocuments({
             isBlocked: false,
-            category: { $in: categoryIds },
-            quantity: { $gt: 0 }
+            category: { $in: categoryIds }
         });
         const totalPages = Math.ceil(totalProducts / limit);
 
