@@ -528,22 +528,23 @@ const searchProducts = async (req, res) => {
         if (user && user.id) {
             userData = await User.findById(user.id);
         }
-        let search = req.body.query;
+        let searchQuery = req.body.query || '';
 
         const brands = await Brand.find({}).lean();
-        const categories = await Category.find({isListed:true}).lean();
-        const categoryIds = categories.map(category=>category._id.toString());
+        const categories = await Category.find({isListed: true}).lean();
+        const categoryIds = categories.map(category => category._id.toString());
         let searchResult = [];
-        if(req.session.filteredProducts && req.session.filteredProducts.length>0){
+
+        if(req.session.filteredProducts && req.session.filteredProducts.length > 0){
             searchResult = req.session.filteredProducts
-                .filter(product => product.productName.toLowerCase().includes(search.toLowerCase()))
+                .filter(product => product.productName.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map(product => ({
                     ...product,
                     brand: brands.find(b => b._id.toString() === product.brand.toString()) || product.brand
                 }));
         } else {
             searchResult = await Product.find({
-                productName: { $regex: ".*" + search + ".*", $options: "i" },
+                productName: { $regex: ".*" + searchQuery + ".*", $options: "i" },
                 isBlocked: false,
                 quantity: { $gt: 0 },
                 category: { $in: categoryIds }
@@ -568,13 +569,15 @@ const searchProducts = async (req, res) => {
             count: searchResult.length,
             selectedCategory: null,
             selectedBrand: null,
-            searchQuery: search    // Add the search query
+            searchQuery: searchQuery,    // Pass the search query
+            isSearchActive: searchQuery.trim().length > 0  // Add this flag
         });
     } catch (error) {
         console.error("Search products error:", error);
         res.redirect('/pageNotFound');
     }
 };
+
 
 module.exports = {
     searchProducts,
