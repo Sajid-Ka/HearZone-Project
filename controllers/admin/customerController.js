@@ -13,10 +13,15 @@ const customerInfo = async (req, res) => {
         let query = {
             isAdmin: false,
             isBlocked: isBlocked,
-            $or: [
-                { name: { $regex: ".*" + search + ".*", $options: "i" } },
-                { email: { $regex: ".*" + search + ".*", $options: "i" } }
-            ]
+
+            //search based name and email
+            // $or: [
+            //     { name: { $regex: ".*" + search + ".*", $options: "i" } },
+            //     { email: { $regex: ".*" + search + ".*", $options: "i" } }
+            // ]
+
+            //search based only names
+            name: { $regex: ".*" + search + ".*", $options: "i" }
         };
 
         const userData = await User.find(query)
