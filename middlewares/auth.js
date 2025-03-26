@@ -6,52 +6,40 @@ const protectedAdminRoutes = process.env.PROTECTED_ADMIN_ROUTES?.split(',') || [
 
 const userAuth = async (req, res, next) => {
     const path = req.path;
-    if (!protectedUserRoutes.some(route => path.startsWith(route))) {
-        // Even for unprotected routes, set req.user if authenticated
-        if (req.session.user) {
-            try {
-                const userId = req.session.user.id || req.session.user._id || req.session.user;
-                if (!mongoose.Types.ObjectId.isValid(userId)) {
-                    console.error("Invalid ObjectId:", userId);
-                    return next();
-                }
-                const user = await User.findById(userId);
-                if (user && !user.isBlocked) {
-                    req.user = user; // Set req.user for all routes if user exists
-                }
-            } catch (error) {
-                console.error("Error in userAuth middleware", error);
+
+    if (req.session.user) {
+        try {
+            const userId = req.session.user.id || req.session.user._id || req.session.user;
+            if (!mongoose.Types.ObjectId.isValid(userId)) {
+                console.error("Invalid ObjectId:", userId);
+                req.session.destroy(() => res.redirect('/login'));
+                return;
             }
+
+            const user = await User.findById(userId);
+            if (!user || user.isBlocked) {
+                req.session.destroy((err) => {
+                    if (err) console.error('Error destroying session:', err);
+                    res.redirect('/login');
+                });
+                return;
+            }
+
+            req.user = user;
+        } catch (error) {
+            console.error("Error in userAuth middleware:", error);
+            req.session.destroy(() => res.redirect('/login'));
+            return;
         }
-        return next();
     }
 
-    if (!req.session.user) {
+    if (protectedUserRoutes.some(route => path.startsWith(route)) && !req.session.user) {
         return res.redirect('/login');
     }
 
-    try {
-        const userId = req.session.user.id || req.session.user._id || req.session.user;
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            console.error("Invalid ObjectId:", userId);
-            req.session.destroy();
-            return res.redirect('/login');
-        }
-
-        const user = await User.findById(userId);
-        if (user && !user.isBlocked) {
-            req.user = user;
-            return next();
-        }
-        req.session.destroy();
-        res.redirect('/login');
-    } catch (error) {
-        console.error("Error in userAuth middleware", error);
-        res.status(500).send("Internal Server Error");
-    }
+    next();
 };
 
-// Other middleware remains the same
 const adminAuth = async (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Expires', '0');
@@ -63,21 +51,21 @@ const adminAuth = async (req, res, next) => {
     }
 
     if (!req.session.admin) {
-        
+        console.log('No admin session, redirecting to /admin/login');
         return res.redirect('/admin/login');
     }
 
     try {
         const adminId = req.session.admin;
         if (!mongoose.Types.ObjectId.isValid(adminId)) {
-            
+            console.error('Invalid admin ID:', adminId);
             req.session.destroy();
             return res.redirect('/admin/login');
         }
 
         const admin = await User.findOne({ _id: adminId, isAdmin: true });
         if (!admin) {
-            
+            console.log('Admin not found, destroying session');
             req.session.destroy();
             return res.redirect('/admin/login');
         }
@@ -93,7 +81,6 @@ const adminAuth = async (req, res, next) => {
 
 const isAdminAuth = async (req, res, next) => {
     if (!req.session.admin) {
-        
         return res.redirect('/admin/login');
     }
 

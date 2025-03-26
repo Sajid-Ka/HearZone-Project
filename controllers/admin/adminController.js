@@ -46,9 +46,11 @@ const login = async (req, res) => {
             return res.render('admin-login', { message: 'Incorrect password' });
         }
 
+        // Set only admin session, do not set user session
         req.session.admin = admin._id.toString();
-        
-        
+        // Ensure user session is not set or cleared
+        delete req.session.user;
+
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Expires', '0');
         res.setHeader('Pragma', 'no-cache');
