@@ -55,7 +55,7 @@ app.use((req, res, next) => {
         User.findById(req.session.user.id)
             .then(user => {
                 if (!user || user.isBlocked) {
-                    console.log(`Destroying user session for ${req.session.user.id} due to block or invalid user`);
+                    
                     req.session.destroy((err) => {
                         if (err) console.error('Error destroying session:', err);
                         res.redirect('/login');
@@ -69,10 +69,7 @@ app.use((req, res, next) => {
                 req.session.destroy(() => res.redirect('/login'));
             });
     } else {
-        // Skip user validation if it's an admin session or no user session
-        if (req.session.admin) {
-            console.log('Admin session detected, skipping user validation');
-        }
+        
         next();
     }
 });

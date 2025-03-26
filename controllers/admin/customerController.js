@@ -60,12 +60,12 @@ const customerBlocked = async (req, res) => {
                 });
             });
 
-            console.log('All sessions before filtering:', sessions);
+            
 
             const destroyPromises = [];
             for (let sessionId in sessions) {
                 const sessionData = sessions[sessionId];
-                console.log(`Session ${sessionId}:`, sessionData);
+                
                 // Destroy session if it belongs to the blocked user and is not an admin-only session
                 if (sessionData.user && sessionData.user.id === id.toString() && !sessionData.admin) {
                     destroyPromises.push(
@@ -80,15 +80,12 @@ const customerBlocked = async (req, res) => {
             }
 
             await Promise.all(destroyPromises);
-            console.log(`Destroyed ${destroyPromises.length} session(s) for user ${id}`);
+            
 
             // If the current session has the blocked user but is an admin session, preserve it
             if (req.session.user && req.session.user.id === id.toString() && req.session.admin) {
-                console.log('Preserving admin session with user data');
                 delete req.session.user; // Remove user data but keep admin session
             }
-        } else {
-            console.warn('No session store available');
         }
 
         res.redirect('/admin/users?success=block');

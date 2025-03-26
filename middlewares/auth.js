@@ -51,21 +51,20 @@ const adminAuth = async (req, res, next) => {
     }
 
     if (!req.session.admin) {
-        console.log('No admin session, redirecting to /admin/login');
+        
         return res.redirect('/admin/login');
     }
 
     try {
         const adminId = req.session.admin;
         if (!mongoose.Types.ObjectId.isValid(adminId)) {
-            console.error('Invalid admin ID:', adminId);
+            
             req.session.destroy();
             return res.redirect('/admin/login');
         }
 
         const admin = await User.findOne({ _id: adminId, isAdmin: true });
         if (!admin) {
-            console.log('Admin not found, destroying session');
             req.session.destroy();
             return res.redirect('/admin/login');
         }
