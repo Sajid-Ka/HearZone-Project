@@ -301,13 +301,8 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error('Session destroy error:', err);
-                return res.status(500).render('error', { message: 'Logout failed' });
-            }
-            res.redirect('/login');
-        });
+        delete req.session.user;
+        res.redirect('/login');
     } catch (error) {
         console.error('Logout error:', error);
         res.status(500).render('page-404');

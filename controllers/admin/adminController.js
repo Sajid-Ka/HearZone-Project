@@ -77,15 +77,11 @@ const loadDashboard = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error('Session destroy error:', err);
-                return res.redirect('/admin/pageError');
-            }
-            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-            
-            res.redirect('/admin/login');
-        });
+        delete req.session.admin;
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Expires', '0');
+        res.setHeader('Pragma', 'no-cache');
+        res.redirect('/admin/login');
     } catch (error) {
         console.error('Admin logout Error:', error);
         res.redirect('/admin/pageError');
