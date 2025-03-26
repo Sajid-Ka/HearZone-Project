@@ -139,6 +139,7 @@ const getAllProducts = async (req, res) => {
 
         const [productData, count, category, brand] = await Promise.all([
             Product.find(searchQuery)
+                .sort({ createdOn: -1 })
                 .limit(limit)
                 .skip((page - 1) * limit)
                 .populate("category")
