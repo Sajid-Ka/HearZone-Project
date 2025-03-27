@@ -11,6 +11,7 @@ const MongoStore = require('connect-mongo');
 const nocache = require('nocache');
 const fs = require('fs');
 const User = require('./models/userSchema');
+const { upload } = require('./helpers/multer');
 require('./jobs/cleanupExpiredUsers');
 
 db();
@@ -92,7 +93,7 @@ app.set('views', [
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', userRouter);
+app.use('/', upload.none(), userRouter);
 app.use('/admin', adminRouter);
 
 app.use('/admin', (req, res) => {

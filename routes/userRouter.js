@@ -4,6 +4,7 @@ const userController = require('../controllers/user/userController');
 const productController = require('../controllers/user/productController');
 const forgotPasswordController = require('../controllers/user/forgotPasswordController');
 const profileController = require('../controllers/user/profileController');
+const addressController = require('../controllers/user/addressController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
@@ -95,6 +96,14 @@ router.post('/review/add', reviewController.addReview);
 router.get('/review/product/:productId', reviewController.getProductReviews);
 router.get('/review/full/:productId', reviewController.getFullReviews);
 router.post('/review/delete/:reviewId', reviewController.deleteReview);
+
+
+// Address routes
+router.get('/address', addressController.getAddressPage);
+router.post('/address/add', addressController.addAddress);
+router.post('/address/edit/:id', addressController.editAddress);
+router.post('/address/delete/:id', addressController.deleteAddress);
+
 
 // Coupon routes
 router.get('/coupon/available', couponController.getAvailableCoupons);
