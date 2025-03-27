@@ -2,6 +2,7 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
     body {
@@ -41,6 +42,7 @@
         background-color: #222;
         border-radius: 8px;
         transition: all 0.3s ease;
+        color: white;
     }
 
     .btn-dark:hover {
@@ -56,6 +58,16 @@
 
     .btn-primary:hover {
         background-color: #2980b9;
+    }
+
+    .btn-danger {
+        background-color: #e74c3c;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+        background-color: #c0392b;
     }
 
     /* Profile Picture */
@@ -106,28 +118,78 @@
         font-size: 0.875rem;
     }
 
+    /* Address Card Styling */
+    .address-card {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .address-card p {
+        color: #666;
+        margin-bottom: 10px;
+    }
+
+    .badge {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 12px;
+    }
+
+    .modal-content {
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        background-color: #222;
+        color: white;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .modal-title {
+        font-weight: 600;
+    }
+
+    .btn-close {
+        filter: invert(1);
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #555;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #ddd;
+    }
+
+    .form-control:focus {
+        border-color: #f1c40f;
+        box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
+    }
+
     /* Footer styles */
     .footer {
-        width: 100vw; /* Full viewport width */
+        width: 100vw;
         position: relative;
         left: 50%;
         right: 50%;
         margin-left: -50vw;
         margin-right: -50vw;
-        background-color: #222; /* Matches your footer’s design */
+        background-color: #222;
         color: white;
-        padding: 0; /* Remove padding from the wrapper */
+        padding: 0;
         margin-top: 20px;
     }
 
-    /* Ensure the footer and footer-bottom elements stretch to the edges */
     .footer #footer,
     .footer #footer-bottom {
         width: 100%;
         margin: 0;
     }
 
-    /* Override any padding or margins on container-fluid and its children */
     .footer #footer .container-fluid,
     .footer #footer-bottom .container-fluid {
         padding-left: 0 !important;
@@ -136,18 +198,16 @@
         width: 100% !important;
     }
 
-    /* Ensure the row has no extra margins and controlled padding */
     .footer #footer .row,
     .footer #footer-bottom .row {
         margin-left: 0 !important;
         margin-right: 0 !important;
-        padding-left: 15px !important; /* Add padding for readability */
+        padding-left: 15px !important;
         padding-right: 15px !important;
     }
 
-    /* Ensure footer-bottom background matches */
     .footer #footer-bottom {
-        background-color: #111; /* Match the footer-bottom background */
+        background-color: #111;
     }
 </style>
 
@@ -194,34 +254,111 @@
                 </div>
             </div>
 
+            <!-- Updated Saved Addresses Section -->
             <div class="card p-4 mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4>Saved Addresses</h4>
                     <a href="/address" class="btn btn-primary btn-sm">Add New Address</a>
                 </div>
                 <% if (addresses && addresses.length > 0) { %>
-                    <% addresses.forEach((address, index) => { %>
-                        <div class="profile-info mb-3">
-                            <p><strong>Address <%= index + 1 %> <%= address.isDefault ? '(Default)' : '' %>:</strong></p>
-                            <p>
-                                <%= address.addressType %> - <%= address.name %><br>
-                                <%= address.landmark %>, <%= address.city %>, <%= address.state %> - <%= address.pinCode %><br>
-                                <strong>Phone:</strong> <%= address.phone %>
-                                <% if (address.altPhone) { %>
-                                    <br><strong>Alternate Phone:</strong> <%= address.altPhone %>
-                                <% } %>
-                            </p>
-                            <div class="d-flex gap-2">
-                                <a href="/address" class="btn btn-dark btn-sm">Edit</a>
-                                <form action="/address/delete/<%= address._id %>" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this address?')">Delete</button>
-                                </form>
+                    <div class="row">
+                        <% addresses.forEach((address, index) => { %>
+                            <div class="col-md-6">
+                                <div class="card address-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><%= address.name %> 
+                                            <% if (address.isDefault) { %>
+                                                <span class="badge bg-success">Default</span>
+                                            <% } %>
+                                        </h5>
+                                        <p class="card-text">
+                                            <%= address.addressType %><br>
+                                            <%= address.landmark %>, <%= address.city %>, <%= address.state %> - <%= address.pinCode %><br>
+                                            <strong>Phone:</strong> <%= address.phone %>
+                                            <% if (address.altPhone) { %>
+                                                <br><strong>Alternate Phone:</strong> <%= address.altPhone %>
+                                            <% } %>
+                                        </p>
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= address._id %>">Edit</button>
+                                            <form action="/address/delete/<%= address._id %>" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this address?')">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <% if (index < addresses.length - 1) { %>
-                            <hr>
-                        <% } %>
-                    <% }) %>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editModal<%= address._id %>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Address</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <form action="/address/edit/<%= address._id %>" method="POST" class="editAddressForm">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Full Name</label>
+                                                    <input type="text" class="form-control" name="name" value="<%= address.name %>" required>
+                                                    <div class="invalid-feedback">Please enter full name</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Address Type</label>
+                                                    <select class="form-control" name="addressType" required>
+                                                        <option value="Home" <%= address.addressType === 'Home' ? 'selected' : '' %>>Home</option>
+                                                        <option value="Work" <%= address.addressType === 'Work' ? 'selected' : '' %>>Work</option>
+                                                        <option value="Other" <%= address.addressType === 'Other' ? 'selected' : '' %>>Other</option>
+                                                    </select>
+                                                    <div class="invalid-feedback">Please select address type</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">City</label>
+                                                    <input type="text" class="form-control" name="city" value="<%= address.city %>" required>
+                                                    <div class="invalid-feedback">Please enter city</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Landmark</label>
+                                                    <input type="text" class="form-control" name="landmark" value="<%= address.landmark %>" required>
+                                                    <div class="invalid-feedback">Please enter landmark</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">State</label>
+                                                    <input type="text" class="form-control" name="state" value="<%= address.state %>" required>
+                                                    <div class="invalid-feedback">Please enter state</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Pin Code</label>
+                                                    <input type="text" class="form-control" name="pinCode" value="<%= address.pinCode %>" pattern="\d{6}" required>
+                                                    <div class="invalid-feedback">Please enter a valid 6-digit pin code</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Phone</label>
+                                                    <input type="tel" class="form-control" name="phone" value="<%= address.phone %>" pattern="\d{10}" required>
+                                                    <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Alternate Phone (Optional)</label>
+                                                    <input type="tel" class="form-control" name="altPhone" value="<%= address.altPhone || '' %>" pattern="\d{10}">
+                                                    <div class="invalid-feedback">Please enter a valid 10-digit phone number (must be different from primary phone)</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" name="isDefault" id="isDefault<%= address._id %>" <%= address.isDefault ? 'checked' : '' %>>
+                                                        <label class="form-check-label" for="isDefault<%= address._id %>">Set as Default</label>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <button type="submit" class="btn btn-dark">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
                 <% } else { %>
                     <div class="profile-info mb-3">
                         <p class="text-muted">No addresses added yet.</p>
@@ -248,4 +385,85 @@
             theme: 'bootstrap-v4'
         }).show();
     <% } %>
+
+    // Add validation for edit address forms
+    document.querySelectorAll('.editAddressForm').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const phone = form.phone.value;
+            const altPhone = form.altPhone.value;
+
+            // Reset validation states
+            form.querySelectorAll('.form-control').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+
+            // Validation
+            const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
+            let isValid = true;
+
+            requiredFields.forEach(fieldName => {
+                const field = form[fieldName];
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                }
+            });
+
+            if (phone && !/^\d{10}$/.test(phone)) {
+                form.phone.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            if (altPhone) {
+                if (!/^\d{10}$/.test(altPhone) || phone === altPhone) {
+                    form.altPhone.classList.add('is-invalid');
+                    isValid = false;
+                }
+            }
+
+            if (form.pinCode.value && !/^\d{6}$/.test(form.pinCode.value)) {
+                form.pinCode.classList.add('is-invalid');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: result.message || 'Address updated successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    const errorResult = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: errorResult.message || 'Failed to update address'
+                    });
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Something went wrong. Please try again.'
+                });
+            }
+        });
+    });
 </script>
