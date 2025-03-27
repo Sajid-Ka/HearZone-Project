@@ -64,16 +64,21 @@ const loadHomepage = async (req, res) => {
     try {
         const userData = req.session.user;
         const categories = await Category.find({ isListed: true });
+        const categoryIds = categories.map(category => category._id);
+
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
+
         let productData = await Product.find({
             isBlocked: false,
-            category: { $in: categories.map(category => category._id) }
-            // Removed quantity check to show all products
-        });
+            category: { $in: categoryIds },
+            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
+        }).populate('brand');
 
         productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
         productData = productData.slice(0, 4);
 
-        
         res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         
         res.render('home', {  
@@ -81,7 +86,6 @@ const loadHomepage = async (req, res) => {
             products: productData,
             admin: req.session.admin 
         });
-
     } catch (err) {
         console.error('Homepage load error:', err);
         res.status(500).render('error', { message: 'Server error' });
@@ -328,16 +332,21 @@ const loadShoppingPage = async (req, res) => {
             userData = await User.findOne({ _id: user.id });
         }
         const categories = await Category.find({ isListed: true });
-        const categoryIds = categories.map((category) => category._id.toString());
+        const categoryIds = categories.map(category => category._id);
+
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
+
         const page = parseInt(req.query.page) || 1;
         const limit = 9;
         const skip = (page - 1) * limit;
         const sortOption = req.query.sort;
-        let sortQuery = { createdOn: -1 }; // default sorting by newest first
+        let sortQuery = { createdOn: -1 };
 
-        switch(sortOption) {
+        switch (sortOption) {
             case 'newArrival':
-                sortQuery = { createdOn: -1 }; // Sort by creation date descending (newest first)
+                sortQuery = { createdOn: -1 };
                 break;
             case 'priceAsc':
                 sortQuery = { salePrice: 1 };
@@ -355,10 +364,10 @@ const loadShoppingPage = async (req, res) => {
 
         let query = Product.find({
             isBlocked: false,
-            category: { $in: categoryIds }
+            category: { $in: categoryIds },
+            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
         }).populate('brand');
 
-        // Apply collation only for name sorting
         if (sortOption === 'nameAsc' || sortOption === 'nameDesc') {
             query = query.collation({ locale: 'en', strength: 2 });
         }
@@ -368,7 +377,6 @@ const loadShoppingPage = async (req, res) => {
             .skip(skip)
             .limit(limit);
 
-        // Calculate actual ratings
         const productsWithRatings = await Promise.all(products.map(async (product) => {
             const reviews = await Review.find({ productId: product._id });
             const rating = reviews.length > 0 
@@ -384,12 +392,13 @@ const loadShoppingPage = async (req, res) => {
 
         const totalProducts = await Product.countDocuments({
             isBlocked: false,
-            category: { $in: categoryIds }
+            category: { $in: categoryIds },
+            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
         });
         const totalPages = Math.ceil(totalProducts / limit);
 
         const brands = await Brand.find({ isBlocked: false });
-        const categoriesWithIds = categories.map((category) => ({
+        const categoriesWithIds = categories.map(category => ({
             _id: category._id,
             name: category.name
         }));
@@ -427,9 +436,13 @@ const filterProduct = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const itemsPerPage = 9;
 
-        // Build query filter dynamically
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
+
         const queryFilter = {
             isBlocked: false,
+            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
         };
 
         if (categoryId) {
@@ -483,7 +496,11 @@ const filterByPrice = async (req, res) => {
         }
         const brands = await Brand.find({ isBlocked: false }).lean();
         const categories = await Category.find({ isListed: true }).lean();
-        
+
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
+
         const gt = parseFloat(req.query.gt) || 0;
         const lt = parseFloat(req.query.lt) || Infinity;
         const currentPage = parseInt(req.query.page) || 1;
@@ -491,7 +508,8 @@ const filterByPrice = async (req, res) => {
         const query = {
             isBlocked: false,
             quantity: { $gt: 0 },
-            salePrice: { $gte: gt, $lte: lt }
+            salePrice: { $gte: gt, $lte: lt },
+            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
         };
 
         const totalProducts = await Product.countDocuments(query);
@@ -522,6 +540,7 @@ const filterByPrice = async (req, res) => {
     }
 };
 
+
 const searchProducts = async (req, res) => {
     try {
         const user = req.session.user;
@@ -531,12 +550,16 @@ const searchProducts = async (req, res) => {
         }
         let searchQuery = req.body.query || '';
 
-        const brands = await Brand.find({}).lean();
-        const categories = await Category.find({isListed: true}).lean();
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
+
+        const brands = await Brand.find({ isBlocked: false }).lean();
+        const categories = await Category.find({ isListed: true }).lean();
         const categoryIds = categories.map(category => category._id.toString());
         let searchResult = [];
 
-        if(req.session.filteredProducts && req.session.filteredProducts.length > 0){
+        if (req.session.filteredProducts && req.session.filteredProducts.length > 0) {
             searchResult = req.session.filteredProducts
                 .filter(product => product.productName.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map(product => ({
@@ -548,17 +571,18 @@ const searchProducts = async (req, res) => {
                 productName: { $regex: ".*" + searchQuery + ".*", $options: "i" },
                 isBlocked: false,
                 quantity: { $gt: 0 },
-                category: { $in: categoryIds }
+                category: { $in: categoryIds },
+                brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
             }).populate('brand');
         }
 
-        searchResult.sort((a,b) => new Date(b.createdOn) - new Date(a.createdOn));
+        searchResult.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
         let itemsPerPage = 6;
         let currentPage = parseInt(req.query.page) || 1;
-        let startIndex = (currentPage-1) * itemsPerPage;
+        let startIndex = (currentPage - 1) * itemsPerPage;
         let endIndex = startIndex + itemsPerPage;
-        let totalPages = Math.ceil(searchResult.length/itemsPerPage);
-        const currentProduct = searchResult.slice(startIndex,endIndex);
+        let totalPages = Math.ceil(searchResult.length / itemsPerPage);
+        const currentProduct = searchResult.slice(startIndex, endIndex);
 
         res.render('shop', {
             user: userData,
@@ -570,8 +594,8 @@ const searchProducts = async (req, res) => {
             count: searchResult.length,
             selectedCategory: null,
             selectedBrand: null,
-            searchQuery: searchQuery,    // Pass the search query
-            isSearchActive: searchQuery.trim().length > 0  // Add this flag
+            searchQuery: searchQuery,
+            isSearchActive: searchQuery.trim().length > 0
         });
     } catch (error) {
         console.error("Search products error:", error);

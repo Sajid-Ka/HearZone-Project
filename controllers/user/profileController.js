@@ -259,7 +259,7 @@ const getVerifyEmailOtpPage = async (req, res) => {
             return res.redirect('/profile');
         }
         res.render('verify-otp', {
-            heading: 'Verify New Email',
+            heading: 'OTP Send in your New Email',
             title: 'Verify New Email',
             action: 'verify-email-otp',
             message: null,

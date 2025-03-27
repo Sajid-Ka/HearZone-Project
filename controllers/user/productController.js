@@ -2,6 +2,7 @@ const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
 const Review = require('../../models/reviewSchema');
+const Brand = require('../../models/brandSchema'); // Ensure Brand model is imported
 
 const productDetails = async (req, res) => {
     try {
@@ -22,14 +23,20 @@ const productDetails = async (req, res) => {
         // Treat undefined isListed as true to avoid false negatives
         const isProductListed = product.isListed !== false;
 
-        if (!isProductListed) {
+        if (!isProductListed || product.isBlocked) {
             return res.status(404).render('user/page-404');
         }
+
+        // Fetch blocked brand IDs
+        const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
+        const blockedBrandIds = blockedBrands.map(brand => brand._id);
 
         // Get related products by category with more lenient conditions
         let relatedProducts = await Product.find({
             category: product.category?._id,
             _id: { $ne: product._id },
+            isBlocked: false, // Exclude blocked products
+            brand: { $nin: blockedBrandIds }, // Exclude products from blocked brands
             $or: [
                 { isListed: true },
                 { isListed: { $exists: false } }
@@ -44,6 +51,8 @@ const productDetails = async (req, res) => {
                 brand: product.brand._id,
                 _id: { $ne: product._id },
                 category: { $ne: product.category?._id },
+                isBlocked: false, // Exclude blocked products
+                brand: { $nin: blockedBrandIds }, // Exclude products from blocked brands
                 $or: [
                     { isListed: true },
                     { isListed: { $exists: false } }
