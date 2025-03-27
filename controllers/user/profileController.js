@@ -72,7 +72,7 @@ const getProfilePage = async (req, res) => {
         };
 
         const addressDoc = await Address.findOne({ userId });
-        res.render('user/profile', {
+        res.render('profile', {
             user,
             addresses: addressDoc ? addressDoc.addresses : [],
             message: null,
@@ -88,7 +88,7 @@ const getEditProfilePage = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const user = await User.findById(userId);
-        res.render('user/edit-profile', { 
+        res.render('edit-profile', { 
             user, 
             message: null, 
             currentRoute: req.path 
