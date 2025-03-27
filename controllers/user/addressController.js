@@ -27,7 +27,7 @@ const getAddressPage = async (req, res) => {
 
 const addAddress = async (req, res) => {
     try {
-        console.log('req.body:', req.body);
+        
         const userId = req.session.user.id;
         const {
             addressType, name, city, landmark, state, pinCode, phone, altPhone, isDefault
