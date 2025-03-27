@@ -1,274 +1,258 @@
 <style>
   /* Footer Styling */
-#footer {
-    background-color: #000; /* Black background */
-    color: #fff; /* White font color */
-    padding: 50px 0;
-    width: 100%; /* Ensure the footer stretches to full width */
-    margin: 0; /* Remove any default margins */
-}
+  #footer {
+      background-color: #000; /* Black background */
+      color: #fff; /* White font color */
+      padding: 50px 15px; /* Add padding directly to the footer */
+      width: 100%; /* Ensure the footer stretches to full width */
+      margin: 0; /* Remove any default margins */
+  }
 
-#footer .container-fluid {
-    padding-left: 15px; /* Match Bootstrap's default padding */
-    padding-right: 15px;
-}
+  #footer a {
+      color: #fff;
+      text-decoration: none;
+      transition: 0.3s ease-in-out;
+  }
 
-#footer a {
-    color: #fff;
-    text-decoration: none;
-    transition: 0.3s ease-in-out;
-}
+  #footer a:hover {
+      color: #ffcc00; /* Yellowish highlight on hover */
+  }
 
-#footer a:hover {
-    color: #ffcc00; /* Yellowish highlight on hover */
-}
+  .footer-menu h5 {
+      font-size: 18px;
+      font-weight: 600;
+      border-bottom: 2px solid #ffcc00;
+      display: inline-block;
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+  }
 
-.footer-menu h5 {
-    font-size: 18px;
-    font-weight: 600;
-    border-bottom: 2px solid #ffcc00;
-    display: inline-block;
-    padding-bottom: 5px;
-    margin-bottom: 15px;
-}
+  .footer-menu ul li {
+      list-style: none;
+      margin-bottom: 8px;
+  }
 
-.footer-menu ul li {
-    list-style: none;
-    margin-bottom: 8px;
-}
+  .footer-menu ul li a {
+      font-size: 15px;
+      display: block;
+      transition: 0.3s ease;
+  }
 
-.footer-menu ul li a {
-    font-size: 15px;
-    display: block;
-    transition: 0.3s ease;
-}
+  .footer-menu ul li a:hover {
+      transform: translateX(5px); /* Slight shift effect on hover */
+      color: #ffcc00;
+  }
 
-.footer-menu ul li a:hover {
-    transform: translateX(5px); /* Slight shift effect on hover */
-    color: #ffcc00;
-}
+  /* Social Links */
+  .social-links ul {
+      padding: 0;
+      margin-top: 15px;
+  }
 
-/* Social Links */
-.social-links ul {
-    padding: 0;
-    margin-top: 15px;
-}
+  .social-links ul li {
+      display: inline-block;
+      margin-right: 15px;
+  }
 
-.social-links ul li {
-    display: inline-block;
-    margin-right: 15px;
-}
+  .social-links ul li a {
+      width: 35px;
+      height: 35px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      background: #222;
+      transition: 0.3s ease-in-out;
+      margin-left: -10px;
+  }
 
-.social-links ul li a {
-    width: 35px;
-    height: 35px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    background: #222;
-    transition: 0.3s ease-in-out;
-    margin-left: -10px;
-}
+  .social-links ul li a:hover {
+      background: #ffcc00;
+  }
 
-.social-links ul li a:hover {
-    background: #ffcc00;
-}
+  /* Footer Bottom */
+  #footer-bottom {
+      background: #111;
+      color: #fff;
+      padding: 20px 15px; /* Add padding directly to the footer-bottom */
+      width: 100%; /* Ensure the footer-bottom stretches to full width */
+      margin: 0;
+  }
 
-/* Footer Bottom */
-#footer-bottom {
-    background: #111;
-    color: #fff;
-    padding: 20px 0;
-    width: 100%; /* Ensure the footer-bottom stretches to full width */
-    margin: 0;
-}
+  .copyright p {
+      font-size: 14px;
+      margin: 0;
+  }
 
-#footer-bottom .container-fluid {
-    padding-left: 15px; /* Match Bootstrap's default padding */
-    padding-right: 15px;
-}
+  .copyright a {
+      color: #ffcc00;
+      font-weight: 500;
+  }
 
-.copyright p {
-    font-size: 14px;
-    margin: 0;
-}
+  .copyright a:hover {
+      text-decoration: underline;
+  }
 
-.copyright a {
-    color: #ffcc00;
-    font-weight: 500;
-}
+  /* Payment and Shipping */
+  .Shipping, .payment-method {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+  }
 
-.copyright a:hover {
-    text-decoration: underline;
-}
+  .card-wrap img {
+      width: 50px;
+      height: auto;
+      margin-left: 5px;
+      border-radius: 5px;
+  }
 
-/* Payment and Shipping */
-.Shipping, .payment-method {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.card-wrap img {
-    width: 50px;
-    height: auto;
-    margin-left: 5px;
-    border-radius: 5px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .footer-menu {
-        text-align: center;
-    }
-    
-    .social-links ul {
-        justify-content: center;
-    }
-    
-    .Shipping, .payment-method {
-        flex-direction: column;
-        text-align: center;
-    }
-}
+  /* Responsive */
+  @media (max-width: 768px) {
+      .footer-menu {
+          text-align: center;
+      }
+      
+      .social-links ul {
+          justify-content: center;
+      }
+      
+      .Shipping, .payment-method {
+          flex-direction: column;
+          text-align: center;
+      }
+  }
 </style>
 
 <footer id="footer" class="overflow-hidden">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="footer-top-area">
-        <div class="row d-flex flex-wrap justify-content-between">
+  <div class="footer-top-area">
+      <div class="d-flex flex-wrap justify-content-between">
           <div class="col-lg-3 col-sm-6 pb-3">
-            <div class="footer-menu">
-              <img class="logo" src="/images/main-logo1.png" alt="logo">
-              <p>Nisi, purus vitae, ultrices nunc. Sit ac sit suscipit hendrerit. Gravida massa volutpat aenean odio erat nullam fringilla.</p>
-              <div class="social-links">
-                <ul class="d-flex list-unstyled">
-                  <li>
-                    <a href="#">
-                      <svg class="facebook">
-                        <use xlink:href="#facebook" />
-                      </svg>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#">
-                      <svg class="instagram">
-                        <use xlink:href="#instagram" />
-                      </svg>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#">
-                      <svg class="twitter">
-                        <use xlink:href="#twitter" />
-                      </svg>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#">
-                      <svg class="linkedin">
-                        <use xlink:href="#linkedin" />
-                      </svg>
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#">
-                      <svg class="youtube">
-                        <use xlink:href="#youtube" />
-                      </svg>
-                    </a>
-                  </li>
-                </ul>
+              <div class="footer-menu">
+                  <img class="logo" src="/images/main-logo1.png" alt="logo">
+                  <p>Nisi, purus vitae, ultrices nunc. Sit ac sit suscipit hendrerit. Gravida massa volutpat aenean odio erat nullam fringilla.</p>
+                  <div class="social-links">
+                      <ul class="d-flex list-unstyled">
+                          <li>
+                              <a href="#">
+                                  <svg class="facebook">
+                                      <use xlink:href="#facebook" />
+                                  </svg>
+                              </a>
+                          </li>
+                          <li>
+                              <a href="#">
+                                  <svg class="instagram">
+                                      <use xlink:href="#instagram" />
+                                  </svg>
+                              </a>
+                          </li>
+                          <li>
+                              <a href="#">
+                                  <svg class="twitter">
+                                      <use xlink:href="#twitter" />
+                                  </svg>
+                              </a>
+                          </li>
+                          <li>
+                              <a href="#">
+                                  <svg class="linkedin">
+                                      <use xlink:href="#linkedin" />
+                                  </svg>
+                              </a>
+                          </li>
+                          <li>
+                              <a href="#">
+                                  <svg class="youtube">
+                                      <use xlink:href="#youtube" />
+                                  </svg>
+                              </a>
+                          </li>
+                      </ul>
+                  </div>
               </div>
-            </div>
           </div>
           <div class="col-lg-2 col-sm-6 pb-3">
-            <div class="footer-menu text-uppercase">
-              <h5 class="widget-title pb-2">Quick Links</h5>
-              <ul class="menu-list list-unstyled text-uppercase">
-                <li class="menu-item pb-2">
-                  <a href="/">Home</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">About</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="/shop">Shop</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Blogs</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Contact</a>
-                </li>
-              </ul>
-            </div>
+              <div class="footer-menu text-uppercase">
+                  <h5 class="widget-title pb-2">Quick Links</h5>
+                  <ul class="menu-list list-unstyled text-uppercase">
+                      <li class="menu-item pb-2">
+                          <a href="/">Home</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">About</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="/shop">Shop</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Blogs</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Contact</a>
+                      </li>
+                  </ul>
+              </div>
           </div>
           <div class="col-lg-3 col-sm-6 pb-3">
-            <div class="footer-menu text-uppercase">
-              <h5 class="widget-title pb-2">Help & Info Help</h5>
-              <ul class="menu-list list-unstyled">
-                <li class="menu-item pb-2">
-                  <a href="#">Track Your Order</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Returns Policies</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Shipping + Delivery</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Contact Us</a>
-                </li>
-                <li class="menu-item pb-2">
-                  <a href="#">Faqs</a>
-                </li>
-              </ul>
-            </div>
+              <div class="footer-menu text-uppercase">
+                  <h5 class="widget-title pb-2">Help & Info Help</h5>
+                  <ul class="menu-list list-unstyled">
+                      <li class="menu-item pb-2">
+                          <a href="#">Track Your Order</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Returns Policies</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Shipping + Delivery</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Contact Us</a>
+                      </li>
+                      <li class="menu-item pb-2">
+                          <a href="#">Faqs</a>
+                      </li>
+                  </ul>
+              </div>
           </div>
           <div class="col-lg-3 col-sm-6 pb-3">
-            <div class="footer-menu contact-item">
-              <h5 class="widget-title text-uppercase pb-2">Contact Us</h5>
-              <p>Do you have any queries or suggestions? <a href="mailto:">yourinfo@gmail.com</a></p>
-              <p>If you need support? Just give us a call. <a href="">+55 111 222 333 44</a></p>
-            </div>
+              <div class="footer-menu contact-item">
+                  <h5 class="widget-title text-uppercase pb-2">Contact Us</h5>
+                  <p>Do you have any queries or suggestions? <a href="mailto:">yourinfo@gmail.com</a></p>
+                  <p>If you need support? Just give us a call. <a href="">+55 111 222 333 44</a></p>
+              </div>
           </div>
-        </div>
       </div>
-    </div>
   </div>
   <hr>
 </footer>
 <div id="footer-bottom">
-  <div class="container-fluid">
-    <div class="row d-flex flex-wrap justify-content-between">
+  <div class="d-flex flex-wrap justify-content-between">
       <div class="col-md-4 col-sm-6">
-        <div class="Shipping d-flex">
-          <p>We ship with:</p>
-          <div class="card-wrap ps-2">
-            <img src="/images/dhl.png" alt="visa">
-            <img src="/images/shippingcard.png" alt="mastercard">
+          <div class="Shipping d-flex">
+              <p>We ship with:</p>
+              <div class="card-wrap ps-2">
+                  <img src="/images/dhl.png" alt="visa">
+                  <img src="/images/shippingcard.png" alt="mastercard">
+              </div>
           </div>
-        </div>
       </div>
       <div class="col-md-4 col-sm-6">
-        <div class="payment-method d-flex">
-          <p>Payment options:</p>
-          <div class="card-wrap ps-2">
-            <img src="/images/visa.jpg" alt="visa">
-            <img src="/images/mastercard.jpg" alt="mastercard">
-            <img src="/images/paypal.jpg" alt="paypal">
+          <div class="payment-method d-flex">
+              <p>Payment options:</p>
+              <div class="card-wrap ps-2">
+                  <img src="/images/visa.jpg" alt="visa">
+                  <img src="/images/mastercard.jpg" alt="mastercard">
+                  <img src="/images/paypal.jpg" alt="paypal">
+              </div>
           </div>
-        </div>
       </div>
       <div class="col-md-4 col-sm-6">
-        <div class="copyright">
-          <p>© Copyright 2023 MiniStore. Design by <a href="https://templatesjungle.com/">TemplatesJungle</a> Distribution by <a href="https://themewagon.com">ThemeWagon</a></p>
-        </div>
+          <div class="copyright">
+              <p>© Copyright 2023 MiniStore. Design by <a href="https://templatesjungle.com/">TemplatesJungle</a> Distribution by <a href="https://themewagon.com">ThemeWagon</a></p>
+          </div>
       </div>
-    </div>
   </div>
 </div>
 <script src="/js/jquery-1.11.0.min.js"></script>
