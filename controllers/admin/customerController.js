@@ -25,7 +25,7 @@ const customerInfo = async (req, res) => {
         };
 
         const userData = await User.find(query)
-        .sort({ createdOn: -1 })
+        .sort({ createdAt: -1 })
             .limit(limit)
             .skip((page - 1) * limit)
             .exec();
