@@ -5,7 +5,7 @@ const fs = require('fs');
 const productImagesDir = path.join(__dirname, '../public/uploads/product-images');
 const tempDir = path.join(__dirname, '../public/uploads/temp');
 const reImageDir = path.join(__dirname, '../public/uploads/re-image');
-const profileImagesDir = path.join(__dirname, '../public/uploads/profile-images'); // Add profile images directory
+const profileImagesDir = path.join(__dirname, '../public/uploads/profile-images'); 
 
 // Ensure all directories exist
 [tempDir, productImagesDir, reImageDir, profileImagesDir].forEach(dir => {
