@@ -59,4 +59,8 @@ const profileUpload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }  // 10MB limit
 });
 
-module.exports = { upload, profileUpload };
+module.exports = {
+    upload,
+    profileUpload
+};
+
