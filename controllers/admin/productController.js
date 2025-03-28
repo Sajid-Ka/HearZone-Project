@@ -114,6 +114,19 @@ const addProducts = async (req, res) => {
 };
 
 
+const checkProductName = async (req, res) => {
+    try {
+        const { name } = req.query;
+        const productExists = await Product.findOne({ 
+            productName: { $regex: new RegExp(`^${name}$`, 'i') }
+        });
+        res.json({ exists: !!productExists });
+    } catch (error) {
+        console.error('Error checking product name:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
 
 const getAllProducts = async (req, res) => {
     try {
@@ -375,6 +388,7 @@ const deleteSingleImage = async (req, res) => {
 module.exports = {
     getProductAddPage,
     addProducts,
+    checkProductName,
     getAllProducts,
     blockProduct,
     unblockProduct,
