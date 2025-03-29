@@ -235,7 +235,7 @@
             <div class="col-lg-12">
                 <div class="card mb-4">
                     <div class="card-body">
-                        <form method="post" action="/admin/addProducts" enctype="multipart/form-data" id="productForm">
+                        <form method="post" enctype="multipart/form-data" id="productForm">
                             <div class="mb-4">
                                 <label for="product_name" class="form-label">Product Name</label>
                                 <input type="text" placeholder="Type here" name="productName" class="form-control border" id="product_name">
@@ -333,10 +333,10 @@
                                                 <img class="image-preview" id="imgView<%= i %>">
                                                 <div class="custom-file mt-2">
                                                     <input class="custom-file-input" type="file" 
-                                                           name="images" 
-                                                           id="imageFile<%= i %>"
-                                                           accept="image/png, image/jpeg, image/jpg"
-                                                           onchange="handleImageSelect(this, <%= i %>)">
+                                                        name="images" 
+                                                        id="imageFile<%= i %>"
+                                                        accept="image/png, image/jpeg, image/jpg"
+                                                        onchange="handleImageSelect(this, <%= i %>)">
                                                     <label class="custom-file-label" for="imageFile<%= i %>">Choose image</label>
                                                 </div>
                                                 <!-- Add crop button -->
@@ -396,7 +396,7 @@
 
     <!-- Custom Script -->
     <script>
-   class ImageManager {
+class ImageManager {
     constructor() {
         this.selectedImages = [];
         this.cropper = null;
@@ -454,9 +454,7 @@
     }
 
     handleImageSelect(input, index) {
-        // Get the file from the input
         const file = input.files[0];
-        
         if (!file) return;
 
         if (!file.type.match('image.*')) {
@@ -476,16 +474,22 @@
             const preview = document.getElementById(`imgView${index}`);
             preview.src = e.target.result;
             preview.style.display = 'block';
-            
+
             const label = input.nextElementSibling;
             label.textContent = file.name;
-            
-            // Show crop button
+
             const cropBtn = document.getElementById(`cropBtn${index}`);
             cropBtn.style.display = 'inline-block';
-            
-            // Create a new thumbnail or update existing one
+
             this.addThumbnail(file, index, e.target.result);
+
+            // Ensure name attribute is set
+            input.name = 'images';
+            console.log(`File selected for input ${index}:`, {
+                name: file.name,
+                size: file.size,
+                fieldName: input.name
+            });
         };
         reader.readAsDataURL(file);
     }
@@ -515,9 +519,8 @@
             console.error('Cropper not initialized');
             return;
         }
-        
+
         try {
-            // Get the cropped canvas
             const canvas = this.cropper.getCroppedCanvas({
                 width: 600,
                 height: 600,
@@ -525,38 +528,35 @@
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high'
             });
-            
+
             if (!canvas) {
                 console.error('Failed to create cropped canvas');
                 return;
             }
-            
-            // Convert canvas to blob
+
             canvas.toBlob((blob) => {
                 if (!blob) {
                     console.error('Failed to create blob from canvas');
                     return;
                 }
-                
+
                 const index = this.currentImageIndex;
-                const preview = document.getElementById(`imgView${index}`);
                 const file = new File([blob], `cropped_image_${index}.jpg`, { type: 'image/jpeg' });
-                
-                // Update the image preview
+                console.log('Cropped file created:', {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                });
+
+                this.updateFileInput(index, file);
+
+                const preview = document.getElementById(`imgView${index}`);
                 const blobUrl = URL.createObjectURL(blob);
                 preview.src = blobUrl;
-                
-                // Update the file input
-                this.updateFileInput(index, file);
-                
-                // Update thumbnail
+
                 this.updateThumbnail(index, blobUrl);
-                
-                // Close the modal
+
                 $('#cropperModal').modal('hide');
-                
-                // Add a console log for debugging
-                console.log('Crop successful:', file);
             }, 'image/jpeg', 0.9);
         } catch (error) {
             console.error('Error cropping image:', error);
@@ -564,16 +564,26 @@
         }
     }
 
+
     updateFileInput(index, file) {
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
-        
+
         const fileInput = document.getElementById(`imageFile${index}`);
         fileInput.files = dataTransfer.files;
-        
+        fileInput.name = 'images'; // Explicitly set name to "images"
+
         // Update the label
         const label = fileInput.nextElementSibling;
         label.textContent = file.name;
+
+        // Log for debugging
+        console.log(`Updated file input ${index}:`, {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            fieldName: fileInput.name
+        });
     }
 
     updateThumbnail(index, blobUrl) {
@@ -661,43 +671,60 @@
 
 
 class FormValidator {
-        static async validate() {
+    static async validate() {
         this.clearErrors();
         const form = document.getElementById('productForm');
         const imageManager = window.imageManager;
         let isValid = true;
 
+        // Define validations for all form fields
         const validations = [
             { field: 'productName', errorId: 'productName-error', message: 'Please enter a product name', check: v => v.trim() === '' },
+            { field: 'brand', errorId: 'brand-error', message: 'Please select a brand', check: v => v.trim() === '' || v === 'undefined' },
             { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
-            { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) < 0 },
+            { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) <= 0 },
+            { field: 'salePrice', errorId: 'salePrice-error', message: 'Please enter a valid sale price (or leave blank)', check: v => v && (isNaN(v) || Number(v) < 0), optional: true },
             { field: 'quantity', errorId: 'quantity-error', message: 'Please enter a valid quantity', check: v => !v || isNaN(v) || Number(v) < 0 },
             { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' },
-            { field: 'specifications', errorId: 'specifications-error', message: 'Please add at least one specification', check: v => v.trim() === '' }
+            { field: 'category', errorId: 'category-error', message: 'Please select a category', check: v => v.trim() === '' || v === 'undefined' },
+            { field: 'specifications', errorId: 'specifications-error', message: 'Please add at least one specification', check: v => v.trim() === '' },
+            { field: 'highlights', errorId: 'highlights-error', message: 'Please add at least one highlight', check: v => v.trim() === '' }
         ];
 
+        // Validate all fields
         for (const val of validations) {
             const value = form.elements[val.field].value;
-            if (val.check(value)) {
+            if (!val.optional && val.check(value)) {
                 this.displayError(val.errorId, val.message);
                 isValid = false;
             }
         }
 
+        // Check product name uniqueness
         if (isValid) {
             const productName = form.elements['productName'].value;
             try {
-                const response = await fetch(`/admin/checkProductName?name=${encodeURIComponent(productName)}`);
+                console.log('Checking product name:', productName);
+                const response = await fetch(`/admin/checkProductName?name=${encodeURIComponent(productName)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
                 const data = await response.json();
+                console.log('Check product name response:', data);
                 if (data.exists) {
                     this.displayError('productName-error', 'This product name already exists');
                     isValid = false;
                 }
             } catch (error) {
                 console.error('Error checking product name:', error);
+                this.displayError('productName-error', 'Error checking product name availability');
+                isValid = false;
             }
         }
 
+        // Validate price relationship
         const regularPrice = Number(form.elements['regularPrice'].value);
         const salePrice = form.elements['salePrice'].value;
         if (salePrice) {
@@ -710,71 +737,90 @@ class FormValidator {
             }
         }
 
+        // Validate images
         if (imageManager.getImageCount() === 0) {
             this.displayError('images-error', 'Please upload at least one image');
             isValid = false;
         }
 
+        // Validate highlights (ensure at least one non-empty line)
         const highlights = form.elements['highlights'].value.trim();
         if (!highlights) {
             this.displayError('highlights-error', 'Please add at least one highlight');
             isValid = false;
-        }
-
-        // Validate specifications
-        const specKeys = form.elements['specKey[]'];
-        const specValues = form.elements['specValue[]'];
-        let hasValidSpec = false;
-        
-        for (let i = 0; i < specKeys.length; i++) {
-            const key = specKeys[i].value.trim();
-            const value = specValues[i].value.trim();
-            
-            if (key && value) {
-                hasValidSpec = true;
-            } else if ((key && !value) || (!key && value)) {
-                this.displayError('specifications-error', 'Please provide both key and value for specifications');
+        } else {
+            const highlightLines = highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0);
+            if (highlightLines.length === 0) {
+                this.displayError('highlights-error', 'Please add at least one valid highlight');
                 isValid = false;
             }
         }
 
-        if (!hasValidSpec) {
-            this.displayError('specifications-error', 'Please add at least one complete specification');
+        // Validate specifications (ensure at least one non-empty line)
+        const specifications = form.elements['specifications'].value.trim();
+        if (!specifications) {
+            this.displayError('specifications-error', 'Please add at least one specification');
             isValid = false;
+        } else {
+            const specLines = specifications.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            if (specLines.length === 0) {
+                this.displayError('specifications-error', 'Please add at least one valid specification');
+                isValid = false;
+            }
         }
+
+        // Remove the old specKey/specValue validation since the form uses a textarea for specifications
+        // If you add dynamic key-value inputs later, we can reintroduce that logic
 
         return isValid;
     }
 
-        static async submit() {
-            if (!this.validate()) {
-                Swal.fire('Error', 'Please fix all validation errors', 'error');
-                return;
-            }
+    static async submit() {
+        const isValid = await this.validate();
+        if (!isValid) {
+            Swal.fire('Error', 'Please fix all validation errors', 'error');
+            return;
+        }
 
-            Swal.fire({ title: 'Submitting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
-            try {
-                const form = document.getElementById('productForm');
-                const response = await fetch('/admin/addProducts', {
-                    method: 'POST',
-                    body: new FormData(form)
-                });
-                const data = await response.json();
+        const form = document.getElementById('productForm');
+        const formData = new FormData(form);
 
-                if (response.ok && data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: data.message || 'Product added successfully',
-                    }).then(() => window.location.href = '/admin/products');
-                } else {
-                    throw new Error(data.message || 'Failed to add product');
-                }
-            } catch (error) {
-                Swal.fire('Error', error.message, 'error');
+        // Log FormData contents
+        console.log('FormData contents:');
+        for (let [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(`${key}: File - ${value.name}, Size: ${value.size}, Type: ${value.type}`);
+            } else {
+                console.log(`${key}: ${value}`);
             }
         }
+
+        Swal.fire({ title: 'Submitting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        try {
+            const response = await fetch('/admin/addProducts', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            const text = await response.text();
+            console.log('Raw server response:', text);
+            const data = JSON.parse(text);
+
+            if (response.ok && data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: data.message || 'Product added successfully',
+                }).then(() => window.location.href = '/admin/products');
+            } else {
+                throw new Error(data.message || 'Failed to add product');
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            Swal.fire('Error', error.message || 'An error occurred while submitting the form', 'error');
+        }
+    }
 
         static displayError(id, message) {
             document.getElementById(id).textContent = message;

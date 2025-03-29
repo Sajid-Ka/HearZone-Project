@@ -37,7 +37,19 @@ router.get('/deleteCategory', categoryController.deleteCategory);
 
 //brand
 router.get('/brands', brandController.getAllBrands);
-router.post('/brands/add', multer.upload.single('brandImage'), brandController.addBrand);
+router.post('/brands/add', 
+    multer.upload.single('brandImage'),
+    (req, res, next) => {
+        if (!req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No brand image was uploaded' 
+            });
+        }
+        next();
+    },
+    brandController.addBrand
+);
 router.post('/brands/update', multer
     .upload.single('brandImage'), brandController.updateBrand);
 router.post('/brands/toggle', brandController.toggleBrandStatus);
@@ -45,12 +57,36 @@ router.post('/brands/delete', brandController.deleteBrand);
 
 //product 
 router.get('/addProducts', productController.getProductAddPage);
-router.post('/addProducts', multer.upload.array("images",4), productController.addProducts);
+
+router.post('/addProducts', 
+    multer.upload.array('images', 4),
+    (req, res, next) => {
+        if (!req.files) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No files were uploaded' 
+            });
+        }
+        next();
+    },
+    productController.addProducts
+);
+
+router.get('/checkProductName', isAdminAuth, productController.checkProductName);
 router.get('/products', productController.getAllProducts);
 router.get('/blockProduct', productController.blockProduct);
 router.get('/unblockProduct', productController.unblockProduct);
 router.get('/editProduct', productController.getEditProduct);
-router.post('/editProduct/:id', multer.upload.array("images",4), productController.editProduct);
+router.post('/editProduct/:id', 
+    multer.upload.array('images', 4),
+    (req, res, next) => {
+        if (!req.files && req.files.length === 0) {
+            return next();
+        }
+        next();
+    },
+    productController.editProduct
+);
 router.post('/deleteImage', productController.deleteSingleImage);
 
 // coupon routes

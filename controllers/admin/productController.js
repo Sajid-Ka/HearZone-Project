@@ -35,6 +35,13 @@ const getProductAddPage = async (req, res) => {
 
 const addProducts = async (req, res) => {
     try {
+        console.log('Received body:', req.body);
+        console.log('Received files:', req.files ? req.files.map(f => ({
+            fieldname: f.fieldname,
+            originalname: f.originalname,
+            size: f.size
+        })) : 'No files');
+
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ success: false, message: "Please upload at least one image" });
         }
@@ -75,11 +82,9 @@ const addProducts = async (req, res) => {
         if (!categoryId) return res.status(400).json({ success: false, message: "Invalid Category name" });
         if (!brandDoc) return res.status(400).json({ success: false, message: "Invalid Brand name" });
 
-        // Process highlights
         let highlights = products.highlights ? 
             products.highlights.split('\n').map(h => h.trim()).filter(h => h.length > 0) : [];
 
-        // Process specifications (similar to highlights)
         let specifications = products.specifications ? 
             products.specifications.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [];
 
@@ -101,6 +106,7 @@ const addProducts = async (req, res) => {
         });
 
         await newProduct.save();
+        console.log('Product saved successfully');
         return res.status(200).json({ success: true, message: "Product added successfully" });
     } catch (error) {
         console.error("Error saving product:", error);

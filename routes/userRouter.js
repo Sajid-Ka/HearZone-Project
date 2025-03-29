@@ -87,7 +87,7 @@ router.get('/verify-email-otp', profileController.getVerifyEmailOtpPage);
 router.post('/verify-email-otp', profileController.verifyEmailOtp);
 router.post('/resend-email-otp', profileController.resendEmailOtp);
 router.post('/update-profile-image', 
-    multer.profileUpload.single('profileImage'), 
+    multer.upload.single('profileImage'), 
     profileController.updateProfileImage
 );
 

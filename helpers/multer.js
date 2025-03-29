@@ -14,30 +14,33 @@ const profileImagesDir = path.join(__dirname, '../public/uploads/profile-images'
     }
 });
 
-// General storage for temporary uploads
-const tempStorage = multer.diskStorage({
+// General storage configuration
+const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, tempDir);
+        // Set appropriate destination based on fieldname
+        switch (file.fieldname) {
+            case 'profileImage':
+                cb(null, profileImagesDir);
+                break;
+            case 'brandImage':
+                cb(null, reImageDir);
+                break;
+            case 'images':
+                cb(null, tempDir);
+                break;
+            default:
+                cb(null, tempDir);
+        }
     },
     filename: function (req, file, cb) {
+        // Create unique filename
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
     }
 });
 
-// Separate storage for profile images
-const profileStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, profileImagesDir);
-    },
-    filename: (req, file, cb) => {
-        const userId = req.session.user.id;
-        const uniqueSuffix = Date.now(); // Simplified to match updateProfileImage
-        cb(null, `${userId}-${uniqueSuffix}${path.extname(file.originalname)}`);
-    }
-});
-
-// File filter to allow only images
+// File filter
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
         cb(null, true);
@@ -46,21 +49,19 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Upload configurations
+// Main upload middleware
 const upload = multer({
-    storage: tempStorage,
+    storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }
-});
-
-const profileUpload = multer({
-    storage: profileStorage,
-    fileFilter: fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 }  // 10MB limit
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+        fieldSize: 10 * 1024 * 1024, // Increase field size limit
+        fields: 20, // Increase maximum number of fields
+        files: 4 // Maximum number of files
+    }
 });
 
 module.exports = {
-    upload,
-    profileUpload
+    upload
 };
 
