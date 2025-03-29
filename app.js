@@ -16,8 +16,8 @@ require('./jobs/cleanupExpiredUsers');
 
 db();
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 const uploadDirs = [
     path.join(__dirname, 'public/uploads/product-images'),
