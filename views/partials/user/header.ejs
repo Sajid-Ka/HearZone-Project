@@ -21,6 +21,10 @@
     ================================================== -->
     <script src="/js/modernizr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
   </head>
   <body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-root-margin="0px 0px -40%" data-bs-smooth-scroll="true" tabindex="0">
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -164,24 +168,37 @@
                 </li> -->
                 
                 <% if (locals.user) { %>
-                  <div class="dropdown">
-                    <a href="#" class="sign-in-link"><%= locals.user.name %></a>
+                  <div class="dropdown" style="margin-right: 10px; display: inline-block;">
+                    <a href="#" class="sign-in-link">
+                      <i class="fa fa-user-circle"></i>
+                    </a>
                     <div class="dropdown-content">
                       <a href="/profile">Profile</a>
                       <a href="/logout">Logout</a>
                     </div>
                   </div>
                 <% } else { %>
-                  <li class="nav-item1">
-                    <a class="login-signup" href="/login">Login/</a>
-                  </li>
-                  <li class="nav-item2">
-                    <a class="login-signup" href="/signup">Signup</a>
-                  </li>
+                  <div class="dropdown" style="margin-right: 10px; display: inline-block;">
+                    <a href="#" class="sign-in-link">
+                      <i class="fa fa-user-circle"></i>
+                    </a>
+                    <div class="dropdown-content">
+                      <a class="login-signup" href="/login">Login</a>
+                      <a class="login-signup" href="/signup">Signup</a>
+                    </div>
+                  </div>
                 <% } %>
-
-             
                 
+                <li class="nav-item3" style="display: inline-block;">
+                  <a class="nav-link position-relative" href="/cart">
+                    <i class="fas fa-shopping-cart" style="color: black;"></i>
+                    <% if (locals.user && locals.cartCount !== undefined) { %>
+                      <span class=" top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count <%= locals.cartCount > 0 ? '' : 'd-none' %>">
+                        <%= locals.cartCount %>
+                      </span>
+                    <% } %>
+                  </a>
+                </li>
 
                 <!-- Profile-search-cart -->
 

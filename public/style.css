@@ -611,6 +611,11 @@ h3.cart-title {
   margin-right: 150px;
 }
 
+.nav-item3 .fa-shopping-cart {
+  display: inline-block !important;
+  margin-left: -140px;
+}
+
 .sign-in-link {
   margin-left: 210px;
   margin-right: 150px;
@@ -1044,6 +1049,7 @@ figure.instagram-item img.insta-image {
 .dropdown {
   position: relative;
   display: inline-block;
+  
 }
 
 .dropdown-content {

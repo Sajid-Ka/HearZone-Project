@@ -5,6 +5,7 @@ const productController = require('../controllers/user/productController');
 const forgotPasswordController = require('../controllers/user/forgotPasswordController');
 const profileController = require('../controllers/user/profileController');
 const addressController = require('../controllers/user/addressController');
+const cartController = require('../controllers/user/cartController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
@@ -103,6 +104,13 @@ router.get('/address', addressController.getAddressPage);
 router.post('/address/add', addressController.addAddress);
 router.post('/address/edit/:id', addressController.editAddress);
 router.post('/address/delete/:id', addressController.deleteAddress);
+
+// Cart routes
+router.get('/cart', userAuth, cartController.getCartItems);
+router.post('/cart/add', userAuth, cartController.addToCart);
+router.post('/cart/update-quantity', userAuth, cartController.updateQuantity);
+router.post('/cart/remove', userAuth, cartController.removeItem);
+router.post('/cart/clear', userAuth, cartController.clearCart);
 
 
 // Coupon routes
