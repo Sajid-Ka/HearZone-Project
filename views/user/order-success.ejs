@@ -1,0 +1,227 @@
+<%- include('../partials/user/header') %>
+<style>
+    /* Main Container */
+    .success-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 15px;
+    }
+    /* Success Card */
+    .success-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 800px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .success-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(52,152,219,0.1) 0%, rgba(255,255,255,0) 70%);
+        animation: pulse 6s infinite;
+    }
+    /* Header */
+    .success-header {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+    }
+    /* Paragraph */
+    .success-message {
+        color: #636e72;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+        position: relative;
+        z-index: 1;
+    }
+    /* Success Icon */
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        position: relative;
+        z-index: 1;
+    }
+    .success-icon .circle {
+        width: 80px;
+        height: 80px;
+        background: #3498db;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .success-icon .checkmark {
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+    }
+    /* Product Items Section */
+    .ordered-products {
+        margin: 30px 0;
+        position: relative;
+        z-index: 1;
+        text-align: left;
+    }
+    .product-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+    }
+    .product-image-container {
+        width: 80px;
+        height: 80px;
+        overflow: hidden;
+        border-radius: 10px;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .product-details {
+        flex-grow: 1;
+    }
+    .product-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+    .product-price {
+        color: #636e72;
+    }
+    .product-quantity {
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        margin-left: 10px;
+    }
+    /* Buttons */
+    .btn-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        position: relative;
+        z-index: 1;
+    }
+    .btn-primary {
+        background: #3498db;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 600;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(52,152,219,0.4);
+        color: white;
+        text-decoration: none;
+    }
+    .btn-secondary {
+        background: #636e72;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: 600;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    .btn-secondary:hover {
+        background: #2c3e50;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(99,110,114,0.4);
+        color: white;
+        text-decoration: none;
+    }
+    /* Animation */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .success-card {
+            padding: 30px 20px;
+            margin: 20px;
+        }
+        .btn-container {
+            flex-direction: column;
+            gap: 15px;
+        }
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+    }
+</style>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<div class="success-container">
+    <div class="success-card">
+        <div class="success-icon">
+            <div class="circle">
+                <span class="checkmark">✓</span>
+            </div>
+        </div>
+        <h2 class="success-header">Thank You for Your Order!</h2>
+        <p class="success-message">Your order (<%= order.orderId %>) has been successfully placed.</p>
+        
+        <% if (order.items && order.items.length > 0) { %>
+        <div class="ordered-products">
+            <h4>Ordered Products:</h4>
+            <% order.items.forEach(function(item) { %>
+                <div class="product-item">
+                    <div class="product-image-container">
+                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                             alt="<%= item.product ? item.product.productName : 'Product' %>" 
+                             class="product-image">
+                    </div>
+                    <div class="product-details">
+                        <div class="product-title"><%= item.product ? item.product.productName : 'Product' %></div>
+                        <div class="product-price">
+                            <%= item.price ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price) : '$0.00' %>
+                            <span class="product-quantity">x<%= item.quantity || 1 %></span>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+        <% } %>
+        
+        <div class="btn-container">
+            <a href="/orders/<%= order.orderId %>" class="btn btn-primary">View Order Details</a>
+            <a href="/shop" class="btn btn-secondary">Continue Shopping</a>
+        </div>
+    </div>
+</div>
+<br>
+<br>
+<br>
+<%- include('../partials/user/footer') %>

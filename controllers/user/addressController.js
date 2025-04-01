@@ -109,6 +109,42 @@ const addAddress = async (req, res) => {
     }
 };
 
+
+const getEditAddressPage = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const addressId = req.params.id;
+        
+        const addressDoc = await Address.findOne({ userId });
+        if (!addressDoc) {
+            req.session.messages = { error: 'Address not found' };
+            return res.redirect('/address');
+        }
+        
+        const address = addressDoc.addresses.find(addr => addr._id.toString() === addressId);
+        if (!address) {
+            req.session.messages = { error: 'Address not found' };
+            return res.redirect('/address');
+        }
+        
+        res.render('user/edit-address', {
+            title: 'Edit Address',
+            address,
+            addressId,
+            user: req.session.user,
+            currentRoute: '/address',
+            messages: req.session.messages || {},
+            errors: {}
+        });
+        delete req.session.messages;
+    } catch (error) {
+        console.error('Error in getEditAddressPage:', error);
+        req.session.messages = { error: 'Error loading address' };
+        res.redirect('/address');
+    }
+};
+
+
 const editAddress = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -241,6 +277,7 @@ const deleteAddress = async (req, res) => {
 module.exports = {
     getAddressPage,
     addAddress,
+    getEditAddressPage,
     editAddress,
     deleteAddress
 };

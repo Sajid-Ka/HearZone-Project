@@ -189,6 +189,15 @@ h1.mb-4 {
     font-size: 0.95rem;
 }
 
+.product-image {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.product-image:hover {
+    transform: scale(1.05);
+}
+
 .remove-btn{
     
     margin-left: 5px;
@@ -243,9 +252,11 @@ h1.mb-4 {
                             <% const product = item.productId; %>
                             <div class="row cart-item mb-3 pb-3 border-bottom" data-id="<%= item.productId._id %>">
                                 <div class="col-3 col-md-2">
-                                    <img src="<%= product.productImage && product.productImage.length ? '/uploads/product-images/' + product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
-                                    alt="<%= product.productName %>" 
-                                    class="img-fluid rounded">
+                                    <a href="/product-details?id=<%= product._id %>" class="product-link">
+                                        <img src="<%= product.productImage && product.productImage.length ? '/uploads/product-images/' + product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                                             alt="<%= product.productName %>" 
+                                             class="img-fluid rounded product-image">
+                                    </a>
                                 </div>
                                 
                                 <div class="col-9 col-md-10">
@@ -428,6 +439,16 @@ h1.mb-4 {
             }
             document.getElementById('total').textContent = parseFloat(data.finalAmount).toFixed(2);
         }
+
+
+        document.querySelectorAll('.product-image').forEach(image => {
+            image.addEventListener('click', function() {
+                const itemContainer = this.closest('.cart-item');
+                const productId = itemContainer.dataset.id;
+                window.location.href = `/product-details/${productId}`;
+            });
+        });
+
         
         // Handle quantity changes
         document.querySelectorAll('.quantity-btn').forEach(button => {

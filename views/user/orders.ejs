@@ -1,0 +1,206 @@
+<%- include('../partials/user/header') %>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    /* Main Layout */
+    .main-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding-top: 20px;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+        background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+        color: white;
+        padding: 25px;
+        height: 100%;
+        border-radius: 0 15px 15px 0;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        position: sticky;
+        top: 20px;
+    }
+
+    /* Orders Section Styling */
+    .orders-section {
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .orders-header {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 30px;
+        padding-bottom: 12px;
+        position: relative;
+    }
+
+    .orders-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background: #3498db;
+        border-radius: 2px;
+    }
+
+    .search-form {
+        max-width: 450px;
+        margin-bottom: 35px;
+        position: relative;
+    }
+
+    .search-form .form-control {
+        border-radius: 25px;
+        border: none;
+        padding: 12px 45px 12px 20px;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .search-form .form-control:focus {
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+        transform: scale(1.02);
+    }
+
+    .search-form::after {
+        content: '\1F50D';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #3498db;
+        font-size: 18px;
+    }
+
+    .order-card {
+        border: none;
+        padding: 25px;
+        margin-bottom: 25px;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .order-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: #3498db;
+        transition: all 0.3s ease;
+    }
+
+    .order-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .order-card:hover::before {
+        width: 8px;
+    }
+
+    .order-card h5 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+    }
+
+    .order-card p {
+        margin-bottom: 12px;
+        color: #636e72;
+        font-size: 0.95rem;
+    }
+
+    .status-text {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        background: #ecf0f1;
+        color: #2c3e50;
+    }
+
+    .order-card .btn-link {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 5px 15px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .order-card .btn-link:hover {
+        color: white;
+        background: #3498db;
+        text-decoration: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .orders-section {
+            padding: 20px;
+            margin: 10px;
+        }
+        .order-card {
+            margin-bottom: 15px;
+        }
+        .sidebar {
+            border-radius: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+    }
+</style>
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<div class="main-container">
+    <div class="container-fluid">
+        <div class="row">
+          
+                <%- include('../partials/user/profile/sidebar') %>
+            
+
+            <!-- Orders Column -->
+            <div class="col-md-9">
+                <div class="orders-section">
+                    <h2 class="orders-header">Your Orders</h2>
+                    <form action="/orders/search" method="GET" class="search-form">
+                        <input type="text" name="query" class="form-control" placeholder="Search orders by ID or address" value="<%= searchQuery || '' %>">
+                    </form>
+                    <% orders.forEach(order => { %>
+                        <div class="order-card">
+                            <h5>Order #<%= order.orderId %></h5>
+                            <p>Date: <%= order.createdOn.toLocaleDateString() %></p>
+                            <p>Status: <span class="status-text"><%= order.status %></span></p>
+                            <p>Total: ₹<%= order.finalAmount.toFixed(2) %></p>
+                            <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<br>
+<br>
+<br>
+
+<%- include('../partials/user/footer') %>

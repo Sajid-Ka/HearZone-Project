@@ -1,0 +1,523 @@
+<%- include('../partials/user/header') %>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    /* Main Layout */
+    .checkout-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 15px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        padding-bottom: 20px;
+    }
+
+    .checkout-header {
+        color: #2c3e50;
+        font-weight: 700;
+        padding: 20px 30px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .checkout-header::after {
+        content: '';
+        position: absolute;
+        bottom: 10px;
+        left: 30px;
+        width: 50px;
+        height: 3px;
+        background: #3498db;
+        border-radius: 2px;
+    }
+
+    /* Address Section */
+    .address-section {
+        padding: 0 30px 30px;
+    }
+
+    .address-section h4 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .address-card {
+        background: white;
+        border: none;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .address-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+    }
+
+    .address-card.selected {
+        border-left: 5px solid #3498db;
+        background: #f8f9fa;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+    }
+
+    .address-card input[type="radio"] {
+        margin-right: 15px;
+    }
+
+    .address-card strong {
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+
+    .address-card p {
+        margin: 5px 0 0 25px;
+        color: #636e72;
+        font-size: 0.95rem;
+    }
+    
+    /* Edit button styles */
+    .address-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .btn-edit {
+        background: #f39c12;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-edit:hover {
+        background: #e67e22;
+        transform: translateY(-2px);
+    }
+
+    /* Order Summary Section */
+    .order-summary {
+        padding: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .order-summary h4 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .product-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .product-item img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 15px;
+    }
+
+    .product-item span {
+        flex: 1;
+        color: #636e72;
+        font-size: 0.95rem;
+    }
+
+    .product-item span:last-child {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .order-summary hr {
+        margin: 20px 0;
+        border-color: #eee;
+    }
+
+    .order-summary p {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        color: #636e72;
+    }
+
+    .order-summary p strong {
+        color: #2c3e50;
+        font-size: 1.2rem;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        border: none;
+        padding: 12px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-link {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .btn-link:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        background-color: #222;
+        color: white;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .modal-title {
+        font-weight: 600;
+    }
+
+    .btn-close {
+        filter: invert(1);
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+        display: none;
+    }
+    .is-invalid ~ .error-message {
+        display: block;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .checkout-container {
+            margin: 20px auto;
+        }
+        .address-section, .order-summary {
+            padding: 20px;
+        }
+        .product-item img {
+            width: 50px;
+            height: 50px;
+        }
+    }
+</style>
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<div class="checkout-container">
+    <h2 class="checkout-header">Checkout</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="address-section">
+                <h4>Select Delivery Address</h4>
+                <% addresses.forEach(address => { %>
+                    <div class="address-card" data-id="<%= address._id %>">
+                        <div class="address-actions">
+                            <button class="btn btn-edit" data-bs-toggle="modal" data-bs-target="#editModal<%= address._id %>">Edit</button>
+                        </div>
+                        <input type="radio" name="address" value="<%= address._id %>" <%= address.isDefault ? 'checked' : '' %>>
+                        <strong><%= address.name %></strong>
+                        <p><%= address.addressType %></p>
+                        <p><%= address.city %>, <%= address.state %> - <%= address.pinCode %></p>
+                        <p>Phone: <%= address.phone %></p>
+                    </div>
+
+                    <!-- Edit Modal for each address -->
+                    <div class="modal fade" id="editModal<%= address._id %>" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Address</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <form class="edit-address-form" data-address-id="<%= address._id %>">
+                                        <div class="mb-3">
+                                            <label class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" name="name" value="<%= address.name %>">
+                                            <div class="error-message" data-field="name"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Address Type</label>
+                                            <select class="form-control" name="addressType">
+                                                <option value="Home" <%= address.addressType === 'Home' ? 'selected' : '' %>>Home</option>
+                                                <option value="Work" <%= address.addressType === 'Work' ? 'selected' : '' %>>Work</option>
+                                                <option value="Other" <%= address.addressType === 'Other' ? 'selected' : '' %>>Other</option>
+                                            </select>
+                                            <div class="error-message" data-field="addressType"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">City</label>
+                                            <input type="text" class="form-control" name="city" value="<%= address.city %>">
+                                            <div class="error-message" data-field="city"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Landmark</label>
+                                            <input type="text" class="form-control" name="landmark" value="<%= address.landmark %>">
+                                            <div class="error-message" data-field="landmark"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">State</label>
+                                            <input type="text" class="form-control" name="state" value="<%= address.state %>">
+                                            <div class="error-message" data-field="state"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Pin Code</label>
+                                            <input type="text" class="form-control" name="pinCode" value="<%= address.pinCode %>">
+                                            <div class="error-message" data-field="pinCode"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" name="phone" value="<%= address.phone %>">
+                                            <div class="error-message" data-field="phone"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Alternate Phone (Optional)</label>
+                                            <input type="tel" class="form-control" name="altPhone" value="<%= address.altPhone || '' %>">
+                                            <div class="error-message" data-field="altPhone"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" name="isDefault" id="isDefault<%= address._id %>" <%= address.isDefault ? 'checked' : '' %>>
+                                                <label class="form-check-label" for="isDefault<%= address._id %>">Set as Default</label>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <button type="submit" class="btn btn-dark">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+                <a href="/address" class="btn btn-link">Add New Address</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="order-summary">
+                <h4>Order Summary</h4>
+                <% cart.items.forEach(item => { %>
+                    <div class="product-item">
+                        <img src="<%= item.productId.productImage && item.productId.productImage.length ? '/uploads/product-images/' + item.productId.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                             alt="<%= item.productId.productName %>">
+                        <span><%= item.productId.productName %></span>
+                        <span>Qty: <%= item.quantity %></span>
+                        <span>₹<%= item.totalPrice.toFixed(2) %></span>
+                    </div>
+                <% }) %>
+                <hr>
+                <p>Subtotal: <span>₹<%= subTotal.toFixed(2) %></span></p>
+                <p>Discount: <span>-₹<%= discountAmount.toFixed(2) %></span></p>
+                <p>Shipping: <span>₹50.00</span></p>
+                <p><strong>Total:</strong> <strong>₹<%= (finalAmount + 50).toFixed(2) %></strong></p>
+                <button id="placeOrderBtn" class="btn btn-primary w-100">Place Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<br>
+<br>
+<br>
+
+<script>
+    // Stop event propagation when clicking edit button to prevent selecting the address
+    document.querySelectorAll('.btn-edit').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    document.querySelectorAll('.address-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+
+    document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+        const addressId = document.querySelector('input[name="address"]:checked')?.value;
+        if (!addressId) {
+            Swal.fire('Error', 'Please select an address', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/place-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ addressId })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = `/order-success?orderId=${data.orderId}`;
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to place order', 'error');
+        }
+    });
+
+    
+    // Edit Address Forms - Fixed Version
+    document.querySelectorAll('.edit-address-form').forEach(form => {
+        const modalId = form.closest('.modal').id;
+        const modal = document.getElementById(modalId);
+        let originalValues = {};
+
+        // Store original values when modal is shown
+        modal.addEventListener('show.bs.modal', function() {
+            form.querySelectorAll('input, select').forEach(input => {
+                originalValues[input.name] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const addressId = this.getAttribute('data-address-id');
+            
+            // 1. Prepare form data
+            const formData = new FormData(this);
+            const jsonData = {};
+            formData.forEach((value, key) => jsonData[key] = value);
+
+            // 2. Check for changes
+            let hasChanges = false;
+            Object.keys(jsonData).forEach(key => {
+                const currentValue = key === 'isDefault' ? jsonData[key] === 'on' : jsonData[key];
+                if (currentValue !== originalValues[key]) {
+                    hasChanges = true;
+                }
+            });
+
+            if (!hasChanges) {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'No Changes',
+                    text: 'You haven\'t made any changes to the address',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // 3. Validate required fields
+            const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
+            let isValid = true;
+
+            // Clear previous errors
+            form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            requiredFields.forEach(field => {
+                if (!jsonData[field] || jsonData[field].trim() === '') {
+                    const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                    const inputElement = form.querySelector(`[name="${field}"]`);
+                    if (errorElement && inputElement) {
+                        errorElement.textContent = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+                        inputElement.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (!isValid) return;
+
+            try {
+                // 4. Send the request
+                const response = await fetch(`/address/edit/${addressId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        ...jsonData,
+                        isDefault: jsonData.isDefault === 'on'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // Handle server-side validation errors
+                    if (result.errors) {
+                        Object.entries(result.errors).forEach(([field, message]) => {
+                            const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                            const inputElement = form.querySelector(`[name="${field}"]`);
+                            if (errorElement && inputElement) {
+                                errorElement.textContent = message;
+                                inputElement.classList.add('is-invalid');
+                            }
+                        });
+                        throw new Error('Validation failed');
+                    }
+                    throw new Error(result.message || 'Failed to update address');
+                }
+
+                // 5. Success
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Updated!',
+                    text: 'Address has been updated successfully',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                }).then(() => window.location.reload());
+                
+            } catch (error) {
+                console.error('Update error:', error);
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to update address',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    });
+</script>
+
+<%- include('../partials/user/footer') %>

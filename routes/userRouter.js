@@ -6,6 +6,8 @@ const forgotPasswordController = require('../controllers/user/forgotPasswordCont
 const profileController = require('../controllers/user/profileController');
 const addressController = require('../controllers/user/addressController');
 const cartController = require('../controllers/user/cartController');
+const checkoutController = require('../controllers/user/checkoutController');
+const orderController = require('../controllers/user/orderController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
@@ -102,6 +104,7 @@ router.post('/review/delete/:reviewId', reviewController.deleteReview);
 // Address routes
 router.get('/address', addressController.getAddressPage);
 router.post('/address/add', addressController.addAddress);
+router.get('/address/edit/:id', userAuth, addressController.getEditAddressPage);
 router.post('/address/edit/:id', addressController.editAddress);
 router.post('/address/delete/:id', addressController.deleteAddress);
 
@@ -111,6 +114,19 @@ router.post('/cart/add', userAuth, cartController.addToCart);
 router.post('/cart/update-quantity', userAuth, cartController.updateQuantity);
 router.post('/cart/remove', userAuth, cartController.removeItem);
 router.post('/cart/clear', userAuth, cartController.clearCart);
+
+
+// Add under protected routes
+router.get('/checkout', checkoutController.getCheckoutPage);
+router.post('/place-order', checkoutController.placeOrder);
+router.get('/order-success', checkoutController.getOrderSuccessPage);
+
+router.get('/orders', orderController.getOrderList);
+router.get('/orders/:orderId', orderController.getOrderDetails);
+router.post('/orders/:orderId/cancel', orderController.cancelOrder);
+router.post('/orders/:orderId/return', orderController.returnOrder);
+router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
+router.get('/orders/search', orderController.searchOrders);
 
 
 // Coupon routes
