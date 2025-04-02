@@ -367,18 +367,22 @@
         });
     });
     
+    // Address card selection
     document.querySelectorAll('.address-card').forEach(card => {
-        card.addEventListener('click', function() {
+        card.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-edit')) return; // Prevent selection on edit button click
             document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
             this.querySelector('input[type="radio"]').checked = true;
         });
     });
 
+    // Place Order
     document.getElementById('placeOrderBtn').addEventListener('click', async () => {
         const addressId = document.querySelector('input[name="address"]:checked')?.value;
+        
         if (!addressId) {
-            Swal.fire('Error', 'Please select an address', 'error');
+            Swal.fire('Error', 'Please select a delivery address', 'error');
             return;
         }
 
@@ -388,20 +392,26 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ addressId })
             });
+            
             const data = await response.json();
 
             if (data.success) {
-                window.location.href = `/order-success?orderId=${data.orderId}`;
+                Swal.fire({
+                    title: 'Order Placed!',
+                    text: `Your order #${data.orderId} has been placed successfully`,
+                    icon: 'success'
+                }).then(() => {
+                    window.location.href = `/order-success?orderId=${data.orderId}`;
+                });
             } else {
-                Swal.fire('Error', data.message, 'error');
+                throw new Error(data.message || 'Failed to place order');
             }
         } catch (error) {
-            Swal.fire('Error', 'Failed to place order', 'error');
+            Swal.fire('Error', error.message, 'error');
         }
     });
 
-    
-    // Edit Address Forms - Fixed Version
+    // Edit Address Forms
     document.querySelectorAll('.edit-address-form').forEach(form => {
         const modalId = form.closest('.modal').id;
         const modal = document.getElementById(modalId);
@@ -417,62 +427,35 @@
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             const addressId = this.getAttribute('data-address-id');
-            
-            // 1. Prepare form data
             const formData = new FormData(this);
-            const jsonData = {};
-            formData.forEach((value, key) => jsonData[key] = value);
+            const jsonData = Object.fromEntries(formData);
 
-            // 2. Check for changes
+            // Clear previous errors
+            form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            // Check for changes
             let hasChanges = false;
             Object.keys(jsonData).forEach(key => {
-                const currentValue = key === 'isDefault' ? jsonData[key] === 'on' : jsonData[key];
-                if (currentValue !== originalValues[key]) {
-                    hasChanges = true;
-                }
+                const currentValue = key === 'isDefault' ? (jsonData[key] === 'on') : jsonData[key];
+                const originalValue = key === 'isDefault' ? originalValues[key] : originalValues[key];
+                if (currentValue !== originalValue) hasChanges = true;
             });
 
             if (!hasChanges) {
                 await Swal.fire({
                     icon: 'info',
                     title: 'No Changes',
-                    text: 'You haven\'t made any changes to the address',
-                    confirmButtonColor: '#222',
-                    confirmButtonText: 'OK'
+                    text: 'No changes were detected in the address',
+                    confirmButtonColor: '#222'
                 });
                 return;
             }
 
-            // 3. Validate required fields
-            const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
-            let isValid = true;
-
-            // Clear previous errors
-            form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-
-            requiredFields.forEach(field => {
-                if (!jsonData[field] || jsonData[field].trim() === '') {
-                    const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
-                    const inputElement = form.querySelector(`[name="${field}"]`);
-                    if (errorElement && inputElement) {
-                        errorElement.textContent = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
-                        inputElement.classList.add('is-invalid');
-                        isValid = false;
-                    }
-                }
-            });
-
-            if (!isValid) return;
-
             try {
-                // 4. Send the request
                 const response = await fetch(`/address/edit/${addressId}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...jsonData,
                         isDefault: jsonData.isDefault === 'on'
@@ -481,39 +464,41 @@
 
                 const result = await response.json();
 
-                if (!response.ok) {
-                    // Handle server-side validation errors
-                    if (result.errors) {
-                        Object.entries(result.errors).forEach(([field, message]) => {
-                            const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
-                            const inputElement = form.querySelector(`[name="${field}"]`);
-                            if (errorElement && inputElement) {
-                                errorElement.textContent = message;
-                                inputElement.classList.add('is-invalid');
-                            }
+                if (response.ok) {
+                    if (result.noChanges) {
+                        await Swal.fire({
+                            icon: 'info',
+                            title: 'No Changes',
+                            text: 'No changes were detected in the address',
+                            confirmButtonColor: '#222'
                         });
-                        throw new Error('Validation failed');
+                    } else {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: result.message,
+                            confirmButtonColor: '#222'
+                        }).then(() => window.location.reload());
                     }
-                    throw new Error(result.message || 'Failed to update address');
+                } else if (result.errors) {
+                    Object.entries(result.errors).forEach(([field, message]) => {
+                        const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                        const inputElement = form.querySelector(`[name="${field}"]`);
+                        if (errorElement && inputElement) {
+                            errorElement.textContent = message;
+                            inputElement.classList.add('is-invalid');
+                        }
+                    });
+                } else {
+                    throw new Error(result.errors?.general || 'Failed to update address');
                 }
-
-                // 5. Success
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Updated!',
-                    text: 'Address has been updated successfully',
-                    confirmButtonColor: '#222',
-                    confirmButtonText: 'OK'
-                }).then(() => window.location.reload());
-                
             } catch (error) {
-                console.error('Update error:', error);
+                console.error('Error:', error);
                 await Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: error.message || 'Failed to update address',
-                    confirmButtonColor: '#222',
-                    confirmButtonText: 'OK'
+                    text: error.message,
+                    confirmButtonColor: '#222'
                 });
             }
         });

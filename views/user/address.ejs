@@ -151,17 +151,17 @@
 
             <div class="card p-4 mb-4">
                 <h4>Add New Address</h4>
-                <form action="/address/add" method="POST" id="addAddressForm">
+                <form action="/address/add" method="POST" id="addAddressForm" novalidate>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" name="name" placeholder="Full Name" value="<%= user.name || '' %>">
+                            <input type="text" class="form-control" name="name" placeholder="Full Name" value="<%= user.name || '' %>" required>
                             <div class="error-message" data-field="name"><%= errors.name || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Address Type</label>
-                            <select class="form-control" name="addressType">
-                                <option value="">Select Address Type</option>
+                            <select class="form-control" name="addressType" required>
+                                <option value="" disabled selected>Select Address Type</option>
                                 <option value="Home">Home</option>
                                 <option value="Work">Work</option>
                                 <option value="Other">Other</option>
@@ -170,32 +170,32 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city" placeholder="City">
+                            <input type="text" class="form-control" name="city" placeholder="City" required>
                             <div class="error-message" data-field="city"><%= errors.city || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Landmark</label>
-                            <input type="text" class="form-control" name="landmark" placeholder="Landmark">
+                            <input type="text" class="form-control" name="landmark" placeholder="Landmark" required>
                             <div class="error-message" data-field="landmark"><%= errors.landmark || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state" placeholder="State">
+                            <input type="text" class="form-control" name="state" placeholder="State" required>
                             <div class="error-message" data-field="state"><%= errors.state || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Pin Code</label>
-                            <input type="text" class="form-control" name="pinCode" placeholder="Pin Code">
+                            <input type="text" class="form-control" name="pinCode" placeholder="Pin Code" pattern="\d{6}" required>
                             <div class="error-message" data-field="pinCode"><%= errors.pinCode || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
-                            <input type="tel" class="form-control" name="phone" placeholder="Phone" value="<%= user.phone || '' %>">
+                            <input type="tel" class="form-control" name="phone" placeholder="Phone" value="<%= user.phone || '' %>" pattern="\d{10}" required>
                             <div class="error-message" data-field="phone"><%= errors.phone || '' %></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Alternate Phone (Optional)</label>
-                            <input type="tel" class="form-control" name="altPhone" placeholder="Alternate Phone">
+                            <input type="tel" class="form-control" name="altPhone" placeholder="Alternate Phone" pattern="\d{10}">
                             <div class="error-message" data-field="altPhone"><%= errors.altPhone || '' %></div>
                         </div>
                         <div class="col-md-12 mb-3">
@@ -317,95 +317,176 @@
 <br>
 
 <script>
-    // Add Address Form
+    // In your address form script (client-side)
     document.getElementById('addAddressForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const form = this;
         const formData = new FormData(form);
+        const jsonData = Object.fromEntries(formData);
 
+        // Clear previous error messages
         form.querySelectorAll('.error-message').forEach(error => {
             error.textContent = '';
             error.previousElementSibling.classList.remove('is-invalid');
         });
 
+        // Client-side validation
+        let hasErrors = false;
+        const errors = {};
+
+        // Validate required fields
+        const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
+        requiredFields.forEach(field => {
+            const value = jsonData[field]?.trim();
+            if (!value) {
+                errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+                hasErrors = true;
+            }
+        });
+
+        // Relax the validation patterns
+        const namePattern = /^[A-Za-z\s\-']+$/; // Allows hyphens and apostrophes in names
+        const addressPattern = /^[A-Za-z0-9\s\-.,'()]+$/; // More permissive for addresses
+        
+        if (jsonData.name && !namePattern.test(jsonData.name)) {
+            errors.name = 'Please enter a valid name';
+            hasErrors = true;
+        }
+        
+        if (jsonData.city && !addressPattern.test(jsonData.city)) {
+            errors.city = 'Please enter a valid city name';
+            hasErrors = true;
+        }
+        
+        if (jsonData.state && !addressPattern.test(jsonData.state)) {
+            errors.state = 'Please enter a valid state name';
+            hasErrors = true;
+        }
+        
+        if (jsonData.landmark && !addressPattern.test(jsonData.landmark)) {
+            errors.landmark = 'Please enter a valid landmark';
+            hasErrors = true;
+        }
+
+        // Phone number validation
+        if (jsonData.phone && !/^\d{10}$/.test(jsonData.phone)) {
+            errors.phone = 'Phone must be exactly 10 digits';
+            hasErrors = true;
+        }
+        
+        if (jsonData.altPhone && jsonData.altPhone.trim() !== '' && !/^\d{10}$/.test(jsonData.altPhone)) {
+            errors.altPhone = 'Alternate phone must be exactly 10 digits';
+            hasErrors = true;
+        }
+        
+        if (jsonData.pinCode && !/^\d{6}$/.test(jsonData.pinCode)) {
+            errors.pinCode = 'PIN code must be exactly 6 digits';
+            hasErrors = true;
+        }
+
+        // If there are client-side errors, display them and stop submission
+        if (hasErrors) {
+            Object.entries(errors).forEach(([field, message]) => {
+                const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                const inputElement = form.querySelector(`[name="${field}"]`);
+                if (errorElement && inputElement) {
+                    errorElement.textContent = message;
+                    inputElement.classList.add('is-invalid');
+                }
+            });
+            return;
+        }
+
+        // Proceed with form submission if no client-side errors
         try {
             const response = await fetch('/address/add', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(jsonData)
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: result.message || 'Address added successfully',
-                    confirmButtonColor: '#222',
-                    confirmButtonText: 'OK'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.reload();
+                // Success - redirect or show success message
+                window.location.href = '/address'; // or wherever you want to redirect
+            } else if (result.errors) {
+                // Server-side validation errors
+                Object.entries(result.errors).forEach(([field, message]) => {
+                    const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                    const inputElement = form.querySelector(`[name="${field}"]`);
+                    if (errorElement && inputElement) {
+                        errorElement.textContent = message;
+                        inputElement.classList.add('is-invalid');
                     }
                 });
             } else {
-                if (result.errors) {
-                    const errorMessages = Object.values(result.errors).join('\n');
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMessages || 'Failed to add address',
-                        confirmButtonColor: '#222',
-                        confirmButtonText: 'OK'
-                    });
-
-                    Object.entries(result.errors).forEach(([field, message]) => {
-                        const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
-                        const inputElement = form.querySelector(`[name="${field}"]`);
-                        if (errorElement && inputElement) {
-                            errorElement.textContent = message;
-                            inputElement.classList.add('is-invalid');
-                        }
-                    });
-                } else {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: result.errors?.general || 'Failed to add address',
-                        confirmButtonColor: '#222',
-                        confirmButtonText: 'OK'
-                    });
-                }
+                throw new Error(result.message || 'Failed to add address');
             }
         } catch (error) {
             console.error('Error:', error);
-            await Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An unexpected error occurred while adding the address',
-                confirmButtonColor: '#222',
-                confirmButtonText: 'OK'
-            });
+            // Show generic error message
+            const generalError = form.querySelector('.error-message[data-field="general"]');
+            if (generalError) {
+                generalError.textContent = 'An error occurred while saving the address';
+                generalError.style.display = 'block';
+            }
         }
     });
 
     // Edit Address Forms
     document.querySelectorAll('.edit-address-form').forEach(form => {
+        const modalId = form.closest('.modal').id;
+        const modal = document.getElementById(modalId);
+        let originalValues = {};
+
+        // Store original values when modal is shown
+        modal.addEventListener('show.bs.modal', function() {
+            form.querySelectorAll('input, select').forEach(input => {
+                originalValues[input.name] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+        });
+
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            const addressId = this.action.split('/').pop();
             const formData = new FormData(this);
+            const jsonData = Object.fromEntries(formData);
 
-            // Clear existing error messages
-            form.querySelectorAll('.error-message').forEach(error => {
-                error.textContent = '';
-                error.previousElementSibling.classList.remove('is-invalid');
+            // Clear previous errors
+            form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            // Check for changes
+            let hasChanges = false;
+            Object.keys(jsonData).forEach(key => {
+                const currentValue = key === 'isDefault' ? (jsonData[key] === 'on') : jsonData[key];
+                const originalValue = key === 'isDefault' ? originalValues[key] : originalValues[key];
+                if (currentValue !== originalValue) hasChanges = true;
             });
 
+            if (!hasChanges) {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'No Changes',
+                    text: 'No changes were detected in the address',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
             try {
-                const response = await fetch(this.action, {
+                const response = await fetch(`/address/edit/${addressId}`, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...jsonData,
+                        isDefault: jsonData.isDefault === 'on'
+                    })
                 });
 
                 const result = await response.json();
@@ -432,34 +513,34 @@
                             }
                         });
                     }
+                } else if (result.errors) {
+                    // Show field-specific errors under inputs
+                    Object.entries(result.errors).forEach(([field, message]) => {
+                        const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
+                        const inputElement = form.querySelector(`[name="${field}"]`);
+                        if (errorElement && inputElement) {
+                            errorElement.textContent = message;
+                            inputElement.classList.add('is-invalid');
+                        }
+                    });
+                    // Show SweetAlert with all errors combined
+                    const errorMessages = Object.values(result.errors).join('\n');
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: errorMessages,
+                        confirmButtonColor: '#222',
+                        confirmButtonText: 'OK'
+                    });
                 } else {
-                    if (result.errors) {
-                        // Show field-specific errors under inputs
-                        Object.entries(result.errors).forEach(([field, message]) => {
-                            const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
-                            const inputElement = form.querySelector(`[name="${field}"]`);
-                            if (errorElement && inputElement) {
-                                errorElement.textContent = message;
-                                inputElement.classList.add('is-invalid');
-                            }
-                        });
-                    } else {
-                        // Show server error with SweetAlert
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: result.errors?.general || 'Failed to update address',
-                            confirmButtonColor: '#222',
-                            confirmButtonText: 'OK'
-                        });
-                    }
+                    throw new Error(result.errors?.general || 'Failed to update address');
                 }
             } catch (error) {
                 console.error('Error:', error);
                 await Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An unexpected server error occurred while updating the address',
+                    text: error.message || 'An unexpected error occurred while updating the address',
                     confirmButtonColor: '#222',
                     confirmButtonText: 'OK'
                 });
@@ -467,14 +548,12 @@
         });
     });
 
-    
     // Delete Address Buttons
     document.querySelectorAll('.delete-address-btn').forEach(button => {
         button.addEventListener('click', async function(e) {
             e.preventDefault();
             const addressId = this.getAttribute('data-address-id');
 
-            // Show confirmation dialog first
             const confirmation = await Swal.fire({
                 title: 'Are you sure?',
                 text: 'Do you want to delete this address?',
@@ -491,9 +570,7 @@
             try {
                 const response = await fetch(`/address/delete/${addressId}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 const result = await response.json();
@@ -511,20 +588,14 @@
                         }
                     });
                 } else {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: result.error || 'Failed to delete address',
-                        confirmButtonColor: '#222',
-                        confirmButtonText: 'OK'
-                    });
+                    throw new Error(result.error || 'Failed to delete address');
                 }
             } catch (error) {
                 console.error('Error:', error);
                 await Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An unexpected error occurred while deleting the address',
+                    text: error.message || 'An unexpected error occurred while deleting the address',
                     confirmButtonColor: '#222',
                     confirmButtonText: 'OK'
                 });

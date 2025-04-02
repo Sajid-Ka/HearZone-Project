@@ -172,6 +172,16 @@
         box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
     }
 
+    .invalid-feedback {
+        display: none;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+    .form-control.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+
     /* Footer styles */
     .footer {
         width: 100vw;
@@ -388,82 +398,117 @@
         }).show();
     <% } %>
 
-    // Add validation for edit address forms
+    // Edit Address Forms
     document.querySelectorAll('.editAddressForm').forEach(form => {
+        const modalId = form.closest('.modal').id;
+        const modal = document.getElementById(modalId);
+        let originalValues = {};
+
+        // Store original values when modal is shown
+        modal.addEventListener('show.bs.modal', function() {
+            form.querySelectorAll('input, select').forEach(input => {
+                originalValues[input.name] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+        });
+
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            const addressId = this.action.split('/').pop();
             const formData = new FormData(this);
-            const phone = form.phone.value;
-            const altPhone = form.altPhone.value;
+            const jsonData = Object.fromEntries(formData);
 
-            // Reset validation states
+            // Clear previous validation feedback
             form.querySelectorAll('.form-control').forEach(field => {
                 field.classList.remove('is-invalid');
             });
-
-            // Validation
-            const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
-            let isValid = true;
-
-            requiredFields.forEach(fieldName => {
-                const field = form[fieldName];
-                if (!field.value.trim()) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                }
+            form.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.style.display = 'none';
             });
 
-            if (phone && !/^\d{10}$/.test(phone)) {
-                form.phone.classList.add('is-invalid');
-                isValid = false;
-            }
+            // Check for changes
+            let hasChanges = false;
+            Object.keys(jsonData).forEach(key => {
+                const currentValue = key === 'isDefault' ? (jsonData[key] === 'on') : jsonData[key];
+                const originalValue = key === 'isDefault' ? originalValues[key] : originalValues[key];
+                if (currentValue !== originalValue) hasChanges = true;
+            });
 
-            if (altPhone) {
-                if (!/^\d{10}$/.test(altPhone) || phone === altPhone) {
-                    form.altPhone.classList.add('is-invalid');
-                    isValid = false;
-                }
+            if (!hasChanges) {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'No Changes',
+                    text: 'No changes were detected in the address',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+                return;
             }
-
-            if (form.pinCode.value && !/^\d{6}$/.test(form.pinCode.value)) {
-                form.pinCode.classList.add('is-invalid');
-                isValid = false;
-            }
-
-            if (!isValid) return;
 
             try {
-                const response = await fetch(this.action, {
+                const response = await fetch(`/address/edit/${addressId}`, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...jsonData,
+                        isDefault: jsonData.isDefault === 'on'
+                    })
                 });
 
+                const result = await response.json();
+
                 if (response.ok) {
-                    const result = await response.json();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: result.message || 'Address updated successfully',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        window.location.reload();
+                    if (result.noChanges) {
+                        await Swal.fire({
+                            icon: 'info',
+                            title: 'No Changes',
+                            text: 'No changes were detected in the address',
+                            confirmButtonColor: '#222',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Address updated successfully',
+                            confirmButtonColor: '#222',
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.reload();
+                            }
+                        });
+                    }
+                } else if (result.errors) {
+                    // Show field-specific errors
+                    Object.entries(result.errors).forEach(([field, message]) => {
+                        const fieldElement = form.querySelector(`[name="${field}"]`);
+                        const feedbackElement = fieldElement?.nextElementSibling;
+                        if (fieldElement && feedbackElement) {
+                            fieldElement.classList.add('is-invalid');
+                            feedbackElement.textContent = message;
+                            feedbackElement.style.display = 'block';
+                        }
+                    });
+                    // Show SweetAlert with combined errors
+                    const errorMessages = Object.values(result.errors).join('\n');
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: errorMessages,
+                        confirmButtonColor: '#222',
+                        confirmButtonText: 'OK'
                     });
                 } else {
-                    const errorResult = await response.json();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: errorResult.message || 'Failed to update address'
-                    });
+                    throw new Error(result.message || 'Failed to update address');
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
-                Swal.fire({
+                console.error('Error:', error);
+                await Swal.fire({
                     icon: 'error',
-                    title: 'Error!',
-                    text: 'Something went wrong. Please try again.'
+                    title: 'Error',
+                    text: error.message || 'An unexpected error occurred while updating the address',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
                 });
             }
         });

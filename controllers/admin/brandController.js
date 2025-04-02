@@ -22,6 +22,7 @@ const getAllBrands = async (req, res) => {
         const totalPages = Math.ceil(totalBrands / limit);
         
         const brands = await Brand.find()
+            .sort({createdAt:-1})
             .skip(skip)
             .limit(limit);
 

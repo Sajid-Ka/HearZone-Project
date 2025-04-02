@@ -28,6 +28,8 @@ const getAddressPage = async (req, res) => {
     }
 };
 
+
+// addAddress
 const addAddress = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -35,7 +37,6 @@ const addAddress = async (req, res) => {
             addressType, name, city, landmark, state, pinCode, phone, altPhone, isDefault
         } = req.body;
 
-        // Object to store field-specific errors
         const errors = {};
 
         // Validate required fields
@@ -46,66 +47,76 @@ const addAddress = async (req, res) => {
             }
         }
 
-        // Validate alphabets only
-        const alphaOnlyRegex = /^[A-Za-z\s]+$/;
-        if (name && !alphaOnlyRegex.test(name)) {
-            errors.name = 'Name must contain only alphabets';
+        // More permissive validation patterns
+        const namePattern = /^[A-Za-z\s\-']+$/;
+        const addressPattern = /^[A-Za-z0-9\s\-.,'()]+$/;
+        
+        if (name && !namePattern.test(name.trim())) {
+            errors.name = 'Please enter a valid name';
         }
-        if (city && !alphaOnlyRegex.test(city)) {
-            errors.city = 'City must contain only alphabets';
+        
+        if (city && !addressPattern.test(city.trim())) {
+            errors.city = 'Please enter a valid city name';
         }
-        if (state && !alphaOnlyRegex.test(state)) {
-            errors.state = 'State must contain only alphabets';
+        
+        if (state && !addressPattern.test(state.trim())) {
+            errors.state = 'Please enter a valid state name';
         }
-        if (landmark && !alphaOnlyRegex.test(landmark)) {
-            errors.landmark = 'Landmark must contain only alphabets';
+        
+        if (landmark && !addressPattern.test(landmark.trim())) {
+            errors.landmark = 'Please enter a valid landmark';
         }
 
-        // Validate numbers only
-        if (phone && !/^\d{10}$/.test(phone)) {
-            errors.phone = 'Phone number must be exactly 10 digits';
+        // Phone validation
+        if (phone && !/^\d{10}$/.test(phone.trim())) {
+            errors.phone = 'Phone must be exactly 10 digits';
         }
-        if (altPhone && !/^\d{10}$/.test(altPhone)) {
+        
+        if (altPhone && altPhone.trim() !== '' && !/^\d{10}$/.test(altPhone.trim())) {
             errors.altPhone = 'Alternate phone must be exactly 10 digits';
         }
-        if (pinCode && !/^\d{6}$/.test(pinCode)) {
-            errors.pinCode = 'Pin code must be exactly 6 digits';
+        
+        if (pinCode && !/^\d{6}$/.test(pinCode.trim())) {
+            errors.pinCode = 'PIN code must be exactly 6 digits';
         }
 
-        // If there are errors, return them
         if (Object.keys(errors).length > 0) {
             return res.status(400).json({ errors });
         }
 
-        // Rest of the code remains the same
+        // Rest of your address saving logic...
         let addressDoc = await Address.findOne({ userId });
         if (!addressDoc) {
             addressDoc = new Address({ userId, addresses: [] });
         }
 
         const newAddress = {
-            addressType,
-            name,
-            city,
-            landmark,
-            state,
-            pinCode,
-            phone,
-            altPhone: altPhone || '',
+            addressType: addressType.trim(),
+            name: name.trim(),
+            city: city.trim(),
+            landmark: landmark.trim(),
+            state: state.trim(),
+            pinCode: pinCode.trim(),
+            phone: phone.trim(),
+            altPhone: altPhone ? altPhone.trim() : '',
             isDefault: isDefault === 'on'
         };
 
         if (newAddress.isDefault) {
-            addressDoc.addresses.forEach(addr => addr.isDefault = false);
+            addressDoc.addresses.forEach(addr => (addr.isDefault = false));
         }
 
         addressDoc.addresses.push(newAddress);
         await addressDoc.save();
 
-        res.status(200).json({ message: 'Address added successfully' });
+        res.status(200).json({ success: true, message: 'Address added successfully' });
     } catch (error) {
         console.error('Error in addAddress:', error);
-        res.status(500).json({ errors: { general: 'Error adding address: ' + error.message } });
+        res.status(500).json({ 
+            errors: { 
+                general: 'An error occurred while saving the address' 
+            } 
+        });
     }
 };
 
@@ -145,6 +156,7 @@ const getEditAddressPage = async (req, res) => {
 };
 
 
+// editAddress
 const editAddress = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -158,7 +170,7 @@ const editAddress = async (req, res) => {
             pinCode: req.body.pinCode || '',
             phone: req.body.phone || '',
             altPhone: req.body.altPhone || '',
-            isDefault: req.body.isDefault === 'on'
+            isDefault: req.body.isDefault === 'on' || req.body.isDefault === true
         };
 
         const errors = {};
@@ -181,43 +193,29 @@ const editAddress = async (req, res) => {
 
         // Validate alphabets only
         const alphaOnlyRegex = /^[A-Za-z\s]+$/;
-        if (addressData.name && !alphaOnlyRegex.test(addressData.name)) {
-            errors.name = 'Name must contain only alphabets';
-        }
-        if (addressData.city && !alphaOnlyRegex.test(addressData.city)) {
-            errors.city = 'City must contain only alphabets';
-        }
-        if (addressData.state && !alphaOnlyRegex.test(addressData.state)) {
-            errors.state = 'State must contain only alphabets';
-        }
-        if (addressData.landmark && !alphaOnlyRegex.test(addressData.landmark)) {
-            errors.landmark = 'Landmark must contain only alphabets';
-        }
+        if (addressData.name && !alphaOnlyRegex.test(addressData.name)) errors.name = 'Name must contain only alphabets';
+        if (addressData.city && !alphaOnlyRegex.test(addressData.city)) errors.city = 'City must contain only alphabets';
+        if (addressData.state && !alphaOnlyRegex.test(addressData.state)) errors.state = 'State must contain only alphabets';
+        if (addressData.landmark && !alphaOnlyRegex.test(addressData.landmark)) errors.landmark = 'Landmark must contain only alphabets';
 
         // Validate numbers only
-        if (addressData.phone && !/^\d{10}$/.test(addressData.phone)) {
-            errors.phone = 'Phone number must be exactly 10 digits';
-        }
-        if (addressData.altPhone && !/^\d{10}$/.test(addressData.altPhone)) {
-            errors.altPhone = 'Alternate phone must be exactly 10 digits';
-        }
-        if (addressData.pinCode && !/^\d{6}$/.test(addressData.pinCode)) {
-            errors.pinCode = 'Pin code must be exactly 6 digits';
-        }
+        if (addressData.phone && !/^\d{10}$/.test(addressData.phone)) errors.phone = 'Phone number must be exactly 10 digits';
+        if (addressData.altPhone && !/^\d{10}$/.test(addressData.altPhone)) errors.altPhone = 'Alternate phone must be exactly 10 digits';
+        if (addressData.pinCode && !/^\d{6}$/.test(addressData.pinCode)) errors.pinCode = 'Pin code must be exactly 6 digits';
 
         if (Object.keys(errors).length > 0) {
             return res.status(400).json({ errors });
         }
 
-        // Rest of the code remains the same
-        const address = await Address.findOne({ userId });
-        if (!address) throw new Error('Address not found');
+        const addressDoc = await Address.findOne({ userId });
+        if (!addressDoc) throw new Error('Address not found');
 
-        const addressIndex = address.addresses.findIndex(addr => addr._id.toString() === addressId);
+        const addressIndex = addressDoc.addresses.findIndex(addr => addr._id.toString() === addressId);
         if (addressIndex === -1) throw new Error('Address not found');
 
-        const currentAddress = address.addresses[addressIndex];
+        const currentAddress = addressDoc.addresses[addressIndex];
 
+        // Check for changes including isDefault explicitly
         const hasChanges = (
             addressData.addressType !== (currentAddress.addressType || '') ||
             addressData.name !== (currentAddress.name || '') ||
@@ -227,20 +225,35 @@ const editAddress = async (req, res) => {
             addressData.pinCode !== (currentAddress.pinCode || '') ||
             addressData.phone !== (currentAddress.phone || '') ||
             addressData.altPhone !== (currentAddress.altPhone || '') ||
-            addressData.isDefault !== (currentAddress.isDefault || false)
+            addressData.isDefault !== currentAddress.isDefault
         );
 
         if (!hasChanges) {
             return res.status(200).json({ message: 'No changes detected', noChanges: true });
         }
 
+        // Update "Set as Default" logic
         if (addressData.isDefault) {
-            address.addresses.forEach(addr => (addr.isDefault = false));
+            addressDoc.addresses.forEach((addr, index) => {
+                if (index !== addressIndex) {
+                    addr.isDefault = false;
+                }
+            });
         }
-        address.addresses[addressIndex] = { ...currentAddress, ...addressData };
-        await address.save();
 
-        res.status(200).json({ message: 'Address updated successfully' });
+        // Update the address
+        addressDoc.addresses[addressIndex] = { 
+            ...currentAddress, 
+            ...addressData,
+            _id: currentAddress._id // Preserve the original ID
+        };
+
+        await addressDoc.save();
+
+        res.status(200).json({ 
+            message: 'Address updated successfully', 
+            noChanges: false 
+        });
     } catch (error) {
         console.error('Error in editAddress:', error);
         res.status(500).json({ errors: { general: 'Error updating address: ' + error.message } });
