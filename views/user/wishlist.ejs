@@ -1,0 +1,211 @@
+<!-- views/user/wishlist.ejs -->
+<%- include('../partials/user/header') %>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<style>
+    /* Reuse styles from cart.ejs where applicable */
+    .container.py-5 { 
+        max-width: 1200px;
+         margin: 0 auto; 
+        }
+    h1.mb-4 { 
+        font-size: 2.5rem; 
+        font-weight: 700; color: #333; 
+    }
+    .card.shadow-sm { 
+        border: none; 
+        border-radius: 10px; 
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+    }
+    .card-body { 
+        padding: 1.5rem; 
+    }
+    .wishlist-item { 
+        transition: all 0.3s ease; 
+    }
+    .wishlist-item:hover { 
+        background-color: #f8f9fa; 
+    }
+    .wishlist-item img { 
+        max-height: 100px; 
+        object-fit: cover; 
+        border-radius: 5px; 
+    }
+    .wishlist-item h5 { 
+        font-size: 1.25rem; 
+        font-weight: 600; color: #333; 
+    }
+    .remove-btn { 
+        color: white; 
+        background-color: #dc3545; 
+        border: none; 
+    }
+    .remove-btn:hover { 
+        background-color: #c82333; 
+    }
+    .btn-primary { 
+        background-color: #007bff; 
+        border: none; 
+    }
+    .btn-primary:hover { 
+        background-color: #0056b3; 
+    }
+    .text-center.py-5 { 
+        background-color: #f8f9fa; 
+        border-radius: 10px; 
+    }
+</style>
+
+<br><br><br><br><br><br>
+
+<%- include('../partials/user/breadcrumb', {
+    breadcrumbs: [
+        { text: 'Shop', url: '/shop' },
+        { text: 'Wishlist', url: '#', active: true }
+    ]
+}) %>
+
+<div class="container py-5">
+    <h1 class="mb-4">Your Wishlist</h1>
+
+    <% if (wishlist && wishlist.products && wishlist.products.length > 0) { %>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <% wishlist.products.forEach(item => { %>
+                    <% const product = item.productId; %>
+                    <div class="row wishlist-item mb-3 pb-3 border-bottom" data-id="<%= product._id %>">
+                        <div class="col-3 col-md-2">
+                            <a href="/product-details?id=<%= product._id %>">
+                                <img src="<%= product.productImage && product.productImage.length ? '/uploads/product-images/' + product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                                     alt="<%= product.productName %>" 
+                                     class="img-fluid rounded">
+                            </a>
+                        </div>
+                        <div class="col-9 col-md-10 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5><%= product.productName %></h5>
+                                <p class="text-muted">Price: ₹<%= (product.salePrice || product.regularPrice).toFixed(2) %></p>
+                            </div>
+                            <div>
+                                <button class="btn btn-primary btn-sm add-to-cart" data-id="<%= product._id %>">
+                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                </button>
+                                <button class="btn btn-danger btn-sm remove-btn ml-2" data-id="<%= product._id %>">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        <div class="mt-3">
+            <a href="/shop" class="btn btn-outline-secondary">Continue Shopping</a>
+        </div>
+    <% } else { %>
+        <div class="text-center py-5">
+            <i class="fas fa-heart fa-4x text-muted"></i>
+            <h3>Your wishlist is empty</h3>
+            <p class="text-muted">Add items you love to your wishlist!</p>
+            <a href="/shop" class="btn btn-primary mt-3">Start Shopping</a>
+        </div>
+    <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Add to cart from wishlist
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', async function() {
+                const productId = this.dataset.id;
+                const response = await fetch('/cart/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId, quantity: 1 })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: data.removedFromWishlist ? 
+                            'Moved to Cart' : 'Cart Updated',
+                        text: data.removedFromWishlist ? 
+                            'Product moved from wishlist to cart' : 
+                            'Product quantity increased in your cart',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    
+                    if (data.removedFromWishlist) {
+                        document.querySelector(`.wishlist-item[data-id="${productId}"]`).remove();
+                        updateWishlistCount();
+                    }
+                    
+                    updateCartCount(data.cartCount);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Limit Reached',
+                        text: data.message,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            });
+        });
+
+        // Remove from wishlist
+        document.querySelectorAll('.remove-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const productId = this.dataset.id;
+                const result = await Swal.fire({
+                    title: 'Remove Item?',
+                    text: 'Do you want to remove this item from your wishlist?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: 'Yes, remove it!'
+                });
+
+                if (result.isConfirmed) {
+                    const response = await fetch('/wishlist/remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.querySelector(`.wishlist-item[data-id="${productId}"]`).remove();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Removed',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        updateWishlistCount();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message
+                        });
+                    }
+                }
+            });
+        });
+
+        function updateWishlistCount() {
+            const items = document.querySelectorAll('.wishlist-item').length;
+            if (items === 0) {
+                setTimeout(() => location.reload(), 1500);
+            }
+            // Update navbar wishlist count if implemented
+        }
+    });
+</script>
+
+<%- include('../partials/user/footer') %>

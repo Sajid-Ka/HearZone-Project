@@ -604,21 +604,25 @@ h3.cart-title {
   
     color: var(--primary-color);
 }
-.nav-item1{
-  margin-left: 210px;
-}
-.nav-item2{
-  margin-right: 150px;
+
+.navbar-nav .nav-item {
+  display: flex;
+  align-items: center;
 }
 
-.nav-item3 .fa-shopping-cart {
-  display: inline-block !important;
-  margin-left: -140px;
+.navbar-nav .nav-link i {
+  font-size: 1.2em; /* Consistent icon size */
+}
+
+
+.navbar-nav .badge {
+  font-size: 0.7em;
+  padding: 0.3em 0.5em;
 }
 
 .sign-in-link {
-  margin-left: 210px;
-  margin-right: 150px;
+  color: var(--dark-color);
+  font-size: 1.2em;
 }
 
 

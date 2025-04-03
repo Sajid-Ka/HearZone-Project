@@ -29,6 +29,9 @@
     margin-top: -350px;
   }
 
+  
+
+
 </style>
 
 <br>
@@ -178,16 +181,28 @@
                          style="width: 100%; height: 300px; object-fit: cover;">
                   </a>
                 </div>
+                
+                <!-- Wishlist Button -->
+                <div class="wishlist-btn position-absolute top-0 end-0 m-2">
+                  <button class="btn btn-sm btn-outline-secondary" 
+                          onclick="handleWishlist('<%=products[i]._id%>', this)">
+                    <i class="far fa-heart"></i>
+                  </button>
+                </div>
+                
                 <div class="cart-concern position-absolute">
                   <div class="cart-button d-flex">
-                    <a href="/cart/add?id=<%=products[i]._id%>" class="btn btn-medium btn-black">
-                      Add to Cart<svg class="cart-outline"><use xlink:href="#cart-outline"></use></svg>
-                    </a>
+                    <button 
+                      class="btn btn-medium btn-black" 
+                      onclick="handleAddToCart('<%=products[i]._id%>')"
+                      <%= products[i].quantity === 0 ? 'disabled' : '' %>
+                    >
+                      <%= products[i].quantity === 0 ? 'Out of Stock' : 'Add to Cart' %>
+                      <svg class="cart-outline"><use xlink:href="#cart-outline"></use></svg>
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <a aria-label="add to Wishlist" class="action-btn hover-up" href="/addToWishlist?id=<%=products[i]._id%>"></a>
-                </div>
+                
                 <div class="card-detail d-flex justify-content-between align-items-baseline pt-3">
                   <h3 class="card-title text-uppercase">
                     <a href="#"><%=products[i].productName%></a>
@@ -232,22 +247,26 @@
 <br>
 <br>
 
-<script>
-  var mainSwiper = new Swiper('.main-swiper', {
-    loop: true,
-    autoplay: {
-      delay: 5000,
-      disableOnInteraction: false,
-    },
-    navigation: {
-      nextEl: '.swiper-arrow-next',
-      prevEl: '.swiper-arrow-prev',
-    },
-  });
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.all.min.js"></script>
+
+
 
 <!-- Add this script just before closing body tag, after including Swiper JS -->
 <script>
+
+  var mainSwiper = new Swiper('.main-swiper', {
+      loop: true,
+      autoplay: {
+        delay: 5000,
+        disableOnInteraction: false,
+      },
+      navigation: {
+        nextEl: '.swiper-arrow-next',
+        prevEl: '.swiper-arrow-prev',
+      },
+    });
+
   document.addEventListener('DOMContentLoaded', function() {
     const swiper = new Swiper('.main-swiper', {
       slidesPerView: 1,
@@ -272,6 +291,268 @@
       },
     });
   });
+
+  function handleAddToCart(productId) {
+    // Check if user is logged in (assuming 'user' is passed from the backend)
+    <% if (!user) { %>
+      Swal.fire({
+        icon: 'info',
+        title: 'Login Required',
+        text: 'You need to login to add products to your cart',
+        confirmButtonColor: '#4f46e5',
+        confirmButtonText: 'Login',
+        showCancelButton: true,
+        cancelButtonText: 'Cancel',
+        footer: '<a href="/signup" style="color: #4f46e5; text-decoration: underline;">Don\'t have an account? Sign up</a>'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?returnUrl=${returnUrl}`;
+        }
+      });
+      return;
+    <% } %>
+
+    // Proceed with adding to cart
+    $.ajax({
+      url: '/cart/add',
+      method: 'POST',
+      data: {
+        productId: productId,
+        quantity: 1
+      },
+      success: function(response) {
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Added to Cart',
+            text: 'Product has been successfully added to your cart!',
+            confirmButtonColor: '#4f46e5',
+            timer: 2000,
+            timerProgressBar: true
+          });
+          // Update cart count in navbar (if you have a cart count element)
+          const cartCountElements = document.querySelectorAll('.cart-count');
+          if (cartCountElements.length > 0 && response.cartCount) {
+            cartCountElements.forEach(el => {
+              el.textContent = response.cartCount;
+            });
+          }
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: response.message || 'Could not add item to cart',
+            confirmButtonColor: '#dc3545'
+          });
+        }
+      },
+      error: function(xhr) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: xhr.responseJSON?.message || 'Failed to add to cart',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
+  }
+
+  function handleAddToCart(productId, quantity, maxQuantity = 5) {
+    if (quantity === 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Out of Stock',
+            text: 'Sorry, this product is currently not available',
+            confirmButtonColor: '#dc3545'
+        });
+        return;
+    }
+
+    <% if (!user) { %>
+        showLoginSignupPrompt();
+        return;
+    <% } %>
+
+    $.ajax({
+        url: '/cart/add',
+        method: 'POST',
+        data: {
+            productId: productId,
+            quantity: 1
+        },
+        success: function(response) {
+            if (response.success) {
+                let message = response.message;
+                
+                if (response.removedFromWishlist) {
+                    message = 'Product added to cart and removed from wishlist!';
+                    // Update wishlist count if needed
+                    if (typeof updateWishlistCount === 'function') {
+                        updateWishlistCount();
+                    }
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Cart Updated',
+                    text: message,
+                    confirmButtonColor: '#4f46e5',
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+                
+                // Update cart count in navbar
+                updateCartCount(response.cartCount);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message,
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: xhr.responseJSON?.message || 'Failed to add to cart',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    });
+}
+
+
+  function handleWishlist(productId, button) {
+      <% if (!user) { %>
+          showLoginSignupPrompt('wishlist');
+          return;
+      <% } %>
+
+      const isInWishlist = button.classList.contains('active');
+      
+      // If already in wishlist, we'll remove it
+      if (isInWishlist) {
+          removeFromWishlist(productId, button);
+          return;
+      }
+
+      // Else add to wishlist
+      $.ajax({
+          url: '/wishlist/add',
+          method: 'POST',
+          data: { productId },
+          success: function(response) {
+              if (response.success) {
+                  button.classList.add('active');
+                  button.innerHTML = '<i class="fas fa-heart"></i>';
+                  
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Added to Wishlist',
+                      text: response.message,
+                      timer: 1500,
+                      showConfirmButton: false
+                  });
+
+                  // Update wishlist count
+                  if (typeof updateWishlistCount === 'function') {
+                      updateWishlistCount(response.wishlistCount);
+                  }
+              } else {
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'Cannot Add to Wishlist',
+                      text: response.message,
+                      confirmButtonColor: '#dc3545'
+                  });
+              }
+          },
+          error: function(xhr) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: xhr.responseJSON?.message || 'Failed to update wishlist',
+                  confirmButtonColor: '#dc3545'
+              });
+          }
+      });
+  }
+
+  function removeFromWishlist(productId, button) {
+      $.ajax({
+          url: '/wishlist/remove',
+          method: 'POST',
+          data: { productId },
+          success: function(response) {
+              if (response.success) {
+                  button.classList.remove('active');
+                  button.innerHTML = '<i class="far fa-heart"></i>';
+                  
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Removed from Wishlist',
+                      text: response.message,
+                      timer: 1500,
+                      showConfirmButton: false
+                  });
+
+                  // Update wishlist count
+                  if (typeof updateWishlistCount === 'function') {
+                      updateWishlistCount(response.wishlistCount);
+                  }
+              } else {
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'Error',
+                      text: response.message,
+                      confirmButtonColor: '#dc3545'
+                  });
+              }
+          },
+          error: function(xhr) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: xhr.responseJSON?.message || 'Failed to remove from wishlist',
+                  confirmButtonColor: '#dc3545'
+              });
+          }
+      });
+  }
+
+  // Check initial wishlist status on page load
+  document.addEventListener('DOMContentLoaded', function() {
+      <% if (user) { %>
+          // Check wishlist status for each product
+          document.querySelectorAll('.wishlist-btn').forEach(button => {
+              const productId = button.closest('.product-card').querySelector('button[onclick^="handleAddToCart"]')
+                  .getAttribute('onclick').match(/'([^']+)'/)[1];
+              
+              checkWishlistStatus(productId, button);
+          });
+      <% } %>
+  });
+
+  function checkWishlistStatus(productId, button) {
+      $.ajax({
+          url: '/wishlist/check',
+          method: 'POST',
+          data: { productId },
+          success: function(response) {
+              if (response.success && response.isInWishlist) {
+                  button.classList.add('active');
+                  button.innerHTML = '<i class="fas fa-heart"></i>';
+              }
+          },
+          error: function(xhr) {
+              console.error('Error checking wishlist status:', xhr);
+          }
+      });
+  }
+
 </script>
 
 

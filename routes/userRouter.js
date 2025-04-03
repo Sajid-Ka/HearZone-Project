@@ -6,6 +6,7 @@ const forgotPasswordController = require('../controllers/user/forgotPasswordCont
 const profileController = require('../controllers/user/profileController');
 const addressController = require('../controllers/user/addressController');
 const cartController = require('../controllers/user/cartController');
+const wishlistController = require('../controllers/user/wishlistController');
 const checkoutController = require('../controllers/user/checkoutController');
 const orderController = require('../controllers/user/orderController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
@@ -115,6 +116,12 @@ router.post('/cart/update-quantity', userAuth, cartController.updateQuantity);
 router.post('/cart/remove', userAuth, cartController.removeItem);
 router.post('/cart/clear', userAuth, cartController.clearCart);
 
+
+// Wishlist routes 
+router.get('/wishlist', userAuth, wishlistController.getWishlistItems);
+router.post('/wishlist/add', userAuth, wishlistController.addToWishlist);
+router.post('/wishlist/remove', userAuth, wishlistController.removeFromWishlist);
+router.post('/wishlist/check', userAuth, wishlistController.checkWishlistStatus);
 
 // Add under protected routes
 router.get('/checkout', checkoutController.getCheckoutPage);

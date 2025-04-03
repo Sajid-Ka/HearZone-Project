@@ -151,27 +151,8 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if requested quantity exceeds max limit
-        if (requestedQuantity > MAX_QUANTITY_PER_ITEM) {
-            return res.status(400).json({
-                success: false,
-                message: `Maximum limit is ${MAX_QUANTITY_PER_ITEM} units per product`
-            });
-        }
-
-        // Ensure price is valid
-        const price = Number(product.salePrice || product.regularPrice || 0);
-        if (isNaN(price) || price <= 0) {
-            console.error(`Invalid price for product ${productId}: ${price}`);
-            return res.status(500).json({
-                success: false,
-                message: 'Product price is invalid'
-            });
-        }
-
         // Get or create cart
         let cart = await Cart.findOne({ userId });
-
         if (!cart) {
             cart = new Cart({ userId, items: [] });
         }
@@ -182,39 +163,49 @@ const addToCart = async (req, res) => {
         );
 
         if (existingItemIndex > -1) {
-            // Product exists in cart, update quantity
+            // Calculate new quantity if we add this request
             const newQuantity = cart.items[existingItemIndex].quantity + requestedQuantity;
-
+            
+            // Check if new quantity exceeds max limit
             if (newQuantity > MAX_QUANTITY_PER_ITEM) {
                 return res.status(400).json({
                     success: false,
-                    message: `Cannot exceed ${MAX_QUANTITY_PER_ITEM} units per product`
+                    message: `Maximum limit is ${MAX_QUANTITY_PER_ITEM} units per product. You already have ${cart.items[existingItemIndex].quantity} in your cart.`
                 });
             }
-
+            
+            // Check if new quantity exceeds stock
             if (newQuantity > product.quantity) {
                 return res.status(400).json({
                     success: false,
-                    message: `Cannot add more. Only ${product.quantity} units available in stock`
+                    message: `Only ${product.quantity} units available in stock. You already have ${cart.items[existingItemIndex].quantity} in your cart.`
                 });
             }
 
+            // Update quantity and price
             cart.items[existingItemIndex].quantity = newQuantity;
-            cart.items[existingItemIndex].price = price;
-            cart.items[existingItemIndex].totalPrice = price * newQuantity;
+            cart.items[existingItemIndex].totalPrice = (product.salePrice || product.regularPrice) * newQuantity;
         } else {
+            // Check if requested quantity exceeds max limit for new item
+            if (requestedQuantity > MAX_QUANTITY_PER_ITEM) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Maximum limit is ${MAX_QUANTITY_PER_ITEM} units per product`
+                });
+            }
+
             // Add new product to cart
             cart.items.push({
                 productId,
                 quantity: requestedQuantity,
-                price: price,
-                totalPrice: price * requestedQuantity
+                price: product.salePrice || product.regularPrice,
+                totalPrice: (product.salePrice || product.regularPrice) * requestedQuantity
             });
 
             // Remove from wishlist if exists
             await Wishlist.updateOne(
                 { userId },
-                { $pull: { products: productId } }
+                { $pull: { products: { productId } } }
             );
         }
 
@@ -224,8 +215,10 @@ const addToCart = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Product added to cart successfully',
-            cartCount: cart.items.length
+            message: existingItemIndex > -1 ? 'Product quantity increased in your cart' : 'Product added to cart successfully',
+            cartCount: cart.items.reduce((total, item) => total + item.quantity, 0),
+            removedFromWishlist: existingItemIndex === -1,
+            newQuantity: existingItemIndex > -1 ? cart.items[existingItemIndex].quantity : requestedQuantity
         });
     } catch (error) {
         console.error('Error adding to cart:', error);
@@ -235,6 +228,7 @@ const addToCart = async (req, res) => {
         });
     }
 };
+
     
 // Update cart item quantity
 const updateQuantity = async (req, res) => {

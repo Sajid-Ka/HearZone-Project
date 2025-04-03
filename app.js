@@ -12,6 +12,7 @@ const nocache = require('nocache');
 const fs = require('fs');
 const User = require('./models/userSchema');
 const Cart = require('./models/cartSchema');
+const Wishlist = require('./models/wishlistSchema');
 const { upload } = require('./helpers/multer');
 require('./jobs/cleanupExpiredUsers');
 
@@ -77,21 +78,29 @@ app.use((req, res, next) => {
 });
 
 
-// Cart count middleware
+// Cart and Wishlist count middleware
 app.use(async (req, res, next) => {
     if (req.session && req.session.user) {
-      try {
-        const cart = await Cart.findOne({ userId: req.session.user.id });
-        res.locals.cartCount = cart ? cart.items.length : 0;
-      } catch (error) {
-        console.error('Error fetching cart count:', error);
-        res.locals.cartCount = 0; // Set default value on error
-      }
+        try {
+            // Fetch cart count
+            const cart = await Cart.findOne({ userId: req.session.user.id });
+            res.locals.cartCount = cart ? cart.items.length : 0;
+
+            // Fetch wishlist count
+            const wishlist = await Wishlist.findOne({ userId: req.session.user.id });
+            res.locals.wishlistCount = wishlist ? wishlist.products.length : 0;
+        } catch (error) {
+            console.error('Error fetching cart or wishlist count:', error);
+            res.locals.cartCount = 0; // Set default value on error for cart
+            res.locals.wishlistCount = 0; // Set default value on error for wishlist
+        }
     } else {
-      res.locals.cartCount = 0; // Set default for non-logged in users
+        // Set defaults for non-logged-in users
+        res.locals.cartCount = 0;
+        res.locals.wishlistCount = 0;
     }
     next();
-  });
+});
   
   
 
