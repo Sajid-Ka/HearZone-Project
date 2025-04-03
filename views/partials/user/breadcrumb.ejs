@@ -1,3 +1,63 @@
+
+<style>
+/* Reset default styles and set up the breadcrumb section */
+.breadcrumb-section {
+    background-color: #f8f5f2; /* Light background color as in the image */
+    padding: 10px 0;
+    font-family: Arial, sans-serif; /* Clean font */
+}
+
+/* Container to center the content */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Breadcrumb list styling */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    background: none; /* Remove default background */
+    padding: 0;
+    margin: 0;
+    font-size: 14px; /* Adjust font size */
+}
+
+/* Breadcrumb items */
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    color: #6c757d; /* Gray color for non-active items */
+}
+
+/* Links in breadcrumb */
+.breadcrumb-item a {
+    color: #6c757d; /* Gray color for links */
+    text-decoration: none; /* Remove underline */
+    transition: color 0.3s ease; /* Smooth hover effect */
+}
+
+/* Hover effect for links */
+.breadcrumb-item a:hover {
+    color: #343a40; /* Darker color on hover */
+}
+
+/* Active breadcrumb item (current page) */
+.breadcrumb-item.active {
+    color: #343a40; /* Darker color for the active item */
+    font-weight: 600; /* Slightly bolder for the active item */
+}
+
+/* Separator between breadcrumb items */
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">"; /* Use ">" as the separator */
+    margin: 0 8px; /* Space around the separator */
+    color: #6c757d; /* Gray color for the separator */
+}
+</style>
+
+
 <div class="breadcrumb-section bg-white">
     <div class="container">
         <nav aria-label="breadcrumb">

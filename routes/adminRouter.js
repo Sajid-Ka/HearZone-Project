@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
 const { isAdminAuth, isAdminLogin } = require('../middlewares/auth');
 const customerController = require('../controllers/admin/customerController');
+const orderController = require('../controllers/admin/orderController')
 const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
@@ -22,10 +23,19 @@ router.get('/logout', isAdminAuth, adminController.logout);
 // Apply adminAuth middleware to all routes
 router.use(isAdminAuth);
 
-// Protect all admin routes with isAdminAuth
+// customers
 router.get('/users', customerController.customerInfo);
 router.get('/blockCustomer', customerController.customerBlocked);
 router.get('/unblockCustomer', customerController.customerUnblocked);
+
+// Order management routes
+router.get('/orders', orderController.listOrders);
+router.get('/orders/:orderId', orderController.viewOrderDetails);
+router.post('/orders/:orderId/status', orderController.updateOrderStatus);
+router.post('/orders/:orderId/return', orderController.processReturnRequest);
+router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
+router.get('/orders/:orderId/timeline', orderController.getOrderStatusTimeline);
+router.post('/orders/bulk-status-update', orderController.bulkUpdateStatus);
 
 //category
 router.get('/category', categoryController.categoryInfo);

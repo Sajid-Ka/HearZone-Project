@@ -392,7 +392,16 @@
     }
 
     .product-meta .in-stock {
-        font-weight: 500;
+        color: #28a745; /* Default green color for sufficient stock */
+    }
+
+    .product-meta .in-stock.low-stock {
+        color: #dc3545 !important; /* Red color for low stock */
+        font-weight: 600; /* Optional: Make it bold for emphasis */
+    }
+
+    .product-meta .in-stock.text-success {
+        color: #28a745; /* Ensure text-success aligns with green */
     }
 
     .detail-extralink {
@@ -1084,7 +1093,7 @@
                     <ul>
                         <li>Stock Code: <a href="#">FWM15VKT</a></li>
                         <li>Category: <a href="#" rel="tag"><%= category ? category.name : '' %></a></li>
-                        <li>Availability: <span class="in-stock text-success"><%= quantity %> items in Stock</span></li>
+                        <li>Availability: <span class="in-stock <%= quantity <= 5 ? 'low-stock' : '' %> text-success"><%= quantity %> items in Stock</span></li>
                     </ul>
                 </div>
             </div>

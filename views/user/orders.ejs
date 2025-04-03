@@ -170,6 +170,12 @@
 <br>
 <br>
 
+<%- include('../../views/partials/user/breadcrumb', {
+    breadcrumbs: [
+        { text: 'Orders', url: '#', active: true }
+    ]
+}) %>
+
 <div class="main-container">
     <div class="container-fluid">
         <div class="row">
@@ -187,7 +193,7 @@
                     <% orders.forEach(order => { %>
                         <div class="order-card">
                             <h5>Order #<%= order.orderId %></h5>
-                            <p>Date: <%= order.createdOn.toLocaleDateString() %></p>
+                            <p>Date: <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
                             <p>Status: <span class="status-text"><%= order.status %></span></p>
                             <p>Total: ₹<%= order.finalAmount.toFixed(2) %></p>
                             <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>

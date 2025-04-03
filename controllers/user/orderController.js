@@ -8,13 +8,14 @@ const getOrderList = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const searchQuery = req.query.query || '';
-        
+
         const orders = await Order.find({ userId })
             .populate('orderedItems.product')
-            .sort({ createdOn: -1 });
+            .sort({ createdAt: -1 });
 
+        // Ensure orders is always an array
         res.render('user/orders', {
-            orders,
+            orders: orders || [],
             user: req.session.user,
             searchQuery,
             currentRoute: '/orders'
@@ -99,6 +100,7 @@ const returnOrder = async (req, res) => {
     }
 };
 
+
 const downloadInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -116,11 +118,10 @@ const downloadInvoice = async (req, res) => {
 
         doc.pipe(res);
 
-        // Add invoice content
         doc.fontSize(20).text('Invoice', { align: 'center' });
         doc.moveDown();
         doc.fontSize(12).text(`Order ID: ${order.orderId}`);
-        doc.text(`Date: ${order.createdOn.toLocaleDateString()}`);
+        doc.text(`Date: ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}`);
         doc.text(`Customer: ${order.address.name}`);
         doc.moveDown();
 
@@ -142,6 +143,7 @@ const downloadInvoice = async (req, res) => {
         res.status(500).send('Failed to generate invoice');
     }
 };
+
 
 const searchOrders = async (req, res) => {
     try {

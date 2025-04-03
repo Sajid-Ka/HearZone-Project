@@ -187,6 +187,16 @@
         box-shadow: 0 4px 10px rgba(52,152,219,0.3);
     }
 
+    .item-row a img {
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .item-row a:hover img {
+        transform: scale(1.05);
+        opacity: 0.9;
+        cursor: pointer;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .order-card {
@@ -226,15 +236,17 @@
         <h2 class="order-header">Order Details - #<%= order.orderId %></h2>
         <div class="order-info">
             <p><strong>Status:</strong> <%= order.status %></p>
-            <p><strong>Date:</strong> <%= order.createdOn.toLocaleDateString() %></p>
+            <p><strong>Date:</strong> <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
             <p><strong>Address:</strong> <%= order.address.name %>, <%= order.address.city %>, <%= order.address.landmark %> - <%= order.address.pinCode %></p>
         </div>
         <div class="items-section">
             <h4>Items</h4>
             <% order.orderedItems.forEach(item => { %>
                 <div class="item-row">
-                    <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
-                         alt="<%= item.product ? item.product.productName : 'Product' %>">
+                    <a href="/product-details?id=<%= item.product._id %>">
+                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                             alt="<%= item.product ? item.product.productName : 'Product' %>">
+                    </a>
                     <span><%= item.product.productName %></span>
                     <span>Qty: <%= item.quantity %></span>
                     <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>

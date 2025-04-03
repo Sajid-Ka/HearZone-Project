@@ -73,13 +73,14 @@ const orderSchema = new Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Request', 'Returned']
+        enum: ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Return Request', 'Returned'],
+        default: 'Pending',
     },
-    createdOn: {
-        type: Date,
-        default: Date.now,
-        required: true
-    },
+    statusHistory: [{
+        status: String,
+        date: { type: Date, default: Date.now },
+        description: String
+    }],
     couponApplied: {
         type: Boolean,
         default: false
@@ -92,7 +93,7 @@ const orderSchema = new Schema({
         type: String,
         default: null
     }
-});
+},{ timestamps: true });
 
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

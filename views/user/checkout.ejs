@@ -242,6 +242,13 @@
 <br>
 <br>
 
+<%- include('../../views/partials/user/breadcrumb', {
+    breadcrumbs: [
+        { text: 'Shop', url: '/shop' },
+        { text: 'Checkout', url: '#', active: true }
+    ]
+}) %>
+
 <div class="checkout-container">
     <h2 class="checkout-header">Checkout</h2>
     <div class="row">

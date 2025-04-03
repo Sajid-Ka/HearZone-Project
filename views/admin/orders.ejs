@@ -1,0 +1,464 @@
+<%- include('../partials/admin/header') %>
+
+<style>
+    .order-management-container {
+        padding: 30px;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .clear-filters {
+        margin-top: 10px;
+    }
+    
+    .order-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .order-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .order-id {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .order-status {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-processing { background: #cce5ff; color: #004085; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; }
+    .status-delivered { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-return-request { background: #fff3cd; color: #856404; }
+    .status-returned { background: #e2e3e5; color: #383d41; }
+    
+    .order-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .detail-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .detail-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .detail-value {
+        font-weight: 500;
+    }
+    
+    .order-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .pagination {
+        justify-content: center;
+        margin-top: 30px;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #2c3e50;
+        border-color: #2c3e50;
+    }
+    
+    .page-link {
+        color: #2c3e50;
+    }
+    
+    .no-orders {
+        text-align: center;
+        padding: 50px;
+        color: #6c757d;
+    }
+</style>
+
+<div class="order-management-container">
+    <h2 class="mb-4">Order Management</h2>
+    
+    <div class="filter-section">
+        <form id="filterForm">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" value="<%= search %>" placeholder="Order ID, Customer Name">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Statuses</option>
+                        <% statuses.forEach(status => { %>
+                            <option value="<%= status %>" <%= statusFilter === status ? 'selected' : '' %>><%= status %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="dateFrom" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="dateFrom" name="dateFrom" value="<%= dateFrom %>">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="dateTo" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="dateTo" name="dateTo" value="<%= dateTo %>">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="/admin/orders" class="btn btn-outline-secondary clear-filters">Clear Filters</a>
+            </div>
+        </form>
+    </div>
+    
+    <% if (orders.length === 0) { %>
+        <div class="no-orders">
+            <i class="fas fa-box-open fa-3x mb-3"></i>
+            <h4>No orders found</h4>
+            <p>Try adjusting your search or filter criteria</p>
+        </div>
+        <% } else { %>
+            <div class="mb-3">
+                <button id="bulkUpdateBtn" class="btn btn-primary" disabled>Bulk Update Status</button>
+                <select id="bulkStatusSelect" class="form-select d-inline-block w-auto" disabled>
+                    <option value="">Select Status</option>
+                    <% statuses.forEach(status => { %>
+                        <option value="<%= status %>"><%= status %></option>
+                    <% }) %>
+                </select>
+            </div>
+    
+            <form id="bulkUpdateForm">
+                <% orders.forEach(order => { %>
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <input type="checkbox" class="bulk-select" name="orderIds" value="<%= order.orderId %>">
+                                <span class="order-id">Order #<%= order.orderId %></span>
+                            </div>
+                            <span class="order-status status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= order.status %>
+                            </span>
+                        </div>
+                
+                    <div class="order-details">
+                        <div class="detail-group">
+                            <div class="detail-label">Customer</div>
+                            <div class="detail-value">
+                                <%= order.userId ? order.userId.name : 'Guest' %>
+                                <% if (order.userId) { %>
+                                    <br><small><%= order.userId.email %></small>
+                                <% } %>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-group">
+                            <div class="detail-label">Order Date</div>
+                            <div class="detail-value"><%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></div>
+                        </div>
+                        
+                        <div class="detail-group">
+                            <div class="detail-label">Amount</div>
+                            <div class="detail-value">₹<%= order.finalAmount.toFixed(2) %></div>
+                        </div>
+                        
+                        <div class="detail-group">
+                            <div class="detail-label">Payment Method</div>
+                            <div class="detail-value"><%= order.paymentMethod %></div>
+                        </div>
+                    </div>
+                    
+                        <div class="order-actions">
+                            <a href="/admin/orders/<%= order.orderId %>" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            
+                            <a href="/admin/orders/<%= order.orderId %>/invoice" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-file-invoice"></i> Download Invoice
+                            </a>
+                            
+                            <button class="btn btn-sm btn-outline-info view-timeline" data-order-id="<%= order.orderId %>">
+                                <i class="fas fa-clock"></i> View Timeline
+                            </button>
+                            
+                            <select class="form-select update-status w-auto d-inline-block" 
+                                    data-order-id="<%= order.orderId %>"
+                                    data-original-status="<%= order.status %>">
+                                <% statuses.forEach(status => { %>
+                                    <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>>
+                                        <%= status %>
+                                    </option>
+                                <% }) %>
+                            </select>
+                            
+                            <% if (order.status === 'Return Request') { %>
+                                <button class="btn btn-sm btn-success approve-return" data-order-id="<%= order.orderId %>">
+                                    <i class="fas fa-check-circle"></i> Approve Return
+                                </button>
+                                
+                                <button class="btn btn-sm btn-danger reject-return" data-order-id="<%= order.orderId %>">
+                                    <i class="fas fa-times-circle"></i> Reject Return
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </form>
+        
+        <% if (totalPages > 1) { %>
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    <% if (currentPage > 1) { %>
+                        <li class="page-item">
+                            <a class="page-link" href="/admin/orders?page=<%= currentPage-1 %><%= search ? '&search='+search : '' %><%= statusFilter ? '&status='+statusFilter : '' %><%= dateFrom ? '&dateFrom='+dateFrom : '' %><%= dateTo ? '&dateTo='+dateTo : '' %>">Previous</a>
+                        </li>
+                    <% } %>
+                    
+                    <% for (let i = 1; i <= totalPages; i++) { %>
+                        <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="/admin/orders?page=<%= i %><%= search ? '&search='+search : '' %><%= statusFilter ? '&status='+statusFilter : '' %><%= dateFrom ? '&dateFrom='+dateFrom : '' %><%= dateTo ? '&dateTo='+dateTo : '' %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    
+                    <% if (currentPage < totalPages) { %>
+                        <li class="page-item">
+                            <a class="page-link" href="/admin/orders?page=<%= currentPage+1 %><%= search ? '&search='+search : '' %><%= statusFilter ? '&status='+statusFilter : '' %><%= dateFrom ? '&dateFrom='+dateFrom : '' %><%= dateTo ? '&dateTo='+dateTo : '' %>">Next</a>
+                        </li>
+                    <% } %>
+                </ul>
+            </nav>
+        <% } %>
+    <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(document).ready(function() {
+        // Status update functionality
+        $('.update-status').change(function() {
+            const orderId = $(this).data('order-id');
+            const newStatus = $(this).val();
+            
+            Swal.fire({
+                title: 'Update Order Status',
+                text: `Are you sure you want to change the status to ${newStatus}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Update',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/status`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ status: newStatus }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
+                        }
+                    });
+                } else {
+                    // Reset to original value if cancelled
+                    $(this).val($(this).data('original-status'));
+                }
+            });
+        });
+
+        // Bulk update functionality
+        $('.bulk-select').change(function() {
+            const checkedCount = $('.bulk-select:checked').length;
+            $('#bulkUpdateBtn, #bulkStatusSelect').prop('disabled', checkedCount === 0);
+        });
+
+        $('#bulkUpdateBtn').click(function() {
+            const selectedOrders = $('.bulk-select:checked').map(function() {
+                return $(this).val();
+            }).get();
+            const newStatus = $('#bulkStatusSelect').val();
+
+            if (!newStatus) {
+                Swal.fire('Error', 'Please select a status', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Bulk Update Status',
+                text: `Are you sure you want to update ${selectedOrders.length} orders to ${newStatus}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Update',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/admin/orders/bulk-update',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ 
+                            orderIds: selectedOrders, 
+                            status: newStatus 
+                        }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update orders', 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Timeline functionality
+        $('.view-timeline').click(function() {
+            const orderId = $(this).data('order-id');
+            
+            $.ajax({
+                url: `/admin/orders/${orderId}/timeline`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        let timelineHtml = '<ul class="list-group">';
+                        response.timeline.forEach(item => {
+                            timelineHtml += `
+                                <li class="list-group-item">
+                                    <strong>${item.status}</strong> - 
+                                    ${new Date(item.date).toLocaleString()} 
+                                    <br><small>${item.description}</small>
+                                </li>`;
+                        });
+                        timelineHtml += '</ul>';
+
+                        Swal.fire({
+                            title: `Order #${orderId} Timeline`,
+                            html: timelineHtml,
+                            width: '600px'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', 'Failed to fetch timeline', 'error');
+                }
+            });
+        });
+        
+        // Return request handling
+        $('.approve-return').click(function() {
+            const orderId = $(this).data('order-id');
+            
+            Swal.fire({
+                title: 'Approve Return Request',
+                text: 'Are you sure you want to approve this return and refund the amount?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Approve',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/return`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'approve' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                        }
+                    });
+                }
+            });
+        });
+        
+        $('.reject-return').click(function() {
+            const orderId = $(this).data('order-id');
+            
+            Swal.fire({
+                title: 'Reject Return Request',
+                text: 'Are you sure you want to reject this return request?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/return`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'reject' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+
+<%- include('../partials/admin/footer') %>
