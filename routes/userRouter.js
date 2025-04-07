@@ -12,6 +12,7 @@ const orderController = require('../controllers/user/orderController');
 const { isLogin, isLogout, userAuth } = require('../middlewares/auth');
 const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
+const User = require('../models/userSchema'); 
 const reviewController = require('../controllers/user/reviewController');
 const multer = require('../helpers/multer');
 
@@ -44,24 +45,43 @@ router.get('/auth/google',
 
 router.get('/auth/google/callback',
     passport.authenticate('google', { 
-        failureRedirect: '/login',
-        failureFlash: true
+      failureRedirect: '/login',
+      failureFlash: true 
     }),
-    (req, res) => {
-        // Set session data
+    async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.redirect('/login?message=Authentication failed');
+        }
+  
+        // Check if user is blocked
+        const user = await User.findById(req.user._id);
+        if (!user) {
+          return res.redirect('/login?message=User not found');
+        }
+  
+        if (user.isBlocked) {
+          req.logout((err) => {
+            if (err) console.error('Logout error:', err);
+            return res.redirect('/login?message=User is blocked');
+          });
+          return;
+        }
+  
+        // Successful authentication
         req.session.user = {
-            id: req.user._id,
-            name: req.user.name,
-            email: req.user.email
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email
         };
-        // Prevent caching of this page
-        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.header('Expires', '-1');
-        res.header('Pragma', 'no-cache');
-        // Redirect to homepage
+  
         res.redirect('/');
+      } catch (error) {
+        console.error('Google auth callback error:', error);
+        res.redirect('/login?message=Login error');
+      }
     }
-);
+  );
 
 // Public routes with cache control
 router.get('/login', isLogin, (req, res) => {

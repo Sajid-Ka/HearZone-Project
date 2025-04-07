@@ -223,8 +223,11 @@ const loadLogin = async (req, res) => {
             return res.redirect('/');
         }
         
+        // Check for message in query params (for Google Auth blocked users)
+        const message = req.query.message || null;
+        
         res.render('login', { 
-            message: null,
+            message,
             errors: null,
             email: null 
         });
@@ -240,26 +243,18 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const errors = {};
 
-        // Server-side validation
-        if (!email?.trim()) {
-            errors.email = 'Email is required';
-        } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-            errors.email = 'Please enter a valid email';
-        }
+        // Validation
+        if (!email?.trim()) errors.email = 'Email is required';
+        else if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'Invalid email';
 
-        if (!password?.trim()) {
-            errors.password = 'Password is required';
-        }
+        if (!password?.trim()) errors.password = 'Password is required';
 
         if (Object.keys(errors).length > 0) {
-            return res.render('login', {
-                message: null,
-                errors,
-                email
-            });
+            return res.render('login', { message: null, errors, email });
         }
 
-        const findUser = await User.findOne({ isAdmin: 0, email });
+        // Find user (including Google Auth users)
+        const findUser = await User.findOne({ email, isAdmin: 0 });
         
         if (!findUser) {
             return res.render('login', { 
@@ -269,23 +264,36 @@ const login = async (req, res) => {
             });
         }
         
+        // Check if blocked (for all users)
         if (findUser.isBlocked) {
             return res.render('login', { 
-                message: 'User is blocked',
+                message: 'User is blocked. Contact support.',
                 errors: null,
                 email 
             });
         }
         
-        const passwordMatch = await bcrypt.compare(password, findUser.password);
-        if (!passwordMatch) {
+        // Regular user (password check)
+        if (findUser.password) {
+            const passwordMatch = await bcrypt.compare(password, findUser.password);
+            if (!passwordMatch) {
+                return res.render('login', { 
+                    message: 'Incorrect password',
+                    errors: null,
+                    email 
+                });
+            }
+        } 
+        // Google Auth user (no password)
+        else {
             return res.render('login', { 
-                message: 'Incorrect password',
+                message: 'Please sign in with Google',
                 errors: null,
                 email 
             });
         }
 
+        // Successful login
         req.session.user = {
             id: findUser._id.toString(),
             name: findUser.name,
@@ -296,12 +304,13 @@ const login = async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.render('login', { 
-            message: 'Login failed',
+            message: 'Login failed. Try again.',
             errors: null,
             email: req.body.email 
         });
     }
 };
+
 
 const logout = async (req, res) => {
     try {
