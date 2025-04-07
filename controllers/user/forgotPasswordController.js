@@ -77,28 +77,38 @@ const forgotEmailValid = async (req, res) => {
     try {
         const { email } = req.body;
         const findUser = await User.findOne({ email: email });
-        if (findUser) {
-            const otp = generateOtp();
-            const emailSent = await sendVerificationEmail(email, otp);
-            if (emailSent) {
-                req.session.userOtp = otp;
-                req.session.email = email;
-                res.render('forgotPass-otp', { message: null });
-                console.log("Generated OTP: ", otp);
-            } else {
-                res.render("forgot-password", {
-                    message: "Failed to send OTP, Please try Again"
-                });
-            }
-        } else {
-            res.render("forgot-password", {
-                message: "User with this Email Does not Exist"
+        
+        if (!findUser) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "User with this email does not exist" 
             });
         }
+
+        const otp = generateOtp();
+        const emailSent = await sendVerificationEmail(email, otp);
+        
+        if (!emailSent) {
+            return res.status(500).json({ 
+                success: false, 
+                message: "Failed to send OTP, please try again" 
+            });
+        }
+
+        req.session.userOtp = otp;
+        req.session.email = email;
+        console.log("Generated OTP: ", otp);
+        
+        res.json({ 
+            success: true, 
+            redirectUrl: '/forgotPass-otp' 
+        });
+        
     } catch (error) {
         console.error("Error in forgotEmailValid:", error);
-        res.render("forgot-password", {
-            message: "An error occurred. Please try again."
+        res.status(500).json({ 
+            success: false, 
+            message: "An error occurred. Please try again." 
         });
     }
 };
@@ -177,11 +187,27 @@ const postNewPassword = async (req, res) => {
     }
 };
 
+
+const getForgotPassOtpPage = async (req, res) => {
+    try {
+        // Verify session has email and OTP
+        if (!req.session.email || !req.session.userOtp) {
+            return res.redirect('/forgot-password');
+        }
+        res.render('forgotPass-otp', { message: null });
+    } catch (error) {
+        console.error("Forgot Password OTP Page error", error);
+        res.status(500).render('page-404');
+    }
+};
+
+
 module.exports = {
     getForgotPassPage,
     forgotEmailValid,
     verifyForgotPassOtp,
     getResetPassPage,
     resendOtp,
-    postNewPassword
+    postNewPassword,
+    getForgotPassOtpPage
 };

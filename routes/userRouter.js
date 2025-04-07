@@ -33,6 +33,7 @@ router.post('/resend-otp', isLogin, userController.resendOtp);
 // Forgot Password routes
 router.get('/forgot-password', forgotPasswordController.getForgotPassPage);
 router.post('/forgot-email-valid', forgotPasswordController.forgotEmailValid);
+router.get('/forgotPass-otp', forgotPasswordController.getForgotPassOtpPage);
 router.post('/verify-passForgot-otp', forgotPasswordController.verifyForgotPassOtp);
 router.get('/reset-password', forgotPasswordController.getResetPassPage);
 router.post('/reset-password', forgotPasswordController.postNewPassword);
