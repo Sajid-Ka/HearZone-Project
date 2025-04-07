@@ -678,20 +678,20 @@
 
     <div class="pagination">
       <% if (currentPage > 1) { %>
-          <a href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Prev</a>
+        <a href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">Prev</a>
       <% } %>
-  
+    
       <% for (let i = 1; i <= totalPages; i++) { %>
-          <a class="<%= currentPage === i ? 'active' : '' %>" 
-             href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">
-              <%= i %>
-          </a>
+        <a class="<%= currentPage === i ? 'active' : '' %>" 
+           href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">
+          <%= i %>
+        </a>
       <% } %>
-  
+    
       <% if (currentPage < totalPages) { %>
-          <a href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %>">Next</a>
+        <a href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">Next</a>
       <% } %>
-  </div>
+    </div>
   </section>
 </div>
 <br>
