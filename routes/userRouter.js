@@ -123,17 +123,19 @@ router.post('/wishlist/add', userAuth, wishlistController.addToWishlist);
 router.post('/wishlist/remove', userAuth, wishlistController.removeFromWishlist);
 router.post('/wishlist/check', userAuth, wishlistController.checkWishlistStatus);
 
-// Add under protected routes
+// checkout routes
 router.get('/checkout', checkoutController.getCheckoutPage);
 router.post('/place-order', checkoutController.placeOrder);
 router.get('/order-success', checkoutController.getOrderSuccessPage);
 
-router.get('/orders', orderController.getOrderList);
+//order routes
+router.get('/orders', orderController.getOrderList); // Changed from /orders
 router.get('/orders/:orderId', orderController.getOrderDetails);
 router.post('/orders/:orderId/cancel', orderController.cancelOrder);
 router.post('/orders/:orderId/return', orderController.returnOrder);
 router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
 router.get('/orders/search', orderController.searchOrders);
+
 
 
 // Coupon routes

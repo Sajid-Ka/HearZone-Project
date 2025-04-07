@@ -29,14 +29,15 @@
         font-size: 0.9rem;
     }
     
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-processing { background: #cce5ff; color: #004085; }
-    .status-shipped { background: #d4edda; color: #155724; }
-    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; }
-    .status-delivered { background: #d4edda; color: #155724; }
-    .status-cancelled { background: #f8d7da; color: #721c24; }
-    .status-return-request { background: #fff3cd; color: #856404; }
-    .status-returned { background: #e2e3e5; color: #383d41; }
+    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
+    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
+    .status-delivered { background: #28a745; color: #fff; } /* Green */
+    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
+    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
+    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-returned { background: #6c757d; color: #fff; } /* Gray */
     
     .order-section {
         margin-bottom: 30px;
@@ -350,6 +351,15 @@
             <a href="/admin/orders/<%= order.orderId %>/invoice" class="btn btn-primary">
                 <i class="fas fa-file-invoice"></i> Download Invoice
             </a>
+
+            <% if (order.status === 'Cancel Request') { %>
+                <button class="btn btn-success" id="approveCancelBtn" data-order-id="<%= order.orderId %>">
+                    <i class="fas fa-check-circle"></i> Approve Cancel
+                </button>
+                <button class="btn btn-danger" id="rejectCancelBtn" data-order-id="<%= order.orderId %>">
+                    <i class="fas fa-times-circle"></i> Reject Cancel
+                </button>
+            <% } %>
             
             <% if (order.status === 'Return Request') { %>
                 <button class="btn btn-success" id="approveReturnBtn" data-order-id="<%= order.orderId %>">
@@ -402,10 +412,17 @@
         loadStatusTimeline();
         
         // Status update functionality
+        const orderStatus = '<%= order.status %>';
+        const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
+        if (terminalStatuses.includes(orderStatus)) {
+            $('#statusSelect').prop('disabled', true); // Disable the dropdown
+        }
+
         $('#statusSelect').change(function() {
             const orderId = $(this).data('order-id');
             const newStatus = $(this).val();
-            
+            const originalStatus = '<%= order.status %>';
+
             Swal.fire({
                 title: 'Update Order Status',
                 text: `Are you sure you want to change the status to ${newStatus}?`,
@@ -416,7 +433,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `/admin/orders/${orderId}/status`,
+                        url: `/admin/orders/update-status/${orderId}`,
                         method: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({ status: newStatus }),
@@ -427,13 +444,69 @@
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            // Reset to original value
-                            $('#statusSelect').val('<%= order.status %>');
+                            $('#statusSelect').val(originalStatus);
                         }
                     });
                 } else {
-                    // Reset to original value if cancelled
-                    $(this).val('<%= order.status %>');
+                    $(this).val(originalStatus);
+                }
+            });
+        });
+    });
+
+           //cancel request handiling
+           $('#approveCancelBtn').click(function() {
+                const orderId = $(this).data('order-id');
+                Swal.fire({
+                    title: 'Approve Cancel Request',
+                    text: 'Are you sure you want to approve this cancellation?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/orders/${orderId}/cancel`,
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ action: 'approve' }),
+                            success: function(response) {
+                                Swal.fire('Success', response.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+        $('#rejectCancelBtn').click(function() {
+            const orderId = $(this).data('order-id');
+            Swal.fire({
+                title: 'Reject Cancel Request',
+                text: 'Are you sure you want to reject this cancellation request?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/cancel`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'reject' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => location.reload());
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
+                        }
+                    });
                 }
             });
         });

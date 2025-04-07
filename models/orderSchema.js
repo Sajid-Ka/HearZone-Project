@@ -6,9 +6,9 @@ const orderSchema = new Schema({
     orderId: {
         type: String,
         default: () => uuidv4(),
-        unique: true
+        unique: true  // This creates a unique index automatically
     },
-    userId: { // Added to link order to user
+    userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -21,48 +21,55 @@ const orderSchema = new Schema({
         },
         quantity: {
             type: Number,
-            required: true
+            required: true,
+            min: 1
         },
         price: {
             type: Number,
-            default: 0
+            required: true,
+            min: 0
         }
     }],
     totalPrice: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
     discount: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
-    taxes: { // Added for tax calculation
+    taxes: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
-    shippingCost: { // Added for shipping
+    shippingCost: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
     finalAmount: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
-    address: { // Changed to store full address object
+    address: {
         type: {
-            addressType: String,
-            name: String,
-            city: String,
+            addressType: { type: String, required: true },
+            name: { type: String, required: true },
+            city: { type: String, required: true },
             landmark: String,
-            state: String,
-            pinCode: String,
-            phone: String,
+            state: { type: String, required: true },
+            pinCode: { type: String, required: true },
+            phone: { type: String, required: true },
             altPhone: String,
-            isDefault: Boolean
+            isDefault: { type: Boolean, default: false }
         },
         required: true
     },
-    paymentMethod: { // Added for payment method
+    paymentMethod: {
         type: String,
         enum: ['Cash on Delivery', 'Online Payment'],
         default: 'Cash on Delivery'
@@ -73,27 +80,76 @@ const orderSchema = new Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Return Request', 'Returned'],
-        default: 'Pending',
+        enum: [
+            'Pending',
+            'Processing',
+            'Shipped',
+            'Out for Delivery',
+            'Delivered',
+            'Cancelled',
+            'Cancel Request',
+            'Return Request',
+            'Returned'
+        ],
+        default: 'Pending'
     },
     statusHistory: [{
-        status: String,
-        date: { type: Date, default: Date.now },
-        description: String
+        status: {
+            type: String,
+            required: true,
+            enum: [
+                'Pending', 'Processing', 'Shipped', 
+                'Out for Delivery', 'Delivered', 
+                'Cancelled', 'Cancel Request', 
+                'Return Request', 'Returned'
+            ]
+        },
+        date: { 
+            type: Date, 
+            default: Date.now 
+        },
+        description: String,
+        changedBy: {
+            type: Schema.Types.ObjectId,
+            refPath: 'statusHistory.changedByModel'
+        },
+        changedByModel: {
+            type: String,
+            enum: ['User', 'Admin']
+        }
     }],
     couponApplied: {
         type: Boolean,
         default: false
     },
-    cancellationReason: { // Added for cancellation
-        type: String,
-        default: null
+    cancellationReason: {
+        type: String
     },
-    returnReason: { // Added for returns
-        type: String,
-        default: null
+    returnReason: {
+        type: String
     }
-},{ timestamps: true });
+}, { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+
+
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
+
+// Virtual to calculate total items
+orderSchema.virtual('totalItems').get(function() {
+    return this.orderedItems.reduce((total, item) => total + item.quantity, 0);
+});
+
+// Pre-save hook to ensure finalAmount consistency
+orderSchema.pre('save', function(next) {
+    this.finalAmount = this.totalPrice - this.discount + this.taxes + this.shippingCost;
+    next();
+});
 
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

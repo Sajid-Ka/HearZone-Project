@@ -197,6 +197,18 @@
         cursor: pointer;
     }
 
+
+    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
+    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
+    .status-delivered { background: #28a745; color: #fff; } /* Green */
+    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
+    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
+    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-returned { background: #6c757d; color: #fff; } /* Gray */
+
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .order-card {
@@ -235,7 +247,7 @@
         </a>
         <h2 class="order-header">Order Details - #<%= order.orderId %></h2>
         <div class="order-info">
-            <p><strong>Status:</strong> <%= order.status %></p>
+            <p><strong>Status:</strong> <span class="status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
             <p><strong>Date:</strong> <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
             <p><strong>Address:</strong> <%= order.address.name %>, <%= order.address.city %>, <%= order.address.landmark %> - <%= order.address.pinCode %></p>
         </div>
@@ -262,7 +274,7 @@
             <p><strong>Total:</strong> <strong>₹<%= order.finalAmount.toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
-            <% if (order.status !== 'Cancelled' && order.status !== 'Delivered') { %>
+            <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned'].includes(order.status)) { %>
                 <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
             <% } %>
             <% if (order.status === 'Delivered') { %>

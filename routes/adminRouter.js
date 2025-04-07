@@ -30,12 +30,11 @@ router.get('/unblockCustomer', customerController.customerUnblocked);
 
 // Order management routes
 router.get('/orders', orderController.listOrders);
-router.get('/orders/:orderId', orderController.viewOrderDetails);
-router.post('/orders/:orderId/status', orderController.updateOrderStatus);
-router.post('/orders/:orderId/return', orderController.processReturnRequest);
-router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
-router.get('/orders/:orderId/timeline', orderController.getOrderStatusTimeline);
-router.post('/orders/bulk-status-update', orderController.bulkUpdateStatus);
+router.get('/orders/details/:orderId', orderController.viewOrderDetails); 
+router.post('/orders/update-status/:orderId', orderController.updateOrderStatus);
+router.post('/orders/process-return/:orderId', orderController.processReturnRequest); 
+router.get('/orders/invoice/:orderId', orderController.downloadInvoice); 
+router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline); 
 
 //category
 router.get('/category', categoryController.categoryInfo);

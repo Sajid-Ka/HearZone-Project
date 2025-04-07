@@ -146,6 +146,18 @@
         text-decoration: none;
     }
 
+
+    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
+    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
+    .status-delivered { background: #28a745; color: #fff; } /* Green */
+    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
+    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
+    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
+    .status-returned { background: #6c757d; color: #fff; } /* Gray */
+
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .orders-section {
@@ -194,7 +206,7 @@
                         <div class="order-card">
                             <h5>Order #<%= order.orderId %></h5>
                             <p>Date: <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
-                            <p>Status: <span class="status-text"><%= order.status %></span></p>
+                            <p>Status: <span class="status-text status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
                             <p>Total: ₹<%= order.finalAmount.toFixed(2) %></p>
                             <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
                         </div>

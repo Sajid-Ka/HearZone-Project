@@ -39,7 +39,26 @@ const userSchema = new Schema({
         ref: "Cart"
     }],
     wallet: {
-        type: Schema.Types.ObjectId,
+        type: {
+            balance: { 
+                type: Number, 
+                default: 0 
+            },
+            transactions: [{
+                amount: { type: Number, required: true },
+                type: { 
+                    type: String, 
+                    enum: ['credit', 'debit'], 
+                    required: true 
+                },
+                description: String,
+                date: { 
+                    type: Date, 
+                    default: Date.now 
+                }
+            }]
+        },
+        default: () => ({ balance: 0, transactions: [] })
     },
     wishlist: [{
         type: Schema.Types.ObjectId,
