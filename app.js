@@ -123,6 +123,9 @@ app.set('views', [
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/admin-assets', express.static(path.join(__dirname, 'public/admin-assets')));
 
+app.get('/favicon.ico', (req, res) => res.status(204));
+
+
 app.use('/', userRouter);
 app.use('/admin', adminRouter);
 
