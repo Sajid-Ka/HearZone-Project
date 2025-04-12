@@ -47,10 +47,7 @@ const customerBlocked = async (req, res) => {
         // Get ID from either query params, body, or FormData
         let id = req.query.id || (req.body && req.body.id);
         
-        console.log("Block request received for user ID:", id);
-        console.log("Request method:", req.method);
-        console.log("Request body:", req.body);
-        console.log("Request query:", req.query);
+        
         
         if (!id) {
             console.error("No user ID provided");
@@ -63,7 +60,7 @@ const customerBlocked = async (req, res) => {
 
         // Block the user
         await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
-        console.log(`User ${id} blocked successfully`);
+        
 
         // Handle session cleanup for the blocked user
         try {
@@ -130,10 +127,6 @@ const customerUnblocked = async (req, res) => {
         // Get ID from either query params, body, or FormData
         let id = req.query.id || (req.body && req.body.id);
         
-        console.log("Unblock request received for user ID:", id);
-        console.log("Request method:", req.method);
-        console.log("Request body:", req.body);
-        console.log("Request query:", req.query);
         
         if (!id) {
             console.error("No user ID provided");
@@ -146,7 +139,7 @@ const customerUnblocked = async (req, res) => {
 
         // Unblock the user
         await User.updateOne({ _id: id }, { $set: { isBlocked: false } });
-        console.log(`User ${id} unblocked successfully`);
+        
         
         // Check content type to determine response format
         if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
