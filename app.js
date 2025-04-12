@@ -139,6 +139,12 @@ app.use((req, res) => {
     res.status(404).render('page-404');
 });
 
+app.use((req, res, next) => {
+    // Check if request is XMLHttpRequest or expects JSON response
+    req.xhr = req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1);
+    next();
+});
+
 app.use((err, req, res, next) => {
     console.error('Server Error:', err.stack);
     res.status(err.status || 500).json({

@@ -124,41 +124,46 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const success = urlParams.get('success');
-        const error = urlParams.get('error');
-        
-        if (success === 'block') {
-            Swal.fire({
-                title: 'Blocked!',
-                text: 'Customer has been blocked successfully',
-                icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 2000
-            });
-        } else if (success === 'unblock') {
-            Swal.fire({
-                title: 'Unblocked!',
-                text: 'Customer has been unblocked successfully',
-                icon: 'success',
-                confirmButtonColor: '#3498db',
-                timer: 2000
-            });
-        } else if (error) {
-            Swal.fire({
-                title: 'Error!',
-                text: error,
-                icon: 'error',
-                confirmButtonColor: '#e74c3c',
-                timer: 3000
-            });
-        }
-    });
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    
+    if (success === 'block') {
+        Swal.fire({
+            title: 'Blocked!',
+            text: 'Customer has been blocked successfully',
+            icon: 'success',
+            confirmButtonColor: '#3498db',
+            timer: 2000
+        });
+    } else if (success === 'unblock') {
+        Swal.fire({
+            title: 'Unblocked!',
+            text: 'Customer has been unblocked successfully',
+            icon: 'success',
+            confirmButtonColor: '#3498db',
+            timer: 2000
+        });
+    } else if (error) {
+        Swal.fire({
+            title: 'Error!',
+            text: error,
+            icon: 'error',
+            confirmButtonColor: '#e74c3c',
+            timer: 3000
+        });
+    }
+
+    // Adding debugging info
+    console.log("Script loaded. Setting up block/unblock event listeners.");
 
     // Block confirmation
     document.querySelectorAll('.block-btn').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
+            console.log("Block button clicked for user ID:", userId);
+            const row = this.closest('tr');
+            
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to block this customer?",
@@ -169,16 +174,110 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Yes, block it!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = `/admin/blockCustomer?id=${userId}`;
+                    console.log("Block confirmation clicked for user ID:", userId);
+                    
+                    // Use XMLHttpRequest instead of fetch for better browser compatibility
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `/admin/blockCustomer?id=${userId}`, true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.setRequestHeader('Accept', 'application/json');
+                    
+                    xhr.onload = function() {
+                        console.log("XHR response received:", xhr.status, xhr.responseText);
+                        
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                
+                                if (data.success) {
+                                    console.log("Block successful:", data);
+                                    // Update button without page reload
+                                    const actionCell = row.querySelector('td:last-child');
+                                    actionCell.innerHTML = `
+                                        <button class="btn unblock-btn" 
+                                            style="width: 100px; background: #2ecc71; color: white; border-radius: 20px; transition: all 0.3s;" 
+                                            data-id="${userId}">
+                                            Unblock
+                                        </button>
+                                    `;
+                                    
+                                    // Add event listener to the new button
+                                    addUnblockEventListener(actionCell.querySelector('.unblock-btn'));
+                                    
+                                    // Show success message
+                                    Swal.fire({
+                                        title: 'Blocked!',
+                                        text: 'Customer has been blocked successfully',
+                                        icon: 'success',
+                                        confirmButtonColor: '#3498db',
+                                        timer: 2000
+                                    });
+                                    
+                                    // If we're on the "All Users" page, we might want to remove this row
+                                    if (!window.location.href.includes('blocked=true')) {
+                                        setTimeout(() => {
+                                            row.style.opacity = '0';
+                                            setTimeout(() => {
+                                                row.remove();
+                                            }, 500);
+                                        }, 1000);
+                                    }
+                                } else {
+                                    console.error("Block failed:", data);
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: data.message || 'Failed to block customer',
+                                        icon: 'error',
+                                        confirmButtonColor: '#e74c3c',
+                                        timer: 3000
+                                    });
+                                }
+                            } catch (parseError) {
+                                console.error("Error parsing JSON:", parseError, xhr.responseText);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'An unexpected error occurred. Please try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#e74c3c',
+                                    timer: 3000
+                                });
+                            }
+                        } else {
+                            console.error("XHR error status:", xhr.status);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Server error. Please try again.',
+                                icon: 'error',
+                                confirmButtonColor: '#e74c3c',
+                                timer: 3000
+                            });
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        console.error("XHR network error");
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Network error. Please check your connection.',
+                            icon: 'error',
+                            confirmButtonColor: '#e74c3c',
+                            timer: 3000
+                        });
+                    };
+                    
+                    xhr.send(`id=${userId}`);
                 }
             });
         });
     });
 
-    // Unblock confirmation
-    document.querySelectorAll('.unblock-btn').forEach(button => {
+    // Function to add event listener to unblock buttons
+    function addUnblockEventListener(button) {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
+            console.log("Unblock button clicked for user ID:", userId);
+            const row = this.closest('tr');
+            
             Swal.fire({
                 title: 'Are you sure?',
                 text: "Do you want to unblock this customer?",
@@ -189,11 +288,239 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Yes, unblock it!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = `/admin/unblockCustomer?id=${userId}`;
+                    console.log("Unblock confirmation clicked for user ID:", userId);
+                    
+                    // Use XMLHttpRequest instead of fetch for better browser compatibility
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `/admin/unblockCustomer?id=${userId}`, true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.setRequestHeader('Accept', 'application/json');
+                    
+                    xhr.onload = function() {
+                        console.log("XHR response received:", xhr.status, xhr.responseText);
+                        
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                
+                                if (data.success) {
+                                    console.log("Unblock successful:", data);
+                                    // Update button without page reload
+                                    const actionCell = row.querySelector('td:last-child');
+                                    actionCell.innerHTML = `
+                                        <button class="btn block-btn" 
+                                            style="width: 100px; background: #e74c3c; color: white; border-radius: 20px; transition: all 0.3s;" 
+                                            data-id="${userId}">
+                                            Block
+                                        </button>
+                                    `;
+                                    
+                                    // Add event listener to the new button
+                                    addBlockEventListener(actionCell.querySelector('.block-btn'));
+                                    
+                                    // Show success message
+                                    Swal.fire({
+                                        title: 'Unblocked!',
+                                        text: 'Customer has been unblocked successfully',
+                                        icon: 'success',
+                                        confirmButtonColor: '#3498db',
+                                        timer: 2000
+                                    });
+                                    
+                                    // If we're on the "Blocked Users" page, we might want to remove this row
+                                    if (window.location.href.includes('blocked=true')) {
+                                        setTimeout(() => {
+                                            row.style.opacity = '0';
+                                            setTimeout(() => {
+                                                row.remove();
+                                            }, 500);
+                                        }, 1000);
+                                    }
+                                } else {
+                                    console.error("Unblock failed:", data);
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: data.message || 'Failed to unblock customer',
+                                        icon: 'error',
+                                        confirmButtonColor: '#e74c3c',
+                                        timer: 3000
+                                    });
+                                }
+                            } catch (parseError) {
+                                console.error("Error parsing JSON:", parseError, xhr.responseText);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'An unexpected error occurred. Please try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#e74c3c',
+                                    timer: 3000
+                                });
+                            }
+                        } else {
+                            console.error("XHR error status:", xhr.status);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Server error. Please try again.',
+                                icon: 'error',
+                                confirmButtonColor: '#e74c3c',
+                                timer: 3000
+                            });
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        console.error("XHR network error");
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Network error. Please check your connection.',
+                            icon: 'error',
+                            confirmButtonColor: '#e74c3c',
+                            timer: 3000
+                        });
+                    };
+                    
+                    xhr.send(`id=${userId}`);
                 }
             });
         });
+    }
+
+    // Function to add event listener to block buttons
+    function addBlockEventListener(button) {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            console.log("Block button clicked for user ID:", userId);
+            const row = this.closest('tr');
+            
+            // Reuse the block confirmation logic
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you want to block this customer?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, block it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log("Block confirmation clicked for user ID:", userId);
+                    
+                    // Use XMLHttpRequest instead of fetch for better browser compatibility
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `/admin/blockCustomer?id=${userId}`, true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.setRequestHeader('Accept', 'application/json');
+                    
+                    xhr.onload = function() {
+                        console.log("XHR response received:", xhr.status, xhr.responseText);
+                        
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                
+                                if (data.success) {
+                                    console.log("Block successful:", data);
+                                    // Update button without page reload
+                                    const actionCell = row.querySelector('td:last-child');
+                                    actionCell.innerHTML = `
+                                        <button class="btn unblock-btn" 
+                                            style="width: 100px; background: #2ecc71; color: white; border-radius: 20px; transition: all 0.3s;" 
+                                            data-id="${userId}">
+                                            Unblock
+                                        </button>
+                                    `;
+                                    
+                                    // Add event listener to the new button
+                                    addUnblockEventListener(actionCell.querySelector('.unblock-btn'));
+                                    
+                                    // Show success message
+                                    Swal.fire({
+                                        title: 'Blocked!',
+                                        text: 'Customer has been blocked successfully',
+                                        icon: 'success',
+                                        confirmButtonColor: '#3498db',
+                                        timer: 2000
+                                    });
+                                    
+                                    // If we're on the "All Users" page, we might want to remove this row
+                                    if (!window.location.href.includes('blocked=true')) {
+                                        setTimeout(() => {
+                                            row.style.opacity = '0';
+                                            setTimeout(() => {
+                                                row.remove();
+                                            }, 500);
+                                        }, 1000);
+                                    }
+                                } else {
+                                    console.error("Block failed:", data);
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: data.message || 'Failed to block customer',
+                                        icon: 'error',
+                                        confirmButtonColor: '#e74c3c',
+                                        timer: 3000
+                                    });
+                                }
+                            } catch (parseError) {
+                                console.error("Error parsing JSON:", parseError, xhr.responseText);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'An unexpected error occurred. Please try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#e74c3c',
+                                    timer: 3000
+                                });
+                            }
+                        } else {
+                            console.error("XHR error status:", xhr.status);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Server error. Please try again.',
+                                icon: 'error',
+                                confirmButtonColor: '#e74c3c',
+                                timer: 3000
+                            });
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        console.error("XHR network error");
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Network error. Please check your connection.',
+                            icon: 'error',
+                            confirmButtonColor: '#e74c3c',
+                            timer: 3000
+                        });
+                    };
+                    
+                    xhr.send(`id=${userId}`);
+                }
+            });
+        });
+    }
+
+    // Initialize event listeners for block buttons
+    document.querySelectorAll('.block-btn').forEach(button => {
+        addBlockEventListener(button);
     });
+
+    // Initialize event listeners for unblock buttons
+    document.querySelectorAll('.unblock-btn').forEach(button => {
+        addUnblockEventListener(button);
+    });
+
+    // Initialize CSS for smooth transitions
+    const style = document.createElement('style');
+    style.textContent = `
+        tr {
+            transition: opacity 0.5s ease;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log("Script initialization complete");
+});
 </script>
 
 

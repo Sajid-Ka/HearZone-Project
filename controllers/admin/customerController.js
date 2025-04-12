@@ -13,23 +13,14 @@ const customerInfo = async (req, res) => {
         let query = {
             isAdmin: false,
             isBlocked: isBlocked,
-
-            //search based name and email
-            // $or: [
-            //     { name: { $regex: ".*" + search + ".*", $options: "i" } },
-            //     { email: { $regex: ".*" + search + ".*", $options: "i" } }
-            // ]
-
-            //search based only names
             name: { $regex: ".*" + search + ".*", $options: "i" }
         };
 
         const userData = await User.find(query)
-        .sort({ createdAt: -1 })
+            .sort({ createdAt: -1 })
             .limit(limit)
             .skip((page - 1) * limit)
             .exec();
-
 
         const count = await User.countDocuments(query);
         const totalPages = Math.ceil(count / limit);
@@ -53,62 +44,126 @@ const customerInfo = async (req, res) => {
 
 const customerBlocked = async (req, res) => {
     try {
-        let id = req.query.id;
-
-        // Block the user
-        await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
-
-        // Destroy all sessions for this user
-        if (req.sessionStore) {
-            const sessions = await new Promise((resolve, reject) => {
-                req.sessionStore.all((err, sessions) => {
-                    if (err) reject(err);
-                    else resolve(sessions);
-                });
-            });
-
-            
-
-            const destroyPromises = [];
-            for (let sessionId in sessions) {
-                const sessionData = sessions[sessionId];
-                
-                // Destroy session if it belongs to the blocked user and is not an admin-only session
-                if (sessionData.user && sessionData.user.id === id.toString() && !sessionData.admin) {
-                    destroyPromises.push(
-                        new Promise((resolve, reject) => {
-                            req.sessionStore.destroy(sessionId, (err) => {
-                                if (err) reject(err);
-                                else resolve();
-                            });
-                        })
-                    );
-                }
-            }
-
-            await Promise.all(destroyPromises);
-            
-
-            // If the current session has the blocked user but is an admin session, preserve it
-            if (req.session.user && req.session.user.id === id.toString() && req.session.admin) {
-                delete req.session.user; // Remove user data but keep admin session
+        // Get ID from either query params, body, or FormData
+        let id = req.query.id || (req.body && req.body.id);
+        
+        console.log("Block request received for user ID:", id);
+        console.log("Request method:", req.method);
+        console.log("Request body:", req.body);
+        console.log("Request query:", req.query);
+        
+        if (!id) {
+            console.error("No user ID provided");
+            if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+                return res.status(400).json({ success: false, message: 'User ID is required' });
+            } else {
+                return res.redirect('/admin/users?error=User ID is required');
             }
         }
 
-        res.redirect('/admin/users?success=block');
+        // Block the user
+        await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
+        console.log(`User ${id} blocked successfully`);
+
+        // Handle session cleanup for the blocked user
+        try {
+            if (req.sessionStore) {
+                const sessions = await new Promise((resolve, reject) => {
+                    req.sessionStore.all((err, sessions) => {
+                        if (err) {
+                            console.error("Error fetching sessions:", err);
+                            reject(err);
+                        } else {
+                            resolve(sessions || {});
+                        }
+                    });
+                });
+
+                for (let sessionId in sessions) {
+                    const sessionData = sessions[sessionId];
+                    
+                    if (sessionData && sessionData.user && sessionData.user.id === id.toString() && !sessionData.admin) {
+                        await new Promise((resolve, reject) => {
+                            req.sessionStore.destroy(sessionId, (err) => {
+                                if (err) {
+                                    console.error(`Error destroying session ${sessionId}:`, err);
+                                    reject(err);
+                                } else {
+                                    console.log(`Session ${sessionId} destroyed`);
+                                    resolve();
+                                }
+                            });
+                        });
+                    }
+                }
+
+                if (req.session.user && req.session.user.id === id.toString() && req.session.admin) {
+                    delete req.session.user;
+                }
+            }
+        } catch (sessionError) {
+            console.error("Error handling sessions:", sessionError);
+            // Continue execution even if session handling fails
+        }
+
+        // Check content type to determine response format
+        if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
+            req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+            return res.json({ success: true, message: 'Customer blocked successfully' });
+        } else {
+            return res.redirect('/admin/users?success=block');
+        }
     } catch (error) {
         console.error('Error in customerBlocked:', error);
-        res.redirect('/admin/users?error=Failed to block customer');
+        
+        if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
+            req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+            return res.status(500).json({ success: false, message: 'Failed to block customer' });
+        } else {
+            return res.redirect('/admin/users?error=Failed to block customer');
+        }
     }
 };
 
 const customerUnblocked = async (req, res) => {
     try {
-        let id = req.query.id;
+        // Get ID from either query params, body, or FormData
+        let id = req.query.id || (req.body && req.body.id);
+        
+        console.log("Unblock request received for user ID:", id);
+        console.log("Request method:", req.method);
+        console.log("Request body:", req.body);
+        console.log("Request query:", req.query);
+        
+        if (!id) {
+            console.error("No user ID provided");
+            if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+                return res.status(400).json({ success: false, message: 'User ID is required' });
+            } else {
+                return res.redirect('/admin/users?error=User ID is required');
+            }
+        }
+
+        // Unblock the user
         await User.updateOne({ _id: id }, { $set: { isBlocked: false } });
-        res.redirect('/admin/users?success=unblock');
+        console.log(`User ${id} unblocked successfully`);
+        
+        // Check content type to determine response format
+        if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
+            req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+            return res.json({ success: true, message: 'Customer unblocked successfully' });
+        } else {
+            return res.redirect('/admin/users?success=unblock');
+        }
     } catch (error) {
-        res.redirect('/admin/users?error=Failed to unblock customer');
+        console.error('Error in customerUnblocked:', error);
+        
+        if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
+            req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+            return res.status(500).json({ success: false, message: 'Failed to unblock customer' });
+        } else {
+            return res.redirect('/admin/users?error=Failed to unblock customer');
+        }
     }
 };
 

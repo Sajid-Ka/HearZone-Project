@@ -26,7 +26,9 @@ router.use(isAdminAuth);
 // customers
 router.get('/users', customerController.customerInfo);
 router.get('/blockCustomer', customerController.customerBlocked);
+router.post('/blockCustomer', customerController.customerBlocked);
 router.get('/unblockCustomer', customerController.customerUnblocked);
+router.post('/unblockCustomer', customerController.customerUnblocked);
 
 // Order management routes
 router.get('/orders', orderController.listOrders);
