@@ -141,7 +141,10 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
     console.error('Server Error:', err.stack);
-    res.status(500).send('Something broke!');
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error',
+      });
 });
 
 const PORT = process.env.PORT || 3000;
