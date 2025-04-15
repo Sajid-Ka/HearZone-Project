@@ -9,6 +9,7 @@ const customerInfo = async (req, res) => {
         let page = parseInt(req.query.page) || 1;
         const limit = 3;
         const isBlocked = req.query.blocked === 'true';
+        const format = req.query.format || 'html';
 
         let query = {
             isAdmin: false,
@@ -25,6 +26,17 @@ const customerInfo = async (req, res) => {
         const count = await User.countDocuments(query);
         const totalPages = Math.ceil(count / limit);
 
+        if (format === 'json' || req.headers.accept.includes('application/json')) {
+            return res.json({
+                success: true,
+                data: userData,
+                totalPages,
+                currentPage: page,
+                search,
+                isBlocked
+            });
+        }
+
         res.render("admin/customers", {
             data: userData,
             totalPages: totalPages,
@@ -37,6 +49,9 @@ const customerInfo = async (req, res) => {
         console.error(error);
         if (!req.session.admin) {
             return res.redirect('/admin/login');
+        }
+        if (req.headers.accept.includes('application/json')) {
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
         }
         res.status(500).send("Internal Server Error");
     }
