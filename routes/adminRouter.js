@@ -85,8 +85,8 @@ router.post('/addProducts',
 
 router.get('/checkProductName', isAdminAuth, productController.checkProductName);
 router.get('/products', productController.getAllProducts);
-router.get('/blockProduct', productController.blockProduct);
-router.get('/unblockProduct', productController.unblockProduct);
+router.post('/blockProduct', productController.blockProduct);
+router.post('/unblockProduct', productController.unblockProduct);
 router.get('/editProduct', productController.getEditProduct);
 router.post('/editProduct/:id', 
     multer.upload.array('images', 4),

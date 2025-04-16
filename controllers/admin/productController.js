@@ -140,6 +140,7 @@ const getAllProducts = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const isBlocked = req.query.blocked === "true";
         const limit = 4;
+        const format = req.query.format || 'html';
 
         const matchingBrands = await Brand.find({ brandName: { $regex: search, $options: "i" } }).select("_id");
         const brandIds = matchingBrands.map(brand => brand._id);
@@ -168,6 +169,17 @@ const getAllProducts = async (req, res) => {
             Brand.find({ isBlocked: false })
         ]);
 
+        if (format === 'json' || req.headers.accept.includes('application/json')) {
+            return res.json({
+                success: true,
+                data: productData,
+                currentPage: page,
+                totalPages: Math.ceil(count / limit),
+                search,
+                isBlocked
+            });
+        }
+
         res.render("products", {
             data: productData,
             currentPage: page,
@@ -179,29 +191,52 @@ const getAllProducts = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching products:", error);
+        if (req.headers.accept.includes('application/json')) {
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
         res.redirect("/admin/pageError");
     }
 };
 
+// Updated blockProduct (POST only)
 const blockProduct = async (req, res) => {
     try {
-        const id = req.query.id;
+        const id = req.body.id;
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Product ID is required' });
+        }
+
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
         await Product.updateOne({ _id: id }, { $set: { isBlocked: true } });
-        res.redirect(`/admin/products?success=blocked`);
+        return res.status(200).json({ success: true, message: 'Product blocked successfully' });
     } catch (error) {
         console.error("Product blocking error:", error);
-        res.redirect("/admin/pageError");
+        return res.status(500).json({ success: false, message: 'An error occurred while blocking the product' });
     }
 };
 
+// Updated unblockProduct (POST only)
 const unblockProduct = async (req, res) => {
     try {
-        const id = req.query.id;
+        const id = req.body.id;
+        if (!id) {
+            return res.status(400).json({ success: false, message: 'Product ID is required' });
+        }
+
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
         await Product.updateOne({ _id: id }, { $set: { isBlocked: false } });
-        res.redirect(`/admin/products?success=unblocked`);
+        return res.status(200).json({ success: true, message: 'Product unblocked successfully' });
     } catch (error) {
         console.error("Product unblocking error:", error);
-        res.redirect("/admin/pageError");
+        return res.status(500).json({ success: false, message: 'An error occurred while unblocking the product' });
     }
 };
 
