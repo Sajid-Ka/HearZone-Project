@@ -15,32 +15,49 @@ const moveFile = (oldPath, newPath) => {
 const getAllBrands = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 5; 
+        const limit = 4;
         const skip = (page - 1) * limit;
 
         const totalBrands = await Brand.countDocuments();
         const totalPages = Math.ceil(totalBrands / limit);
-        
+
         const brands = await Brand.find()
-            .sort({createdAt:-1})
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        res.render('brand', { 
-            brands, 
+        // Check if the request is AJAX (fetch request)
+        if (req.get('X-Requested-With') === 'XMLHttpRequest') {
+            return res.json({
+                success: true,
+                brands,
+                currentPage: page,
+                totalPages,
+            });
+        }
+
+        // Render EJS for initial page load
+        res.render('brand', {
+            brands,
             currentPage: page,
             totalPages,
-            error: null, 
-            success: null 
+            error: null,
+            success: null,
         });
     } catch (err) {
         console.error(err);
-        res.render('brand', { 
-            brands: [], 
+        if (req.get('X-Requested-With') === 'XMLHttpRequest') {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to load brands',
+            });
+        }
+        res.render('brand', {
+            brands: [],
             currentPage: 1,
             totalPages: 1,
-            error: 'Failed to load brands', 
-            success: null 
+            error: 'Failed to load brands',
+            success: null,
         });
     }
 };
@@ -138,9 +155,11 @@ const toggleBrandStatus = async (req, res) => {
 
 const deleteBrand = async (req, res) => {
     try {
+        // Backend: deleteBrand
         const { brandId } = req.body;
         await Brand.findByIdAndDelete(brandId);
-        res.json({ success: true, message: 'Brand deleted successfully' });
+        const totalBrands = await Brand.countDocuments();
+        res.json({ success: true, message: 'Brand deleted successfully', totalBrands });
     } catch (err) {
         console.error(err);
         res.json({ success: false, message: 'Failed to delete brand' });
