@@ -119,7 +119,7 @@
             <ul class="pagination justify-content-center" id="pagination">
                 <% for(let i=1; i <= totalPages; i++) { %>
                     <li class="page-item <%= (i === currentPage) ? 'active' : '' %>">
-                        <a class="page-link" href="?page=<%= i %><%= search ? '&search=' + search : '' %><%= isBlocked ? '&blocked=true' : '' %>" 
+                        <a class="page-link" href="#" 
                             data-page="<%= i %>"
                             style="color: #2c3e50; border-color: #e0e0e0; margin: 0 2px; border-radius: 5px;">
                             <%= i %>
@@ -136,7 +136,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const success = urlParams.get('success');
         const error = urlParams.get('error');
-        
+
+        // Handle success/error notifications
         if (success === 'block') {
             Swal.fire({
                 title: 'Blocked!',
@@ -238,18 +239,18 @@
                 allUsersBtn.className = `btn mx-2 ${!isBlocked ? 'btn-primary' : 'btn-outline-primary'}`;
                 blockedUsersBtn.className = `btn mx-2 ${isBlocked ? 'btn-primary' : 'btn-outline-primary'}`;
 
-                // Re-attach event listeners to new pagination links
+                // Attach event listeners to new pagination links
                 document.querySelectorAll('.pagination .page-link').forEach(link => {
                     link.addEventListener('click', async function(e) {
                         e.preventDefault();
                         const page = this.getAttribute('data-page');
                         const searchInput = document.querySelector('#searchInput').value;
-                        const currentIsBlocked = allUsersBtn.classList.contains('btn-outline-primary') ? true : false;
+                        const currentIsBlocked = allUsersBtn.classList.contains('btn-outline-primary');
                         await loadPage(page, searchInput, currentIsBlocked);
                     });
                 });
 
-                // Re-attach event listeners to block/unblock buttons
+                // Re-attach block/unblock listeners
                 attachBlockUnblockListeners();
 
                 // Update browser URL
@@ -268,11 +269,10 @@
             }
         }
 
-        // Handle search input with debouncing
+        // Handle search input
         const searchInput = document.querySelector('#searchInput');
         const clearBtn = document.querySelector('#clearSearch');
 
-        // Show/hide clear button based on input
         function toggleClearButton() {
             clearBtn.style.display = searchInput.value ? 'block' : 'none';
         }
@@ -282,19 +282,17 @@
             debouncedSearch(this.value);
         });
 
-        // Initialize clear button visibility
         toggleClearButton();
 
-        // Handle clear button click
         clearBtn.addEventListener('click', async function() {
             searchInput.value = '';
             toggleClearButton();
-            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary') ? true : false;
+            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary');
             await loadPage(1, '', currentIsBlocked);
         });
 
         const debouncedSearch = debounce(async (value) => {
-            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary') ? true : false;
+            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary');
             await loadPage(1, value, currentIsBlocked);
         }, 500);
 
@@ -313,7 +311,6 @@
 
         // Function to attach block/unblock event listeners
         function attachBlockUnblockListeners() {
-            // Block buttons
             document.querySelectorAll('.block-btn').forEach(button => {
                 button.addEventListener('click', async function() {
                     const userId = this.getAttribute('data-id');
@@ -386,7 +383,6 @@
                 });
             });
 
-            // Unblock buttons
             document.querySelectorAll('.unblock-btn').forEach(button => {
                 button.addEventListener('click', async function() {
                     const userId = this.getAttribute('data-id');
