@@ -236,7 +236,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <% data.reverse().forEach((category) => { %>
+                            <% data.forEach((category) => { %>
                             <tr data-category-id="<%= category._id %>">
                                 <td><%= category.name %></td>
                                 <td><%= category.description %></td>
@@ -336,7 +336,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success').then(() => location.reload());
+                    Swal.fire('Success!', data.message, 'success').then(() => {
+                        window.location.href = '/admin/category?page=1'; // Redirect to first page
+                    });
                 } else {
                     Swal.fire('Error!', data.error, 'error');
                 }

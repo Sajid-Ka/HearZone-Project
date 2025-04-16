@@ -7,12 +7,13 @@ const categoryInfo = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const categoryData = await Category.find({})
-            .sort({ createdAt:1})
+            .sort({ createdAt:-1})
             .skip(skip)
             .limit(limit);
 
         const totalCategories = await Category.countDocuments();
         const totalPages = Math.ceil(totalCategories / limit);
+        
         res.render('category', {
             data: categoryData,
             totalPages: totalPages,
