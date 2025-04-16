@@ -7,13 +7,25 @@ const categoryInfo = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const categoryData = await Category.find({})
-            .sort({ createdAt:-1})
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
         const totalCategories = await Category.countDocuments();
         const totalPages = Math.ceil(totalCategories / limit);
-        
+
+        // Check if the request is AJAX
+        if (req.get('X-Requested-With') === 'XMLHttpRequest') {
+            return res.json({
+                success: true,
+                data: categoryData,
+                currentPage: page,
+                totalPages: totalPages,
+                totalCategories: totalCategories
+            });
+        }
+
+        // Render EJS for initial page load
         res.render('category', {
             data: categoryData,
             totalPages: totalPages,
@@ -22,14 +34,20 @@ const categoryInfo = async (req, res) => {
         });
     } catch (error) {
         console.error("Category Info Error", error);
+        if (req.get('X-Requested-With') === 'XMLHttpRequest') {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to load categories'
+            });
+        }
         res.redirect('/admin/pageError');
     }
 };
 
+// Other controllers remain unchanged
 const addCategory = async (req, res) => {
     const { name, description } = req.body;
     try {
-        // Convert name to lowercase for case-insensitive comparison
         const existingCategory = await Category.findOne({ 
             name: { $regex: new RegExp(`^${name}$`, 'i') }
         });
@@ -79,8 +97,6 @@ const getListCategory = async (req, res) => {
     }
 };
 
-
-
 const getUnlistCategory = async (req, res) => {
     try {
         const id = req.query.id;
@@ -110,8 +126,6 @@ const getUnlistCategory = async (req, res) => {
         });
     }
 };
-  
-
 
 const getEditCategory = async (req, res) => {
     try {
@@ -147,7 +161,6 @@ const editCategory = async (req, res) => {
             });
         }
 
-        // Case-insensitive check for existing category name
         const existingCategory = await Category.findOne({ 
             name: { $regex: new RegExp(`^${categoryName}$`, 'i') },
             _id: { $ne: id }
@@ -169,7 +182,6 @@ const editCategory = async (req, res) => {
         return res.json({ 
             success: true,
             message: "Category updated successfully",
-            redirect: "/admin/category",
             category: updatedCategory
         });
     } catch (error) {
@@ -189,8 +201,7 @@ const deleteCategory = async (req, res) => {
         if (deletedCategory) {
             return res.json({ 
                 success: true, 
-                message: 'Category deleted successfully',
-                redirect: '/admin/category'
+                message: 'Category deleted successfully'
             });
         } else {
             return res.status(404).json({ 
