@@ -3,51 +3,122 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --secondary: #3a0ca3;
+            --success: #2ec4b6;
+            --danger: #e63946;
+            --warning: #f9c74f;
+            --info: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --grey: #6c757d;
+            --border-radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         .dashboard-container {
             padding: 2rem;
-            background: #f8f9fa;
+            background: #f8fafc;
+            max-width: 1600px;
+            margin: 0 auto;
         }
-        .content-header h2 {
-            color: #2c3e50;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-        .search-wrapper {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            padding: 1.5rem;
+        
+        .content-header {
             margin-bottom: 2rem;
         }
+        
+        .content-header h2 {
+            color: var(--dark);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .content-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        .search-wrapper {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .search-wrapper:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        
         /* Improved search area */
         .filter-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
+        
         .toggle-buttons {
             display: flex;
             gap: 10px;
         }
+        
         .search-input-container {
             flex-grow: 1;
             max-width: 100%;
+            min-width: 250px;
             position: relative;
         }
+        
         .search-input {
             width: 100%;
             position: relative;
         }
+        
         .search-input input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 1.2rem;
             border-radius: 30px;
             border: 1px solid #e0e0e0;
             font-size: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            box-shadow: var(--shadow-sm);
             padding-right: 40px;
+            transition: var(--transition);
         }
+        
+        .search-input input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+        
+        .search-input input::placeholder {
+            color: #adb5bd;
+        }
+        
         .clear-search-btn {
             position: absolute;
             right: 15px;
@@ -55,104 +126,299 @@
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: #888;
+            color: #adb5bd;
             cursor: pointer;
             font-size: 16px;
+            transition: var(--transition);
         }
+        
         .clear-search-btn:hover {
-            color: #e74c3c;
+            color: var(--danger);
         }
+        
         /* Table styles */
         .custom-table {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
             overflow: hidden;
+            transition: var(--transition);
+            border: 1px solid rgba(0,0,0,0.03);
         }
+        
+        .custom-table:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .custom-table table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        
         .custom-table thead {
             background: #f8f9fa;
         }
+        
         .custom-table th {
             font-weight: 600;
-            color: #2c3e50;
-            padding: 1rem;
-            border-bottom: 2px solid #eee;
+            color: var(--dark);
+            padding: 1.2rem 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
         }
+        
         .custom-table td {
-            padding: 1rem;
+            padding: 1.2rem 1rem;
             vertical-align: middle;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
         }
+        
+        .custom-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .custom-table tr {
+            transition: var(--transition);
+        }
+        
         .custom-table tr:hover {
             background: #f8f9fa;
         }
+        
         .action-btn {
             border-radius: 8px;
-            padding: 0.5rem 1rem;
-            transition: all 0.2s;
+            padding: 0.6rem 1rem;
+            transition: var(--transition);
             font-weight: 500;
             border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
+        
         .action-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
         }
+        
         .offer-btn {
-            background: #3498db;
+            background: var(--info);
             color: white;
         }
+        
+        .offer-btn:hover {
+            background: #32b0e4;
+        }
+        
         .block-btn {
-            background: #e74c3c;
+            background: var(--danger);
             color: white;
         }
+        
+        .block-btn:hover {
+            background: #d5303d;
+        }
+        
         .unblock-btn {
-            background: #2ecc71;
+            background: var(--success);
             color: white;
         }
+        
+        .unblock-btn:hover {
+            background: #23b0a3;
+        }
+        
         .edit-btn {
-            background: #9b59b6;
+            background: var(--secondary);
             color: white;
         }
+        
+        .edit-btn:hover {
+            background: #3107a3;
+        }
+        
         .pagination {
             margin-top: 2rem;
+            gap: 5px;
         }
+        
         .pagination .page-link {
             border-radius: 8px;
             margin: 0 3px;
             border: none;
-            color: #2c3e50;
+            color: var(--dark);
             cursor: pointer;
+            transition: var(--transition);
+            min-width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
         }
+        
+        .pagination .page-link:hover {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+        
         .pagination .active .page-link {
-            background: #3498db;
+            background: var(--primary);
             color: white;
+            font-weight: 600;
         }
+        
         tr {
             transition: opacity 0.5s ease;
         }
+        
         .spinner-border {
             width: 2rem;
             height: 2rem;
+            color: var(--primary);
         }
+        
         /* Enhanced toggle buttons */
         .toggle-btn {
-            border-radius: 25px;
-            min-width: 140px;
-            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            min-width: 170px;
+            padding: 0.75rem 1.2rem;
             font-weight: 500;
-            transition: all 0.3s;
-            border: 2px solid #3498db;
+            transition: var(--transition);
+            border: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
         }
+        
         .toggle-btn.active {
-            background: #3498db;
+            background: var(--primary);
             color: white;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.2);
         }
+        
         .toggle-btn:not(.active) {
             background: white;
-            color: #3498db;
+            color: var(--primary);
         }
+        
         .toggle-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.2);
+        }
+        
+        /* Badge for quantity */
+        .quantity-badge {
+            padding: 0.35rem 0.7rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        
+        .high-quantity {
+            background-color: rgba(46, 196, 182, 0.15);
+            color: #21a99a;
+        }
+        
+        .medium-quantity {
+            background-color: rgba(249, 199, 79, 0.15);
+            color: #e8b62a;
+        }
+        
+        .low-quantity {
+            background-color: rgba(230, 57, 70, 0.15);
+            color: #d32d39;
+        }
+        
+        /* Price styles */
+        .price-tag {
+            font-weight: 600;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .regular-price {
+            color: var(--grey);
+        }
+        
+        .sale-price {
+            color: var(--primary);
+        }
+        
+        /* No results message */
+        .no-results {
+            padding: 3rem;
+            text-align: center;
+            color: var(--grey);
+        }
+        
+        .no-results i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .no-results h4 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .no-results p {
+            max-width: 500px;
+            margin: 0 auto;
+            opacity: 0.7;
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .loading-pulse {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 992px) {
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toggle-buttons {
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+            
+            .custom-table {
+                overflow-x: auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .search-wrapper {
+                padding: 1.2rem;
+            }
+            
+            .toggle-btn {
+                min-width: 140px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -166,10 +432,10 @@
         <div class="filter-controls">
             <div class="toggle-buttons">
                 <button class="toggle-btn <%= !isBlocked ? 'active' : '' %>" id="availableProductsBtn">
-                    <i class="fas fa-box-open mr-2"></i> Available Products
+                    <i class="fas fa-box-open"></i> Available Products
                 </button>
                 <button class="toggle-btn <%= isBlocked ? 'active' : '' %>" id="blockedProductsBtn">
-                    <i class="fas fa-ban mr-2"></i> Blocked Products
+                    <i class="fas fa-ban"></i> Blocked Products
                 </button>
             </div>
             <div class="search-input-container">
@@ -187,53 +453,82 @@
         <table class="table table-borderless mb-0">
             <thead>
                 <tr>
-                    <th scope="col"><b>Product name</b></th>
-                    <th scope="col"><b>Brand</b></th>
-                    <th scope="col"><b>Category</b></th>
-                    <th scope="col"><b>Sale Price</b></th>
-                    <th scope="col"><b>Offer Price</b></th>
-                    <th scope="col"><b>Quantity</b></th>
-                    <th scope="col"><b>Offer</b></th>
-                    <th scope="col"><b>Action</b></th>
-                    <th scope="col"><b>Edit</b></th>
+                    <th scope="col">PRODUCT NAME</th>
+                    <th scope="col">BRAND</th>
+                    <th scope="col">CATEGORY</th>
+                    <th scope="col">SALE PRICE</th>
+                    <th scope="col">OFFER PRICE</th>
+                    <th scope="col">QUANTITY</th>
+                    <th scope="col">OFFER</th>
+                    <th scope="col">ACTION</th>
+                    <th scope="col">EDIT</th>
                 </tr>
             </thead>
             <tbody id="productTableBody">
+                <% if(data.length === 0) { %>
+                <tr>
+                    <td colspan="9">
+                        <div class="no-results">
+                            <i class="fas fa-search"></i>
+                            <h4>No products found</h4>
+                            <p>Try adjusting your search or filters to find what you're looking for.</p>
+                        </div>
+                    </td>
+                </tr>
+                <% } else { %>
                 <% for (let i = 0; i < data.length; i++) { %>
                 <tr>
-                    <td><%= data[i].productName %></td>
+                    <td><strong><%= data[i].productName %></strong></td>
                     <td><%= data[i].brand.brandName %></td>
                     <td><%= data[i].category.name %></td>
-                    <td><%= data[i].regularPrice %></td>
-                    <td><%= data[i].salePrice %></td>
-                    <td><%= data[i].quantity %></td>
+                    <td><span class="price-tag regular-price">₹<%= data[i].regularPrice %></span></td>
+                    <td><span class="price-tag sale-price">₹<%= data[i].salePrice %></span></td>
                     <td>
-                        <button class="action-btn offer-btn w-100">Add Offer</button>
+                        <% 
+                        let quantityClass = "medium-quantity";
+                        if(data[i].quantity > 50) quantityClass = "high-quantity";
+                        if(data[i].quantity < 10) quantityClass = "low-quantity";
+                        %>
+                        <span class="quantity-badge <%= quantityClass %>"><%= data[i].quantity %></span>
+                    </td>
+                    <td>
+                        <button class="action-btn offer-btn w-100">
+                            <i class="fas fa-tag fa-sm"></i> Add Offer
+                        </button>
                     </td>
                     <td>
                         <% if(data[i].isBlocked === false) { %>
-                        <button class="action-btn block-btn w-100" data-product-id="<%= data[i]._id %>" data-action="block">Block</button>
+                        <button class="action-btn block-btn w-100" data-product-id="<%= data[i]._id %>" data-action="block">
+                            <i class="fas fa-ban fa-sm"></i> Block
+                        </button>
                         <% } else { %>
-                        <button class="action-btn unblock-btn w-100" data-product-id="<%= data[i]._id %>" data-action="unblock">Unblock</button>
+                        <button class="action-btn unblock-btn w-100" data-product-id="<%= data[i]._id %>" data-action="unblock">
+                            <i class="fas fa-check-circle fa-sm"></i> Unblock
+                        </button>
                         <% } %>
                     </td>
                     <td>
                         <button class="action-btn edit-btn w-100">
-                            <a href="/admin/editProduct?id=<%= data[i]._id %>" class="text-white" style="text-decoration: none;">Edit</a>
+                            <a href="/admin/editProduct?id=<%= data[i]._id %>" class="text-white" style="text-decoration: none;">
+                                <i class="fas fa-edit fa-sm"></i> Edit
+                            </a>
                         </button>
                     </td>
                 </tr>
+                <% } %>
                 <% } %>
             </tbody>
         </table>
     </div>
 
-    <div class="container mt-3">
+    <div class="container mt-4">
         <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center mb-20" id="pagination">
+            <ul class="pagination justify-content-center" id="pagination">
                 <% if (currentPage > 1) { %>
                     <li class="page-item">
-                        <a class="page-link" href="#" data-page="<%= currentPage - 1 %>">Previous</a>
+                        <a class="page-link" href="#" data-page="<%= currentPage - 1 %>">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
                     </li>
                 <% } %>
                 <% for (let i = 1; i <= totalPages; i++) { %>
@@ -243,7 +538,9 @@
                 <% } %>
                 <% if (currentPage < totalPages) { %>
                     <li class="page-item">
-                        <a class="page-link" href="#" data-page="<%= currentPage + 1 %>">Next</a>
+                        <a class="page-link" href="#" data-page="<%= currentPage + 1 %>">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     </li>
                 <% } %>
             </ul>
@@ -271,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadPage(page, search = '', isBlocked = false) {
         try {
             const tbody = document.querySelector('#productTableBody');
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5"><div class="spinner-border loading-pulse" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
 
             let url = `/admin/products?page=${page}&format=json`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
@@ -293,30 +590,60 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Update table body
-            tbody.innerHTML = data.data.map(product => `
-                <tr>
-                    <td>${product.productName}</td>
-                    <td>${product.brand.brandName}</td>
-                    <td>${product.category.name}</td>
-                    <td>${product.regularPrice}</td>
-                    <td>${product.salePrice}</td>
-                    <td>${product.quantity}</td>
-                    <td>
-                        <button class="action-btn offer-btn w-100">Add Offer</button>
-                    </td>
-                    <td>
-                        ${product.isBlocked ?
-                            `<button class="action-btn unblock-btn w-100" data-product-id="${product._id}" data-action="unblock">Unblock</button>` :
-                            `<button class="action-btn block-btn w-100" data-product-id="${product._id}" data-action="block">Block</button>`
-                        }
-                    </td>
-                    <td>
-                        <button class="action-btn edit-btn w-100">
-                            <a href="/admin/editProduct?id=${product._id}" class="text-white" style="text-decoration: none;">Edit</a>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            if (data.data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9">
+                            <div class="no-results">
+                                <i class="fas fa-search"></i>
+                                <h4>No products found</h4>
+                                <p>Try adjusting your search or filters to find what you're looking for.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = data.data.map(product => {
+                    let quantityClass = "medium-quantity";
+                    if(product.quantity > 50) quantityClass = "high-quantity";
+                    if(product.quantity < 10) quantityClass = "low-quantity";
+                    
+                    return `
+                        <tr>
+                            <td><strong>${product.productName}</strong></td>
+                            <td>${product.brand.brandName}</td>
+                            <td>${product.category.name}</td>
+                            <td><span class="price-tag regular-price">₹${product.regularPrice}</span></td>
+                            <td><span class="price-tag sale-price">₹${product.salePrice}</span></td>
+                            <td>
+                                <span class="quantity-badge ${quantityClass}">${product.quantity}</span>
+                            </td>
+                            <td>
+                                <button class="action-btn offer-btn w-100">
+                                    <i class="fas fa-tag fa-sm"></i> Add Offer
+                                </button>
+                            </td>
+                            <td>
+                                ${product.isBlocked ?
+                                    `<button class="action-btn unblock-btn w-100" data-product-id="${product._id}" data-action="unblock">
+                                        <i class="fas fa-check-circle fa-sm"></i> Unblock
+                                    </button>` :
+                                    `<button class="action-btn block-btn w-100" data-product-id="${product._id}" data-action="block">
+                                        <i class="fas fa-ban fa-sm"></i> Block
+                                    </button>`
+                                }
+                            </td>
+                            <td>
+                                <button class="action-btn edit-btn w-100">
+                                    <a href="/admin/editProduct?id=${product._id}" class="text-white" style="text-decoration: none;">
+                                        <i class="fas fa-edit fa-sm"></i> Edit
+                                    </a>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
 
             // Update pagination
             const pagination = document.querySelector('#pagination');
@@ -324,7 +651,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.currentPage > 1) {
                 pagination.innerHTML += `
                     <li class="page-item">
-                        <a class="page-link" href="#" data-page="${data.currentPage - 1}">Previous</a>
+                        <a class="page-link" href="#" data-page="${data.currentPage - 1}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
                     </li>
                 `;
             }
@@ -338,7 +667,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.currentPage < data.totalPages) {
                 pagination.innerHTML += `
                     <li class="page-item">
-                        <a class="page-link" href="#" data-page="${data.currentPage + 1}">Next</a>
+                        <a class="page-link" href="#" data-page="${data.currentPage + 1}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     </li>
                 `;
             }
@@ -369,7 +700,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 timer: 3000,
                 showConfirmButton: false
             });
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center">Error loading data</td></tr>';
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+                        <div class="no-results">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Error loading data</h4>
+                            <p>There was a problem fetching the products. Please try again later.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     }
 
@@ -400,13 +741,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     text: "Do you want to block this product?",
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, block it!'
+                    confirmButtonColor: '#e63946',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, block it!',
+                    cancelButtonText: 'Cancel',
+                    customClass: {
+                        confirmButton: 'btn btn-danger',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: true
                 });
 
                 if (result.isConfirmed) {
                     try {
+                        button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+                        button.disabled = true;
+                        
                         const response = await fetch('/admin/blockProduct', {
                             method: 'POST',
                             headers: {
@@ -420,7 +770,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (data.success) {
                             const actionCell = row.querySelector('td:nth-child(8)');
                             actionCell.innerHTML = `
-                                <button class="action-btn unblock-btn w-100" data-product-id="${productId}" data-action="unblock">Unblock</button>
+                                <button class="action-btn unblock-btn w-100" data-product-id="${productId}" data-action="unblock">
+                                    <i class="fas fa-check-circle fa-sm"></i> Unblock
+                                </button>
                             `;
                             attachBlockUnblockListeners();
                             Swal.fire({
@@ -428,7 +780,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: 'Success!',
                                 text: 'Product has been blocked successfully',
                                 timer: 2000,
-                                showConfirmButton: false
+                                showConfirmButton: false,
+                                customClass: {
+                                    popup: 'animated fadeInDown faster'
+                                }
                             });
                             if (!window.location.href.includes('blocked=true')) {
                                 setTimeout(() => {
@@ -470,13 +825,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     text: "Do you want to unblock this product?",
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, unblock it!'
+                    confirmButtonColor: '#2ec4b6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, unblock it!',
+                    cancelButtonText: 'Cancel',
+                    customClass: {
+                        confirmButton: 'btn btn-success',
+                        cancelButton: 'btn btn-secondary'
+                    },
+                    buttonsStyling: true
                 });
 
                 if (result.isConfirmed) {
                     try {
+                        button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+                        button.disabled = true;
+                        
                         const response = await fetch('/admin/unblockProduct', {
                             method: 'POST',
                             headers: {
@@ -490,7 +854,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (data.success) {
                             const actionCell = row.querySelector('td:nth-child(8)');
                             actionCell.innerHTML = `
-                                <button class="action-btn block-btn w-100" data-product-id="${productId}" data-action="block">Block</button>
+                                <button class="action-btn block-btn w-100" data-product-id="${productId}" data-action="block">
+                                    <i class="fas fa-ban fa-sm"></i> Block
+                                </button>
                             `;
                             attachBlockUnblockListeners();
                             Swal.fire({
@@ -498,7 +864,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: 'Success!',
                                 text: 'Product has been unblocked successfully',
                                 timer: 2000,
-                                showConfirmButton: false
+                                showConfirmButton: false,
+                                customClass: {
+                                    popup: 'animated fadeInDown faster'
+                                }
                             });
                             if (window.location.href.includes('blocked=true')) {
                                 setTimeout(() => {
@@ -527,6 +896,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+
+        // Add event listeners for offer buttons
+        document.querySelectorAll('.offer-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                //offer button working blocked by me
+                e.eventPreventDefault()
+                const productName = this.closest('tr').querySelector('td:first-child').textContent;
+                
+                Swal.fire({
+                    title: 'Add Offer',
+                    html: `
+                        <form id="offerForm" class="text-left">
+                            <div class="mb-3">
+                                <label for="offerDiscount" class="form-label">Discount Percentage (%)</label>
+                                <input type="number" class="form-control" id="offerDiscount" min="1" max="99" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerStartDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="offerStartDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offerEndDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="offerEndDate" required>
+                            </div>
+                        </form>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Add Offer',
+                    confirmButtonColor: '#4cc9f0',
+                    cancelButtonColor: '#6c757d',
+                    preConfirm: () => {
+                        const form = document.getElementById('offerForm');
+                        if (!form.checkValidity()) {
+                            form.reportValidity();
+                            return false;
+                        }
+                        return {
+                            discount: document.getElementById('offerDiscount').value,
+                            startDate: document.getElementById('offerStartDate').value,
+                            endDate: document.getElementById('offerEndDate').value
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Here you would send the offer data to your backend
+                        // For now, we'll just show a success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Offer Added!',
+                            text: `Offer of ${result.value.discount}% added to ${productName}`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            });
+        });
     }
 
     // Update the clear button visibility based on search input
@@ -549,6 +975,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
         loadPage(1, '', isBlocked);
+    }
+
+    // Add loading animation to buttons
+    function addLoadingToButton(button, text) {
+        const originalContent = button.innerHTML;
+        button.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ${text}`;
+        button.disabled = true;
+        return () => {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        };
     }
 
     // Initial setup
@@ -584,13 +1021,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle Available/Blocked Products buttons
     document.querySelector('#availableProductsBtn').addEventListener('click', function() {
+        if (this.classList.contains('active')) return;
+        
+        const resetBlockedBtn = addLoadingToButton(this, 'Loading...');
+        
         const search = searchInput ? searchInput.value : '';
-        loadPage(1, search, false);
+        loadPage(1, search, false).then(resetBlockedBtn);
     });
 
     document.querySelector('#blockedProductsBtn').addEventListener('click', function() {
+        if (this.classList.contains('active')) return;
+        
+        const resetBlockedBtn = addLoadingToButton(this, 'Loading...');
+        
         const search = searchInput ? searchInput.value : '';
-        loadPage(1, search, true);
+        loadPage(1, search, true).then(resetBlockedBtn);
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Focus search box on Ctrl+F or Cmd+F (but don't prevent default browser search)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            setTimeout(() => {
+                searchInput.focus();
+            }, 100);
+        }
+        
+        // Clear search on Escape when search input is focused
+        if (e.key === 'Escape' && document.activeElement === searchInput && searchInput.value !== '') {
+            clearSearch();
+            e.preventDefault();
+        }
     });
 
     // Initialize event listeners
@@ -604,6 +1065,44 @@ document.addEventListener('DOMContentLoaded', function() {
             if (searchInput) searchInput.value = state.search || '';
             updateClearButtonVisibility();
             loadPage(state.page, state.search || '', state.isBlocked || false);
+        }
+    });
+    
+    // Add visual feedback when clicking on buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('action-btn') || 
+            e.target.classList.contains('toggle-btn') ||
+            e.target.classList.contains('page-link')) {
+            
+            const ripple = document.createElement('div');
+            const rect = e.target.getBoundingClientRect();
+            
+            ripple.style.position = 'absolute';
+            ripple.style.borderRadius = '50%';
+            ripple.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+            ripple.style.width = '100px';
+            ripple.style.height = '100px';
+            ripple.style.marginTop = '-50px';
+            ripple.style.marginLeft = '-50px';
+            ripple.style.top = (e.clientY - rect.top) + 'px';
+            ripple.style.left = (e.clientX - rect.left) + 'px';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.transform = 'scale(0)';
+            ripple.style.transition = 'transform 0.5s, opacity 0.5s';
+            
+            e.target.style.position = 'relative';
+            e.target.style.overflow = 'hidden';
+            e.target.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.style.transform = 'scale(4)';
+                ripple.style.opacity = '0';
+                setTimeout(() => {
+                    if (ripple.parentNode) {
+                        ripple.parentNode.removeChild(ripple);
+                    }
+                }, 500);
+            }, 1);
         }
     });
 });
