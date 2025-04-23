@@ -63,7 +63,7 @@ const addressSchema = new Schema({
         default: Date.now
     }
 }, {
-    timestamps: true // Automatically manages createdAt and updatedAt
+    timestamps: true 
 });
 
 const Address = mongoose.model("Address", addressSchema);

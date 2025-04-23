@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const adminController = require('../controllers/admin/adminController');
 const { isAdminAuth, isAdminLogin } = require('../middlewares/auth');
 const customerController = require('../controllers/admin/customerController');
@@ -8,8 +9,6 @@ const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
 const couponController = require('../controllers/admin/couponController');
-
-// Import the configured multer instance only once
 const multer = require('../helpers/multer');
 
 router.get('/pageError', adminController.pageError);
@@ -17,7 +16,7 @@ router.get('/pageError', adminController.pageError);
 // Login and logout routes with proper middleware
 router.get('/login', isAdminLogin, adminController.loadLogin);
 router.post('/login', isAdminLogin, adminController.login);
-router.get('/dashboard', adminController.loadDashboard);
+router.get('/dashboard', isAdminAuth, adminController.loadDashboard);
 router.get('/logout', isAdminAuth, adminController.logout);
 
 // Apply adminAuth middleware to all routes

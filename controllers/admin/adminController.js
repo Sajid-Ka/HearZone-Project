@@ -68,6 +68,11 @@ const loadDashboard = async (req, res) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Expires', '0');
         res.setHeader('Pragma', 'no-cache');
+
+        if(!req.session.admin){
+            return res.render('admin-login',{message:null})
+        }
+
         res.render('dashboard');
     } catch (error) {
         console.error('Error loading Dashboard:', error);
