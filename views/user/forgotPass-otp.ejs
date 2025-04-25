@@ -114,7 +114,8 @@
             <form id="otpForm" onsubmit="return validateOtpForm()">
                 <div class="form-group">
                     <label for="otp">Enter OTP:</label>
-                    <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
+                    <input type="text" id="otp" name="otp" class="form-control" maxlength="6" pattern="\d*" />
+                    <div id="otpError" style="color: red; font-size: 14px; display: none; margin-top: 5px;"></div>
                 </div>
                 <button type="submit" class="btn btn-primary" id="verifyBtn">Verify OTP</button>
                 <div class="form-group text-center">
@@ -152,8 +153,8 @@
     function startTimer() {
         clearInterval(timerInterval);
         timer = 60;
-        resendBtn.classList.add("disabled"); // Disable Resend button with 50% opacity
-        verifyBtn.classList.remove("disabled"); // Ensure Verify button is enabled
+        resendBtn.classList.add("disabled"); 
+        verifyBtn.classList.remove("disabled"); 
 
         timerInterval = setInterval(() => {
             timer--;
@@ -163,24 +164,38 @@
                 document.getElementById("timerValue").classList.add("expired");
                 document.getElementById("timerValue").textContent = "Expired";
                 document.getElementById("otp").disabled = true;
-                verifyBtn.classList.add("disabled"); // Disable Verify button when timer expires
-                resendBtn.classList.remove("disabled"); // Enable Resend button when timer expires
+                verifyBtn.classList.add("disabled"); 
+                resendBtn.classList.remove("disabled"); 
             }
         }, 1000);
     }
     startTimer();
 
     function validateOtpForm() {
+        
+        const otpInput = document.getElementById('otp').value.trim();
+        const otpError = document.getElementById('otpError');
+
+        otpError.style.display = "none";
+        otpError.textContent = "";
+
+    if (otpInput === "") {
+        otpError.textContent = "Please enter the OTP";
+        otpError.style.display = "block";
+        return false; 
+    }
+
         if (timer <= 0) {
             Swal.fire({
                 icon: "error",
                 title: "Timer Expired",
                 text: "Please resend OTP to continue.",
             });
-            return false; // Prevent form submission if timer expires
+            return false; 
         }
 
-        const otpInput = document.getElementById('otp').value;
+        
+
         $.ajax({
             type: "POST",
             url: "/verify-passForgot-otp",
@@ -218,7 +233,7 @@
         clearInterval(timerInterval);
         document.getElementById('otp').disabled = false;
         document.getElementById("timerValue").classList.remove("expired");
-        verifyBtn.classList.remove("disabled"); // Re-enable Verify button after resend
+        verifyBtn.classList.remove("disabled");
         startTimer();
 
         $.ajax({

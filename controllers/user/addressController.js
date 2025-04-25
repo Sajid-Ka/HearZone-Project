@@ -1,4 +1,4 @@
-// Backend (controller file)
+
 const Address = require('../../models/addressSchema');
 
 const getAddressPage = async (req, res) => {
@@ -12,7 +12,7 @@ const getAddressPage = async (req, res) => {
             user: req.session.user,
             currentRoute: '/address',
             messages: req.session.messages || {},
-            errors: {}  // Add errors object for form validation
+            errors: {}  
         });
         delete req.session.messages;
     } catch (error) {
@@ -29,7 +29,7 @@ const getAddressPage = async (req, res) => {
 };
 
 
-// addAddress
+
 const addAddress = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -39,7 +39,7 @@ const addAddress = async (req, res) => {
 
         const errors = {};
 
-        // Validate required fields
+        
         const requiredFields = { addressType, name, city, landmark, state, pinCode, phone };
         for (const [key, value] of Object.entries(requiredFields)) {
             if (!value || (typeof value === 'string' && value.trim() === '')) {
@@ -47,7 +47,7 @@ const addAddress = async (req, res) => {
             }
         }
 
-        // More permissive validation patterns
+        
         const namePattern = /^[A-Za-z\s\-']+$/;
         const addressPattern = /^[A-Za-z0-9\s\-.,'()]+$/;
         
@@ -67,7 +67,7 @@ const addAddress = async (req, res) => {
             errors.landmark = 'Please enter a valid landmark';
         }
 
-        // Phone validation
+        
         if (phone && !/^\d{10}$/.test(phone.trim())) {
             errors.phone = 'Phone must be exactly 10 digits';
         }
@@ -84,7 +84,7 @@ const addAddress = async (req, res) => {
             return res.status(400).json({ errors });
         }
 
-        // Rest of your address saving logic...
+        
         let addressDoc = await Address.findOne({ userId });
         if (!addressDoc) {
             addressDoc = new Address({ userId, addresses: [] });
@@ -156,7 +156,7 @@ const getEditAddressPage = async (req, res) => {
 };
 
 
-// editAddress
+
 const editAddress = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -175,7 +175,7 @@ const editAddress = async (req, res) => {
 
         const errors = {};
 
-        // Validate required fields
+       
         const requiredFields = { 
             addressType: addressData.addressType, 
             name: addressData.name, 
@@ -191,14 +191,14 @@ const editAddress = async (req, res) => {
             }
         }
 
-        // Validate alphabets only
+        
         const alphaOnlyRegex = /^[A-Za-z\s]+$/;
         if (addressData.name && !alphaOnlyRegex.test(addressData.name)) errors.name = 'Name must contain only alphabets';
         if (addressData.city && !alphaOnlyRegex.test(addressData.city)) errors.city = 'City must contain only alphabets';
         if (addressData.state && !alphaOnlyRegex.test(addressData.state)) errors.state = 'State must contain only alphabets';
         if (addressData.landmark && !alphaOnlyRegex.test(addressData.landmark)) errors.landmark = 'Landmark must contain only alphabets';
 
-        // Validate numbers only
+        
         if (addressData.phone && !/^\d{10}$/.test(addressData.phone)) errors.phone = 'Phone number must be exactly 10 digits';
         if (addressData.altPhone && !/^\d{10}$/.test(addressData.altPhone)) errors.altPhone = 'Alternate phone must be exactly 10 digits';
         if (addressData.pinCode && !/^\d{6}$/.test(addressData.pinCode)) errors.pinCode = 'Pin code must be exactly 6 digits';
@@ -215,7 +215,7 @@ const editAddress = async (req, res) => {
 
         const currentAddress = addressDoc.addresses[addressIndex];
 
-        // Check for changes including isDefault explicitly
+        
         const hasChanges = (
             addressData.addressType !== (currentAddress.addressType || '') ||
             addressData.name !== (currentAddress.name || '') ||
@@ -232,7 +232,7 @@ const editAddress = async (req, res) => {
             return res.status(200).json({ message: 'No changes detected', noChanges: true });
         }
 
-        // Update "Set as Default" logic
+       
         if (addressData.isDefault) {
             addressDoc.addresses.forEach((addr, index) => {
                 if (index !== addressIndex) {
@@ -241,11 +241,11 @@ const editAddress = async (req, res) => {
             });
         }
 
-        // Update the address
+        
         addressDoc.addresses[addressIndex] = { 
             ...currentAddress, 
             ...addressData,
-            _id: currentAddress._id // Preserve the original ID
+            _id: currentAddress._id 
         };
 
         await addressDoc.save();
@@ -279,7 +279,7 @@ const deleteAddress = async (req, res) => {
 
         await address.save();
         
-        // Return JSON response instead of redirect
+        
         res.status(200).json({ message: 'Address deleted successfully' });
     } catch (error) {
         console.error('Error in deleteAddress:', error);

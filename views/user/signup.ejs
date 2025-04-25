@@ -193,7 +193,10 @@
       const cPassVal = cPassId.value;
       const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-      if (passVal.length < 8) {
+      if(passVal.length===0){
+        error4.style.display = 'block';
+        error4.innerHTML = 'Please Enter Your Password';
+      }else if (passVal.length < 8) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least 8 characters.';
       } else if (!/[A-Z]/.test(passVal)) {

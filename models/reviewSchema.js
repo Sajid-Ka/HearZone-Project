@@ -20,18 +20,16 @@ const reviewSchema = new mongoose.Schema({
         required: true 
     },
     comment: String,
-    createdAt: { 
-        type: Date, 
-        default: Date.now 
-    },
-    isDeleted: {  // Added for soft delete
+    isDeleted: {  
         type: Boolean,
         default: false
     },
-    deletedAt: {  // Track deletion time for time limit feature
+    deletedAt: {
         type: Date,
         default: null
     }
+},{
+    timestamps:true
 });
 
 module.exports = mongoose.model("Review", reviewSchema);

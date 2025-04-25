@@ -13,11 +13,9 @@ const categorySchema = new Schema({
     isListed: {
         type: Boolean,
         default: true,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
     }
+},{
+    timestamps:true
 });
 
 const Category = mongoose.model("Category", categorySchema);

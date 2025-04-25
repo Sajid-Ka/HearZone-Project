@@ -18,7 +18,7 @@ const cartSchema = new Schema({
                 type: Number,
                 default: 1,
                 min: [1, "Quantity cannot be less than 1"],
-                required: true // Added to ensure quantity is always present
+                required: true
             },
             price: {
                 type: Number,
@@ -77,17 +77,17 @@ cartSchema.methods.calculateTotals = function () {
         return total + itemTotal;
     }, 0);
 
-    // Ensure discountAmount is a valid number
+    
     const discount = Number(this.discountAmount) || 0;
 
-    // Set values with fallbacks to prevent NaN
+    
     this.subTotal = Number.isNaN(subTotal) ? 0 : subTotal;
     this.finalAmount = Math.max(0, this.subTotal - discount);
 
     return this;
 };
 
-// Pre-save hook to ensure totals are calculated before saving
+
 cartSchema.pre("save", function (next) {
     this.calculateTotals();
     next();

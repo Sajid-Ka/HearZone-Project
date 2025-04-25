@@ -2,7 +2,7 @@ const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
 const Review = require('../../models/reviewSchema');
-const Brand = require('../../models/brandSchema'); // Ensure Brand model is imported
+const Brand = require('../../models/brandSchema'); 
 
 const productDetails = async (req, res) => {
     try {

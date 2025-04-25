@@ -168,9 +168,9 @@
         function startTimer() {
             clearInterval(timerInterval);
             timer = 60;
-            resendBtn.classList.add("disabled"); // Disable Resend button with 50% opacity
-            verifyBtn.classList.remove("disabled"); // Ensure Verify button is enabled
-            document.getElementById("otp").disabled = false; // Ensure OTP input is enabled
+            resendBtn.classList.add("disabled"); 
+            verifyBtn.classList.remove("disabled"); 
+            document.getElementById("otp").disabled = false; 
     
             timerInterval = setInterval(() => {
                 timer--;
@@ -180,8 +180,8 @@
                     document.getElementById("timerValue").classList.add("expired");
                     document.getElementById("timerValue").textContent = "Expired";
                     document.getElementById("otp").disabled = true;
-                    verifyBtn.classList.add("disabled"); // Disable Verify button
-                    resendBtn.classList.remove("disabled"); // Enable Resend button
+                    verifyBtn.classList.add("disabled"); 
+                    resendBtn.classList.remove("disabled"); 
                 }
             }, 1000);
         }
@@ -194,7 +194,7 @@
                     title: "Timer Expired",
                     text: "Please resend OTP to continue.",
                 });
-                return false; // Prevent form submission
+                return false; 
             }
     
             const otpInput = document.getElementById('otp').value;
@@ -206,7 +206,7 @@
                 url: verifyUrl,
                 data: { 
                     otp: otpInput,
-                    action: action // Send action to help server distinguish the context
+                    action: action
                 },
                 success: function(response) {
                     if (response.success) {
@@ -246,7 +246,7 @@
             clearInterval(timerInterval);
             document.getElementById('otp').disabled = false;
             document.getElementById("timerValue").classList.remove("expired");
-            verifyBtn.classList.remove("disabled"); // Explicitly re-enable Verify button
+            verifyBtn.classList.remove("disabled"); 
             startTimer();
     
             const action = document.querySelector('input[name="action"]').value;

@@ -738,8 +738,8 @@ class FormValidator {
         }
 
         // Validate images
-        if (imageManager.getImageCount() === 0) {
-            this.displayError('images-error', 'Please upload at least one image');
+        if (imageManager.getImageCount() < 3) {
+            this.displayError('images-error', 'Please upload at least Three image');
             isValid = false;
         }
 
@@ -769,8 +769,6 @@ class FormValidator {
             }
         }
 
-        // Remove the old specKey/specValue validation since the form uses a textarea for specifications
-        // If you add dynamic key-value inputs later, we can reintroduce that logic
 
         return isValid;
     }
@@ -849,25 +847,25 @@ function removeSpecification(button) {
 
     
    
-   // Initialize on page load
+  
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize image manager
+    
     window.imageManager = new ImageManager();
     
-    // Make sure modal backdrop functions properly
+    
     $(document).on('click', '.modal', function(e) {
             if ($(e.target).hasClass('modal')) {
                 $(this).modal('hide');
             }
         });
         
-        // Add explicit event handlers for modal close buttons
+        
         $('.close, .btn-secondary').on('click', function() {
             $('#cropperModal').modal('hide');
         });
     });
 
-    // Global functions
+    
     function handleImageSelect(input, index) {
         window.imageManager.handleImageSelect(input, index);
     }

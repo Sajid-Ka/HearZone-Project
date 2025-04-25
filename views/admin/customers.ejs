@@ -245,8 +245,7 @@
                         e.preventDefault();
                         const page = this.getAttribute('data-page');
                         const searchInput = document.querySelector('#searchInput').value;
-                        const currentIsBlocked = allUsersBtn.classList.contains('btn-outline-primary');
-                        await loadPage(page, searchInput, currentIsBlocked);
+                        await loadPage(page, searchInput, isBlocked);
                     });
                 });
 
@@ -254,8 +253,8 @@
                 attachBlockUnblockListeners();
 
                 // Update browser URL
-                const newUrl = `/admin/users?page=${page}${data.search ? '&search=' + encodeURIComponent(data.search) : ''}${data.isBlocked ? '&blocked=true' : ''}`;
-                history.pushState({ page, search: data.search, isBlocked: data.isBlocked }, '', newUrl);
+                const newUrl = `/admin/users?page=${page}${data.search ? '&search=' + encodeURIComponent(data.search) : ''}${isBlocked ? '&blocked=true' : ''}`;
+                history.pushState({ page, search: data.search, isBlocked }, '', newUrl);
             } catch (error) {
                 console.error('Error loading page:', error);
                 Swal.fire({
@@ -287,13 +286,13 @@
         clearBtn.addEventListener('click', async function() {
             searchInput.value = '';
             toggleClearButton();
-            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary');
-            await loadPage(1, '', currentIsBlocked);
+            const isBlocked = document.querySelector('#blockedUsersBtn').classList.contains('btn-primary');
+            await loadPage(1, '', isBlocked);
         });
 
         const debouncedSearch = debounce(async (value) => {
-            const currentIsBlocked = document.querySelector('#allUsersBtn').classList.contains('btn-outline-primary');
-            await loadPage(1, value, currentIsBlocked);
+            const isBlocked = document.querySelector('#blockedUsersBtn').classList.contains('btn-primary');
+            await loadPage(1, value, isBlocked);
         }, 500);
 
         // Handle All Users and Blocked Users buttons
@@ -481,6 +480,12 @@
             }
         `;
         document.head.appendChild(style);
+
+        // Initialize page based on URL parameters
+        const initialPage = parseInt(urlParams.get('page')) || 1;
+        const initialSearch = urlParams.get('search') || '';
+        const initialIsBlocked = urlParams.get('blocked') === 'true';
+        loadPage(initialPage, initialSearch, initialIsBlocked);
     });
 </script>
 

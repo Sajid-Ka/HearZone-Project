@@ -66,14 +66,13 @@ const loadHomepage = async (req, res) => {
         const categories = await Category.find({ isListed: true });
         const categoryIds = categories.map(category => category._id);
 
-        // Fetch blocked brand IDs
         const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
         const blockedBrandIds = blockedBrands.map(brand => brand._id);
 
         let productData = await Product.find({
             isBlocked: false,
             category: { $in: categoryIds },
-            brand: { $nin: blockedBrandIds } // Exclude products from blocked brands
+            brand: { $nin: blockedBrandIds } 
         }).populate('brand');
 
         productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
@@ -99,7 +98,7 @@ const loadSignup = async (req, res) => {
         res.header('Pragma', 'no-cache');
         
         if (req.session.user) {
-            return res.redirect('/'); // Redirect logged-in users to homepage
+            return res.redirect('/'); 
         }
         
         res.render('signup', { message: null });
@@ -120,11 +119,11 @@ const signup = async (req, res) => {
         if (existingUser) {
             return res.render('signup', { message: 'Email already in use' });
         }
-        // Validate name (no numbers)
+        
         if (/\d/.test(name)) {
             return res.render('signup', { message: 'Name cannot contain numbers' });
         }
-        // Validate phone (only digits, exactly 10)
+        
         if (!/^[0-9]{10}$/.test(phone)) {
             return res.render('signup', { message: 'Phone number must be exactly 10 digits' });
         }
@@ -156,7 +155,7 @@ const verifyOtp = async (req, res) => {
         const userData = req.session.userData;
         const passwordHash = await securePassword(userData.password);
 
-        // Recheck email to prevent race conditions
+        
         const existingUser = await User.findOne({ email: userData.email });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email already in use' });
@@ -167,7 +166,6 @@ const verifyOtp = async (req, res) => {
             email: userData.email,
             phone: userData.phone,
             password: passwordHash
-            // googleId is omitted, defaults to undefined, not null
         });
 
         const savedUser = await newUser.save();
@@ -223,7 +221,6 @@ const loadLogin = async (req, res) => {
             return res.redirect('/');
         }
         
-        // Check for message in query params (for Google Auth blocked users)
         const message = req.query.message || null;
         
         res.render('login', { 
@@ -243,7 +240,6 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const errors = {};
 
-        // Validation
         if (!email?.trim()) errors.email = 'Email is required';
         else if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'Invalid email';
 
@@ -253,7 +249,6 @@ const login = async (req, res) => {
             return res.render('login', { message: null, errors, email });
         }
 
-        // Find user (including Google Auth users)
         const findUser = await User.findOne({ email, isAdmin: 0 });
         
         if (!findUser) {
@@ -264,7 +259,7 @@ const login = async (req, res) => {
             });
         }
         
-        // Check if blocked (for all users)
+
         if (findUser.isBlocked) {
             return res.render('login', { 
                 message: 'User is blocked. Contact support.',
@@ -273,7 +268,7 @@ const login = async (req, res) => {
             });
         }
         
-        // Regular user (password check)
+        
         if (findUser.password) {
             const passwordMatch = await bcrypt.compare(password, findUser.password);
             if (!passwordMatch) {
@@ -283,9 +278,7 @@ const login = async (req, res) => {
                     email 
                 });
             }
-        } 
-        // Google Auth user (no password)
-        else {
+        } else {
             return res.render('login', { 
                 message: 'Please sign in with Google',
                 errors: null,
@@ -293,7 +286,7 @@ const login = async (req, res) => {
             });
         }
 
-        // Successful login
+        
         req.session.user = {
             id: findUser._id.toString(),
             name: findUser.name,
@@ -349,7 +342,7 @@ const loadShoppingPage = async (req, res) => {
         const blockedBrandIds = blockedBrands.map(brand => brand._id);
         const brands = await Brand.find({ isBlocked: false });
 
-        // Get query parameters
+        
         const page = parseInt(req.query.page) || 1;
         const limit = 9;
         const skip = (page - 1) * limit;
@@ -360,36 +353,36 @@ const loadShoppingPage = async (req, res) => {
         const gt = parseFloat(req.query.gt);
         const lt = parseFloat(req.query.lt);
 
-        // Build query object
+        
         let query = {
             isBlocked: false,
             category: { $in: categoryIds },
             brand: { $nin: blockedBrandIds }
         };
 
-        // Add search filter
+        
         if (searchQuery.trim().length > 0) {
             query.productName = { $regex: searchQuery, $options: 'i' };
         }
 
-        // Add category filter
+        
         if (categoryId) {
             query.category = new mongoose.Types.ObjectId(categoryId);
         }
 
-        // Add brand filter
+        
         if (brandId) {
             query.brand = new mongoose.Types.ObjectId(brandId);
         }
 
-        // Add price filter
+       
         if (!isNaN(gt) || !isNaN(lt)) {
             query.salePrice = {};
             if (!isNaN(gt)) query.salePrice.$gte = gt;
             if (!isNaN(lt)) query.salePrice.$lte = lt;
         }
 
-        // Set sorting
+        
         let sortQuery = { createdOn: -1 };
         let collation = null;
         
@@ -405,15 +398,15 @@ const loadShoppingPage = async (req, res) => {
                 break;
             case 'nameAsc':
                 sortQuery = { productName: 1 };
-                collation = { locale: 'en', strength: 1 }; // Case-insensitive, A then a
+                collation = { locale: 'en', strength: 1 }; 
                 break;
             case 'nameDesc':
                 sortQuery = { productName: -1 };
-                collation = { locale: 'en', strength: 1 }; // Case-insensitive, z then Z
+                collation = { locale: 'en', strength: 1 }; 
                 break;
         }
 
-        // Execute query with collation if applicable
+        
         const totalProducts = await Product.countDocuments(query);
         const totalPages = Math.ceil(totalProducts / limit);
 
@@ -468,7 +461,7 @@ const loadShoppingPage = async (req, res) => {
 
 const filterProduct = async (req, res) => {
     try {
-        // Just redirect to shop with query parameters
+        
         const { category, brand, page } = req.query;
         const queryParams = new URLSearchParams();
         if (category) queryParams.append('category', category);
@@ -491,7 +484,7 @@ const filterByPrice = async (req, res) => {
         if (lt) queryParams.append('lt', lt);
         if (page) queryParams.append('page', page);
         
-        // Preserve other existing query parameters (like category, brand, sort, query)
+        
         const currentQuery = req.query;
         for (const [key, value] of Object.entries(currentQuery)) {
             if (key !== 'gt' && key !== 'lt' && key !== 'page' && value) {

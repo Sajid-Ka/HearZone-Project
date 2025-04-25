@@ -415,8 +415,8 @@
             }
 
             categories.forEach(category => {
-                const row = `
-                    <tr data-category-id="${category._id}">
+                const row = 
+                    `<tr data-category-id="${category._id}">
                         <td>${category.name}</td>
                         <td>${category.description}</td>
                         <td>
@@ -438,8 +438,7 @@
                                 Delete
                             </button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
                 tbody.innerHTML += row;
             });
         }
@@ -592,6 +591,18 @@
             const categoryName = document.getElementById('editCategoryName').value;
             const description = document.getElementById('editDescription').value;
 
+            // Get original values from the row
+            const row = document.querySelector(`tr[data-category-id="${categoryId}"]`);
+            const originalName = row.cells[0].textContent;
+            const originalDescription = row.cells[1].textContent;
+
+            // Check if there are any changes
+            if (categoryName === originalName && description === originalDescription) {
+                Swal.fire('Info', 'No changes were made to the category', 'info');
+                closeEditModal();
+                return;
+            }
+
             Swal.fire({
                 title: 'Confirm Changes',
                 text: 'Are you sure you want to save these changes?',
@@ -616,12 +627,7 @@
                                 closeEditModal();
                             });
                         } else {
-                            if (data.error === "No changes detected") {
-                                Swal.fire('Info', 'No changes were made to the category', 'info');
-                                closeEditModal();
-                            } else {
-                                Swal.fire('Error!', data.error, 'error');
-                            }
+                            Swal.fire('Error!', data.error, 'error');
                         }
                     })
                     .catch(error => {
