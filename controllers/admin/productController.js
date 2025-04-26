@@ -306,7 +306,7 @@ const editProduct = async (req, res) => {
 
         const data = req.body;
         
-        const categoryId = await Category.findOne({ name: data.category });
+        const categoryId = await Category.findById(data.category);
         if (!categoryId) {
             return res.status(400).json({ success: false, message: "Invalid Category name" });
         }

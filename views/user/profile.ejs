@@ -255,7 +255,7 @@
                     </div>
                     <div>
                         <h4><%= user.name || 'User Name' %></h4>
-                        <p class="text-muted mb-0">Member since <%= user.createdOn ? new Date(user.createdOn).toLocaleDateString() : 'N/A' %></p>
+                        <p class="text-muted mb-0">Member since <%= user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' %></p>
                     </div>
                 </div>
 
@@ -300,7 +300,7 @@
                                         <div class="d-flex justify-content-end gap-2">
                                             <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<%= address._id %>">Edit</button>
                                             <form action="/address/delete/<%= address._id %>" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this address?')">Delete</button>
+                                                <button type="submit" class="btn btn-danger btn-sm" >Delete</button>
                                             </form>
                                         </div>
                                     </div>
@@ -519,4 +519,59 @@
             }
         });
     });
+
+
+    // SweetAlert Confirm for Delete Address
+    document.querySelectorAll('form[action^="/address/delete/"]').forEach(form => {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault(); // prevent default form submission
+
+            const addressId = this.action.split('/').pop();
+
+            const confirmDelete = await Swal.fire({
+                title: 'Are you sure?',
+                text: 'This address will be permanently deleted.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (confirmDelete.isConfirmed) {
+                try {
+                    const response = await fetch(`/address/delete/${addressId}`, {
+                        method: 'POST', // your route expects POST
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: result.message || 'Address deleted successfully.',
+                            confirmButtonColor: '#222',
+                            confirmButtonText: 'OK'
+                        });
+                        window.location.reload();
+                    } else {
+                        throw new Error(result.error || 'Failed to delete address');
+                    }
+                } catch (error) {
+                    console.error('Error deleting address:', error);
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'An unexpected error occurred while deleting the address',
+                        confirmButtonColor: '#222',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        });
+    });
+
 </script>

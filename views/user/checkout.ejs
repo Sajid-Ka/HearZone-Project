@@ -402,17 +402,23 @@
             
             const data = await response.json();
 
-            if (data.success) {
-                Swal.fire({
-                    title: 'Order Placed!',
-                    text: `Your order #${data.orderId} has been placed successfully`,
-                    icon: 'success'
-                }).then(() => {
-                    window.location.href = `/order-success?orderId=${data.orderId}`;
-                });
-            } else {
-                throw new Error(data.message || 'Failed to place order');
-            }
+            if (response.ok && data.success) {
+                // Order placed successfully
+                    Swal.fire({
+                        title: 'Order Placed!',
+                        text: `Your order #${data.orderId} has been placed successfully`,
+                        icon: 'success'
+                    }).then(() => {
+                            window.location.href = `/order-success?orderId=${data.orderId}`;
+                        });
+                    } else {
+                        // Backend validation error (like stock error)
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Failed to place order',
+                            icon: 'error'
+                        });
+                    }
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
         }

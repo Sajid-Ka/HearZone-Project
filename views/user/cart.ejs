@@ -352,14 +352,6 @@ h1.mb-4 {
                             <span class="fw-bold fs-5">₹<span id="total"><%= finalAmount.toFixed(2) %></span></span>
                         </div>
                         
-                        <!-- Coupon section -->
-                        <div class="mb-3">
-                            <label for="couponCode" class="form-label">Apply Coupon</label>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" id="couponCode" placeholder="Enter code">
-                                <button class="btn btn-outline-primary" type="button" id="applyCoupon">Apply</button>
-                            </div>
-                        </div>
                         
                         <!-- Checkout button -->
                         <button id="proceedToCheckout" class="btn btn-primary w-100 mt-2"
@@ -407,7 +399,7 @@ h1.mb-4 {
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<!-- Cart operations JavaScript -->
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const toast = new bootstrap.Toast(document.getElementById('cartToast'));
@@ -702,30 +694,43 @@ h1.mb-4 {
                 }
             });
         }
-            
-        // Apply coupon
-        const applyCouponBtn = document.getElementById('applyCoupon');
-        if (applyCouponBtn) {
-            applyCouponBtn.addEventListener('click', function() {
-                const couponCode = document.getElementById('couponCode').value.trim();
-                
-                if (!couponCode) {
-                    showNotification('Please enter a coupon code', true);
-                    return;
-                }
-                
-                // Here you would implement the coupon application logic
-                // This would require a new endpoint in your couponController
-            });
-        }
         
         // Proceed to checkout
         const checkoutBtn = document.getElementById('proceedToCheckout');
         if (checkoutBtn) {
-            checkoutBtn.addEventListener('click', function() {
-                window.location.href = '/checkout';
+            checkoutBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+
+                try {
+                    const response = await fetch('/checkout', {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        // Everything fine, redirect
+                        window.location.href = '/checkout';
+                    } else {
+                        const data = await response.json();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Checkout Error',
+                            text: data.message || 'Something went wrong while proceeding to checkout.',
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Failed to proceed to checkout. Please try again later.',
+                    });
+                }
             });
         }
+
     });
 </script>
 

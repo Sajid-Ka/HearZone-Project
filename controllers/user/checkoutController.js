@@ -14,6 +14,20 @@ const getCheckoutPage = async (req, res) => {
             return res.redirect('/cart');
         }
 
+
+        for (const item of cart.items) {
+            if (item.quantity > item.productId.quantity) {
+                if (req.headers.accept.includes('application/json')) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Insufficient stock for ${item.productId.productName}` 
+                    });
+                } else {
+                    return res.redirect('/cart');
+                }
+            }
+        }
+
         res.render('user/checkout', {
             cart,
             addresses: addresses ? addresses.addresses : [],

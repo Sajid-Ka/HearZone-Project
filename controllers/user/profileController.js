@@ -118,7 +118,7 @@ const updateProfile = async (req, res) => {
         const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         const phonePattern = /^\d{10}$/;
         const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        const namePattern = /^[A-Za-z\s]+$/;
+        const namePattern = /^[A-Za-z.\s]+$/;
 
         // Validate and collect Name update
         if (name && name.trim() !== user.name) {
@@ -276,9 +276,6 @@ const verifyEmailOtp = async (req, res) => {
         const enteredOtp = req.body.otp.toString();
         const storedOtp = req.session.emailOtp?.toString();
 
-        console.log("Stored OTP from session:", storedOtp);
-        console.log("Entered OTP:", enteredOtp);
-
         if (!storedOtp) {
             return res.json({
                 success: false,
@@ -290,7 +287,6 @@ const verifyEmailOtp = async (req, res) => {
             const userId = req.session.user.id;
             const newEmail = req.session.newEmail;
             
-            console.log("Updating email to:", newEmail);
             await User.findByIdAndUpdate(userId, { email: newEmail });
             req.session.user.email = newEmail;
             
