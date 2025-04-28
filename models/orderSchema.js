@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const { v4: uuidv4 } = require('uuid');
+const Counter = require('./Counter');
 
 const orderSchema = new Schema({
     orderId: {
         type: String,
-        default: () => uuidv4(),
-        unique: true  // This creates a unique index automatically
+        default : true,
+        unique : true
     },
     userId: {
         type: Schema.Types.ObjectId,
@@ -28,7 +28,18 @@ const orderSchema = new Schema({
             type: Number,
             required: true,
             min: 0
-        }
+        },
+        subTotal: { 
+            type: Number, 
+            required: true, 
+            min: 0 
+        },
+        cancellationStatus: { 
+            type: String, 
+            enum: ['None', 'Cancel Request', 'Cancelled'], 
+            default: 'None' 
+        },
+        cancellationReason: { type: String }
     }],
     totalPrice: {
         type: Number,
@@ -74,6 +85,10 @@ const orderSchema = new Schema({
         enum: ['Cash on Delivery', 'Online Payment'],
         default: 'Cash on Delivery'
     },
+    paymentStatus: { 
+        type: String, 
+        default: 'Pending' 
+    },
     invoiceDate: {
         type: Date
     },
@@ -81,15 +96,10 @@ const orderSchema = new Schema({
         type: String,
         required: true,
         enum: [
-            'Pending',
-            'Processing',
-            'Shipped',
-            'Out for Delivery',
-            'Delivered',
-            'Cancelled',
-            'Cancel Request',
-            'Return Request',
-            'Returned'
+            'Pending', 'Processing', 'Shipped', 
+            'Out for Delivery', 'Delivered', 
+            'Cancel Request', 'Cancelled', 
+            'Return Request', 'Returned'
         ],
         default: 'Pending'
     },
@@ -134,22 +144,70 @@ const orderSchema = new Schema({
     toObject: { virtuals: true }
 });
 
-
-
 orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
 
 // Virtual to calculate total items
 orderSchema.virtual('totalItems').get(function() {
-    return this.orderedItems.reduce((total, item) => total + item.quantity, 0);
+    return this.orderedItems.reduce((total, item) => 
+        item.cancellationStatus === 'Cancelled' ? total : total + item.quantity, 0);
 });
 
-// Pre-save hook to ensure finalAmount consistency
-orderSchema.pre('save', function(next) {
+// Pre-save hook to ensure financial consistency
+orderSchema.pre('save', async function(next) {
+    if (this.isNew) {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0,10).replace(/-/g,"");
+
+        try {
+            const counter = await Counter.findByIdAndUpdate(
+                { _id: dateStr },
+                { $inc: { seq: 1 } },
+                { new: true, upsert: true }
+            );
+
+            this.orderId = `HZ-${dateStr}-${String(counter.seq).padStart(4, '0')}`;
+        } catch (error) {
+            return next(error);
+        }
+    }
+
+    // Ensure subTotal is set for all items
+    this.orderedItems.forEach(item => {
+        item.subTotal = item.price * item.quantity;
+    });
+
+    // Recalculate totalPrice based on non-cancelled items
+    this.totalPrice = this.orderedItems.reduce((total, item) => 
+        item.cancellationStatus === 'Cancelled' ? total : total + item.subTotal, 0);
+    
+    // Recalculate finalAmount
     this.finalAmount = this.totalPrice - this.discount + this.taxes + this.shippingCost;
+
+    // Update order status based on item cancellation statuses
+    const allItemsCancelled = this.orderedItems.every(item => item.cancellationStatus === 'Cancelled');
+    const anyCancelRequest = this.orderedItems.some(item => item.cancellationStatus === 'Cancel Request');
+
+    if (allItemsCancelled && this.status !== 'Cancelled') {
+        this.status = 'Cancelled';
+        this.statusHistory.push({
+            status: 'Cancelled',
+            date: new Date(),
+            description: 'All items in the order were cancelled'
+        });
+    } else if (anyCancelRequest && this.status !== 'Cancel Request') {
+        this.status = 'Cancel Request';
+        this.statusHistory.push({
+            status: 'Cancel Request',
+            date: new Date(),
+            description: 'Cancellation requested for one or more items'
+        });
+    }
+
     next();
 });
+
 
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

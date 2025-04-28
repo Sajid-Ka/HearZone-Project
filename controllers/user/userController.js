@@ -75,7 +75,7 @@ const loadHomepage = async (req, res) => {
             brand: { $nin: blockedBrandIds } 
         }).populate('brand');
 
-        productData.sort((a, b) => new Date(b.createdOn) - new Date(a.createdOn));
+        productData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         productData = productData.slice(0, 4);
 
         res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -383,12 +383,12 @@ const loadShoppingPage = async (req, res) => {
         }
 
         
-        let sortQuery = { createdOn: -1 };
+        let sortQuery = { createdAt: -1 };
         let collation = null;
         
         switch (sortOption) {
             case 'newArrival':
-                sortQuery = { createdOn: -1 };
+                sortQuery = { createdAt: -1 };
                 break;
             case 'priceAsc':
                 sortQuery = { salePrice: 1 };

@@ -418,9 +418,15 @@
             const result = await response.json();
 
             if (response.ok) {
-                // Success - redirect or show success message
-                window.location.href = '/address'; // or wherever you want to redirect
-            } else if (result.errors) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Address added successfully!',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+                window.location.href = '/address';
+            }else if (result.errors) {
                 // Server-side validation errors
                 Object.entries(result.errors).forEach(([field, message]) => {
                     const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
@@ -609,5 +615,27 @@
             }
         });
     });
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const added = urlParams.get('added');
+
+        if (added === 'true') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Address added successfully!',
+                confirmButtonColor: '#222',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Remove the query param from URL without reloading
+                const url = new URL(window.location);
+                url.searchParams.delete('added');
+                window.history.replaceState({}, document.title, url.pathname);
+            });
+        }
+    });
+
 </script>
 <%- include('../partials/user/footer') %>

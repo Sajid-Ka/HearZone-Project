@@ -252,7 +252,7 @@
 
 
 
-<!-- Add this script just before closing body tag, after including Swiper JS -->
+
 <script>
   var mainSwiper = new Swiper('.main-swiper', {
     loop: true,
@@ -454,9 +454,10 @@
 
     // Check wishlist status for each product
     <% if (user) { %>
-      document.querySelectorAll('.wishlist-btn').forEach(button => {
-        const productCard = button.closest('.product-card');
-        if (productCard) {
+      document.querySelectorAll('.wishlist-btn').forEach(btnDiv => {
+        const button = btnDiv.querySelector('button'); // select the real <button> inside
+        const productCard = btnDiv.closest('.product-card');
+        if (productCard && button) {
           const productId = productCard.querySelector('button[onclick^="handleAddToCart"]')
             .getAttribute('onclick').match(/'([^']+)'/)[1];
           

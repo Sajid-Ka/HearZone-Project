@@ -233,6 +233,98 @@
             height: 50px;
         }
     }
+
+
+    /* Payment Method Section */
+    .payment-method-section {
+        padding: 0 30px 30px;
+    }
+
+    .payment-method-section h4 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .payment-method-section h4::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background: #3498db;
+        border-radius: 2px;
+    }
+
+    .payment-options {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .payment-card {
+        display: flex;
+        align-items: center;
+        background: white;
+        border-radius: 12px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .payment-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+    }
+
+    .payment-card input[type="radio"] {
+        margin-right: 15px;
+        accent-color: #3498db;
+    }
+
+    .payment-card input[type="radio"]:checked + .payment-label {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .payment-card input[type="radio"]:checked + .payment-label::before {
+        content: '✔';
+        position: absolute;
+        left: -30px;
+        color: #3498db;
+        font-size: 1.2rem;
+    }
+
+    .payment-label {
+        color: #636e72;
+        font-size: 1rem;
+        position: relative;
+        transition: color 0.3s ease;
+    }
+
+    .payment-card:hover .payment-label {
+        color: #2c3e50;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .payment-method-section {
+            padding: 0 20px 20px;
+        }
+
+        .payment-card {
+            padding: 12px 15px;
+        }
+
+        .payment-label {
+            font-size: 0.95rem;
+        }
+    }
+
 </style>
 
 <br>
@@ -356,6 +448,27 @@
                 <p>Discount: <span>-₹<%= discountAmount.toFixed(2) %></span></p>
                 <p>Shipping: <span>₹50.00</span></p>
                 <p><strong>Total:</strong> <strong>₹<%= (finalAmount + 50).toFixed(2) %></strong></p>
+
+                <div class="payment-method-section">
+                    <h4>Select Payment Method</h4>
+                    <div class="payment-options">
+                        <label class="payment-card" for="cod">
+                            <input type="radio" name="paymentMethod" id="cod" value="Cash on Delivery" checked>
+                            <span class="payment-label">Cash on Delivery (COD)</span>
+                        </label>
+                        <label class="payment-card" for="razorpay">
+                            <input type="radio" name="paymentMethod" id="razorpay" value="Razorpay">
+                            <span class="payment-label">Pay Now (Razorpay)</span>
+                        </label>
+                        <label class="payment-card" for="wallet">
+                            <input type="radio" name="paymentMethod" id="wallet" value="Wallet">
+                            <span class="payment-label">Pay Using Wallet</span>
+                        </label>
+                    </div>
+                </div>
+
+                <br>
+
                 <button id="placeOrderBtn" class="btn btn-primary w-100">Place Order</button>
             </div>
         </div>
@@ -387,9 +500,15 @@
     // Place Order
     document.getElementById('placeOrderBtn').addEventListener('click', async () => {
         const addressId = document.querySelector('input[name="address"]:checked')?.value;
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
         
         if (!addressId) {
             Swal.fire('Error', 'Please select a delivery address', 'error');
+            return;
+        }
+        
+        if (!paymentMethod) {
+            Swal.fire('Error', 'Please select a payment method', 'error');
             return;
         }
 
@@ -397,30 +516,24 @@
             const response = await fetch('/place-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ addressId })
+                body: JSON.stringify({ addressId, paymentMethod })  // send payment method
             });
             
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Order placed successfully
-                    Swal.fire({
-                        title: 'Order Placed!',
-                        text: `Your order #${data.orderId} has been placed successfully`,
-                        icon: 'success'
-                    }).then(() => {
-                            window.location.href = `/order-success?orderId=${data.orderId}`;
-                        });
-                    } else {
-                        // Backend validation error (like stock error)
-                        Swal.fire({
-                            title: 'Error',
-                            text: data.message || 'Failed to place order',
-                            icon: 'error'
-                        });
-                    }
+                Swal.fire({
+                    title: 'Order Placed!',
+                    text: `Your order #${data.orderId} has been placed successfully`,
+                    icon: 'success'
+                }).then(() => {
+                    window.location.href = `/order-success?orderId=${data.orderId}`;
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to place order', 'error');
+            }
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            Swal.fire('Error', 'Something went wrong', 'error');
         }
     });
 

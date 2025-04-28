@@ -70,13 +70,14 @@ const placeOrder = async (req, res) => {
             orderedItems: cart.items.map(item => ({
                 product: item.productId._id,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                subTotal: item.price * item.quantity 
             })),
             totalPrice: cart.subTotal,
             discount: cart.discountAmount,
-            taxes: 0, // Add tax calculation logic if needed
-            shippingCost: 50, // Example shipping cost
-            finalAmount: cart.finalAmount + 50, // Include shipping
+            taxes: 0,
+            shippingCost: 50,
+            finalAmount: cart.finalAmount + 50,
             address: selectedAddress,
             paymentMethod: 'Cash on Delivery',
             status: 'Pending'
