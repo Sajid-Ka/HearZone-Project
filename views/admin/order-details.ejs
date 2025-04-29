@@ -514,63 +514,61 @@
         // Return request handling
         $('#approveReturnBtn').click(function() {
             const orderId = $(this).data('order-id');
-            
-            Swal.fire({
-                title: 'Approve Return Request',
-                text: 'Are you sure you want to approve this return and refund the amount?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Approve',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/${orderId}/return`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'approve' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                        }
-                    });
-                }
+                Swal.fire({
+                    title: 'Approve Return Request',
+                    text: 'Are you sure you want to approve this return and refund the amount?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/orders/process-return/${orderId}`, // Updated
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ action: 'approve' }),
+                            success: function(response) {
+                                Swal.fire('Success', response.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                            }
+                        });
+                    }
+                });
             });
-        });
-        
-        $('#rejectReturnBtn').click(function() {
-            const orderId = $(this).data('order-id');
-            
-            Swal.fire({
-                title: 'Reject Return Request',
-                text: 'Are you sure you want to reject this return request?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Reject',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/${orderId}/return`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'reject' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                        }
-                    });
-                }
+
+            $('#rejectReturnBtn').click(function() {
+                const orderId = $(this).data('order-id');
+                Swal.fire({
+                    title: 'Reject Return Request',
+                    text: 'Are you sure you want to reject this return request?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Reject',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/orders/process-return/${orderId}`, // Updated
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ action: 'reject' }),
+                            success: function(response) {
+                                Swal.fire('Success', response.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                            }
+                        });
+                    }
+                });
             });
-        });
     
 </script>
 

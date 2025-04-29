@@ -253,7 +253,24 @@ const viewOrderDetails = async (req, res) => {
     }
 };
 
-// Update order status
+
+const trackStatusChange = async (order, newStatus, description, adminId) => {
+    if (!order.statusHistory) {
+        order.statusHistory = [];
+    }
+    
+    order.statusHistory.push({
+        status: newStatus,
+        date: new Date(),
+        description: description || `Status changed to ${newStatus}`,
+        changedBy: adminId, // Now using passed parameter
+        changedByModel: 'Admin'
+    });
+    
+    await order.save();
+};
+
+
 const updateOrderStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -269,6 +286,13 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
+        // Ensure subTotal is calculated for all items
+        order.orderedItems.forEach(item => {
+            if (!item.subTotal) {
+                item.subTotal = item.price * item.quantity;
+            }
+        });
+
         // Define terminal statuses that cannot be changed
         const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
         if (terminalStatuses.includes(order.status)) {
@@ -278,7 +302,7 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Define valid status transitions for non-terminal states
+        // Define valid status transitions
         const validTransitions = {
             'Pending': ['Processing', 'Cancelled'],
             'Processing': ['Shipped', 'Cancelled'],
@@ -288,8 +312,8 @@ const updateOrderStatus = async (req, res) => {
             'Return Request': ['Returned', 'Delivered']
         };
 
-        // Check if the transition is valid for the current status
-        if (!validTransitions[order.status]?.includes(status)) {
+        // Check if the transition is valid
+        if (!validTransitions[order.status] || !validTransitions[order.status].includes(status)) {
             return res.status(400).json({ 
                 success: false, 
                 message: `Invalid status transition from ${order.status} to ${status}`
@@ -311,10 +335,9 @@ const updateOrderStatus = async (req, res) => {
             await restoreProductStock(order.orderedItems);
             await trackStatusChange(
                 order, 
-                'Cancelled', 
-                order.cancellationReason ? 
-                    `Order cancelled: ${order.cancellationReason}` : 
-                    'Order cancelled'
+                'Delivered', 
+                'Order delivered to customer',
+                req.admin._id 
             );
         }
 
@@ -333,6 +356,7 @@ const updateOrderStatus = async (req, res) => {
         });
     }
 };
+
 
 // Process return request
 const processReturnRequest = async (req, res) => {
