@@ -274,11 +274,14 @@
             <p><strong>Total:</strong> <strong>₹<%= order.finalAmount.toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
-            <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned'].includes(order.status)) { %>
+            <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
                 <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
             <% } %>
             <% if (order.status === 'Delivered') { %>
                 <button class="btn btn-warning" id="returnOrderBtn">Return Order</button>
+            <% } %>
+            <% if (order.status === 'Return Request') { %>
+                <button class="btn btn-danger" id="cancelReturnRequestBtn">Cancel Return Request</button>
             <% } %>
             <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
         </div>
@@ -324,6 +327,30 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason: reason.value })
+            });
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        }
+    });
+
+    document.getElementById('cancelReturnRequestBtn')?.addEventListener('click', async () => {
+        const result = await Swal.fire({
+            title: 'Cancel Return Request',
+            text: 'Are you sure you want to cancel your return request? This will revert the order status to Delivered.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'No'
+        });
+        if (result.isConfirmed) {
+            const response = await fetch(`/orders/<%= order.orderId %>/cancel-return-request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
             });
             const data = await response.json();
             if (data.success) {

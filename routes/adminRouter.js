@@ -33,6 +33,7 @@ router.post('/unblockCustomer', customerController.customerUnblocked);
 router.get('/orders', orderController.listOrders);
 router.get('/orders/details/:orderId', orderController.viewOrderDetails); 
 router.post('/orders/update-status/:orderId', orderController.updateOrderStatus);
+router.post('/orders/cancel/:orderId', orderController.processCancelRequest);
 router.post('/orders/:orderId/return', orderController.processReturnRequest);
 router.get('/orders/invoice/:orderId', orderController.downloadInvoice); 
 router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline); 

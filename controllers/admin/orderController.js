@@ -88,30 +88,29 @@ const generateItemsTable = (doc, order, y) => {
     doc.font('Helvetica');
 };
 
-const generateInvoice = async (order, res, isAdmin = false) => {
+const generateInvoice = async (req, order, res, isAdmin = false) => {
     try {
         const doc = new PDFDocument({ margin: 50 });
         const fileName = `invoice_${order.orderId}.pdf`;
-        
+
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Type', 'application/pdf');
-        
+
         doc.pipe(res);
-        
-        // Header
-        doc.image(path.join(__dirname, '../../public/images/logo.png'), 50, 45, { width: 50 })
-           .fillColor('#444444')
+
+        // Header (without logo)
+        doc.fillColor('#444444')
            .fontSize(20)
-           .text('INVOICE', 200, 50, { align: 'right' })
+           .text('INVOICE', 50, 50, { align: 'right' })
            .fontSize(10)
-           .text(`Invoice #: ${order.orderId}`, 200, 80, { align: 'right' })
-           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 200, 95, { align: 'right' })
+           .text(`Invoice #: ${order.orderId}`, 50, 80, { align: 'right' })
+           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 50, 95, { align: 'right' })
            .moveDown();
-        
+
         // Customer Information
         const customer = isAdmin ? order.userId : req.session.user;
         const shippingAddress = order.address;
-        
+
         doc.fillColor('#444444')
            .fontSize(14)
            .text('Bill To:', 50, 130)
@@ -121,22 +120,23 @@ const generateInvoice = async (order, res, isAdmin = false) => {
            .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 180)
            .text(`Phone: ${shippingAddress.phone}`, 50, 195)
            .moveDown();
-        
+
         // Items Table
         const invoiceTableTop = 250;
-        
+
         generateTableHeader(doc, invoiceTableTop);
         generateItemsTable(doc, order, invoiceTableTop);
-        
+
         // Footer
-        generateFooter(doc);
-        
+        generateFooter(doc, order);
+
         doc.end();
     } catch (error) {
         console.error('Error generating invoice:', error);
-        throw error;
+        res.status(500).send('Failed to generate invoice');
     }
 };
+
 
 
 
@@ -358,7 +358,7 @@ const updateOrderStatus = async (req, res) => {
 };
 
 
-// Process return request
+
 const processReturnRequest = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -391,19 +391,12 @@ const processReturnRequest = async (req, res) => {
                 });
             }
 
-            // Initialize wallet if it doesn't exist
             if (!user.wallet) {
-                user.wallet = {
-                    balance: 0,
-                    transactions: []
-                };
+                user.wallet = { balance: 0, transactions: [] };
             }
 
-            // Add the refund amount to the balance
             const refundAmount = order.finalAmount;
             user.wallet.balance += refundAmount;
-
-            // Add transaction record
             user.wallet.transactions.push({
                 amount: refundAmount,
                 type: 'credit',
@@ -411,15 +404,15 @@ const processReturnRequest = async (req, res) => {
                 date: new Date()
             });
 
-            // Restore product stock
             await restoreProductStock(order.orderedItems);
 
-            // Update order status
             order.status = 'Returned';
+            order.returnReason = null;
             await trackStatusChange(
                 order, 
                 'Returned', 
-                `Return approved. Amount ₹${refundAmount} refunded to wallet`
+                `Return approved. Amount ₹${refundAmount} refunded to wallet`,
+                req.admin._id
             );
             
             await Promise.all([user.save(), order.save()]);
@@ -430,10 +423,12 @@ const processReturnRequest = async (req, res) => {
             });
         } else if (action === 'reject') {
             order.status = 'Delivered';
+            order.returnReason = null;
             await trackStatusChange(
                 order, 
                 'Delivered', 
-                'Return request rejected'
+                'Return request rejected by admin',
+                req.admin._id
             );
             await order.save();
 
@@ -476,7 +471,8 @@ const downloadInvoice = async (req, res) => {
             return res.status(404).send('Order not found');
         }
         
-        await generateInvoice(order, res, isAdmin);
+        await generateInvoice(req, order, res, isAdmin);
+
     } catch (error) {
         console.error('Error in downloadInvoice:', error);
         res.status(500).send('Failed to generate invoice');

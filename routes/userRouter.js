@@ -154,6 +154,7 @@ router.get('/orders', orderController.getOrderList); // Changed from /orders
 router.get('/orders/:orderId', orderController.getOrderDetails);
 router.post('/orders/:orderId/cancel', orderController.cancelOrder);
 router.post('/orders/:orderId/return', orderController.returnOrder);
+router.post('/orders/:orderId/cancel-return-request', orderController.cancelReturnRequest);
 router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
 router.get('/orders/search', orderController.searchOrders);
 

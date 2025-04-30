@@ -1,7 +1,7 @@
 const User = require('../../models/userSchema');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose'); // Add this line
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 function generateOtp() {
@@ -49,6 +49,7 @@ const securePassword = async (password) => {
         return passwordHash;
     } catch (error) {
         console.error("password Securing Error", error);
+        throw error;
     }
 };
 
@@ -62,7 +63,7 @@ const getForgotPassPage = async (req, res) => {
                 userEmail = user?.email || null;
             }
         }
-        console.log("User Email:", userEmail); // Debug log
+        console.log("User Email:", userEmail);
         res.render('forgot-password', { 
             message: null,
             userEmail: userEmail 
@@ -137,7 +138,7 @@ const verifyForgotPassOtp = async (req, res) => {
 
 const getResetPassPage = async (req, res) => {
     try {
-        res.render('reset-password');
+        res.render('reset-password', { message: null, success: false });
     } catch (error) {
         console.error("Reset Password Page error", error);
         res.redirect('/pageNotFound');
@@ -172,25 +173,47 @@ const postNewPassword = async (req, res) => {
     try {
         const { newPass1, newPass2 } = req.body;
         const email = req.session.email;
-        if (newPass1 === newPass2) {
-            const passwordHash = await securePassword(newPass1);
-            await User.updateOne(
-                { email: email },
-                { $set: { password: passwordHash } }
-            );
-            res.redirect('/login');
-        } else {
-            res.render('reset-password', { message: "Passwords Do not matched" });
+
+        if (!email) {
+            return res.render('reset-password', { 
+                message: "Session expired. Please try again.", 
+                success: false 
+            });
         }
+
+        if (newPass1 !== newPass2) {
+            return res.render('reset-password', { 
+                message: "Passwords do not match", 
+                success: false 
+            });
+        }
+
+        const passwordHash = await securePassword(newPass1);
+        await User.updateOne(
+            { email: email },
+            { $set: { password: passwordHash } }
+        );
+
+        // Clear session data
+        req.session.email = null;
+        req.session.userOtp = null;
+
+        res.render('reset-password', { 
+            message: null, 
+            success: true 
+        });
+
     } catch (error) {
-        res.redirect('/pageNotFound');
+        console.error("Password reset error:", error);
+        res.render('reset-password', { 
+            message: "An error occurred while resetting the password. Please try again.", 
+            success: false 
+        });
     }
 };
 
-
 const getForgotPassOtpPage = async (req, res) => {
     try {
-        // Verify session has email and OTP
         if (!req.session.email || !req.session.userOtp) {
             return res.redirect('/forgot-password');
         }
@@ -200,7 +223,6 @@ const getForgotPassOtpPage = async (req, res) => {
         res.status(500).render('page-404');
     }
 };
-
 
 module.exports = {
     getForgotPassPage,

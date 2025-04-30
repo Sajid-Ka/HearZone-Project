@@ -23,10 +23,12 @@
     }
     
     .order-status {
-        padding: 8px 15px;
-        border-radius: 20px;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
         font-weight: 600;
-        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
@@ -135,13 +137,27 @@
         flex-wrap: wrap;
     }
     
-    .status-select {
-        padding: 8px 12px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        font-size: 0.9rem;
-        background-color: #fff;
-        cursor: pointer;
+    .update-status {
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        transition: all 0.2s;
+    }
+    
+    .update-status:focus {
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        outline: none;
+    }
+    
+    .update-status:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f8f9fa;
     }
     
     .timeline-container {
@@ -194,6 +210,19 @@
         border-radius: 4px;
         margin-top: 5px;
         font-size: 0.9rem;
+    }
+    
+    .order-actions .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .order-actions .btn i {
+        font-size: 0.75rem;
     }
 </style>
 
@@ -269,7 +298,7 @@
                     <tr>
                         <td>
                             <div style="display: flex; align-items: center; gap: 15px;">
-                                <img src="<%= item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/images/placeholder-product.png' %>" 
+                                <img src="<%= item.product.productImage && item.product.productImage.length ? '/Uploads/product-images/' + item.product.productImage[0] : '/images/placeholder-product.png' %>" 
                                      alt="<%= item.product.productName %>" class="item-image">
                                 <span class="item-name"><%= item.product.productName %></span>
                             </div>
@@ -338,20 +367,23 @@
     
     <div class="order-section">
         <h3 class="section-title">Order Actions</h3>
-        <div class="action-buttons">
-            <select class="status-select" id="statusSelect" data-order-id="<%= order.orderId %>">
-                <option value="Pending" <%= order.status === 'Pending' ? 'selected' : '' %>>Pending</option>
-                <option value="Processing" <%= order.status === 'Processing' ? 'selected' : '' %>>Processing</option>
-                <option value="Shipped" <%= order.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
-                <option value="Out for Delivery" <%= order.status === 'Out for Delivery' ? 'selected' : '' %>>Out for Delivery</option>
-                <option value="Delivered" <%= order.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
-                <option value="Cancelled" <%= order.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+        <div class="action-buttons order-actions">
+            <select class="form-select update-status w-auto d-inline-block" 
+                    id="statusSelect" 
+                    data-order-id="<%= order.orderId %>"
+                    data-original-status="<%= order.status %>">
+                <% const statuses = ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Cancel Request', 'Return Request', 'Returned']; %>
+                <% statuses.forEach(status => { %>
+                    <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>>
+                        <%= status %>
+                    </option>
+                <% }) %>
             </select>
             
-            <a href="/admin/orders/<%= order.orderId %>/invoice" class="btn btn-primary">
+            <a href="/admin/orders/invoice/<%= order.orderId %>" class="btn btn-outline-secondary">
                 <i class="fas fa-file-invoice"></i> Download Invoice
             </a>
-
+    
             <% if (order.status === 'Cancel Request') { %>
                 <button class="btn btn-success" id="approveCancelBtn" data-order-id="<%= order.orderId %>">
                     <i class="fas fa-check-circle"></i> Approve Cancel
@@ -365,7 +397,6 @@
                 <button class="btn btn-success" id="approveReturnBtn" data-order-id="<%= order.orderId %>">
                     <i class="fas fa-check-circle"></i> Approve Return
                 </button>
-                
                 <button class="btn btn-danger" id="rejectReturnBtn" data-order-id="<%= order.orderId %>">
                     <i class="fas fa-times-circle"></i> Reject Return
                 </button>
@@ -380,7 +411,7 @@
         // Load status timeline
         function loadStatusTimeline() {
             const orderId = '<%= order.orderId %>';
-            $.get(`/admin/orders/${orderId}/timeline`, function(data) {
+            $.get(`/admin/orders/timeline/${orderId}`, function(data) {
                 if (data.success) {
                     let timelineHtml = '';
                     if (data.timeline.length > 0) {
@@ -411,17 +442,27 @@
         
         loadStatusTimeline();
         
-        // Status update functionality
-        const orderStatus = '<%= order.status %>';
-        const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
-        if (terminalStatuses.includes(orderStatus)) {
-            $('#statusSelect').prop('disabled', true); // Disable the dropdown
+        // Function to update dropdown state based on order status
+        function updateDropdownState(dropdown, status) {
+            const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
+            
+            if (terminalStatuses.includes(status)) {
+                dropdown.prop('disabled', true);
+            } else {
+                dropdown.prop('disabled', false);
+            }
         }
 
-        $('#statusSelect').change(function() {
+        // Initialize dropdown state on page load
+        const $statusSelect = $('#statusSelect');
+        const orderStatus = '<%= order.status %>';
+        updateDropdownState($statusSelect, orderStatus);
+
+        // Handle status updates
+        $statusSelect.change(function() {
             const orderId = $(this).data('order-id');
             const newStatus = $(this).val();
-            const originalStatus = '<%= order.status %>';
+            const originalStatus = $(this).data('original-status');
 
             Swal.fire({
                 title: 'Update Order Status',
@@ -439,50 +480,59 @@
                         data: JSON.stringify({ status: newStatus }),
                         success: function(response) {
                             Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
+                                // Update the original status data attribute
+                                $statusSelect.data('original-status', newStatus);
+                                // Update dropdown state
+                                updateDropdownState($statusSelect, newStatus);
+                                // Update the displayed status badge
+                                const statusBadge = $('.order-status');
+                                statusBadge.text(newStatus);
+                                statusBadge.removeClass(function(index, className) {
+                                    return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
+                                });
+                                statusBadge.addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
                             });
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            $('#statusSelect').val(originalStatus);
+                            $statusSelect.val(originalStatus); // Reset on error
                         }
                     });
                 } else {
-                    $(this).val(originalStatus);
+                    $statusSelect.val(originalStatus); // Reset on cancel
                 }
             });
         });
-    });
 
-           //cancel request handiling
-           $('#approveCancelBtn').click(function() {
-                const orderId = $(this).data('order-id');
-                Swal.fire({
-                    title: 'Approve Cancel Request',
-                    text: 'Are you sure you want to approve this cancellation?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Approve',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/admin/orders/${orderId}/cancel`,
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({ action: 'approve' }),
-                            success: function(response) {
-                                Swal.fire('Success', response.message, 'success').then(() => {
-                                    location.reload();
-                                });
-                            },
-                            error: function(xhr) {
-                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
-                            }
-                        });
-                    }
-                });
+        // Cancel request handling
+        $('#approveCancelBtn').click(function() {
+            const orderId = $(this).data('order-id');
+            Swal.fire({
+                title: 'Approve Cancel Request',
+                text: 'Are you sure you want to approve this cancellation?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Approve',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/cancel/${orderId}`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'approve' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
+                        }
+                    });
+                }
             });
+        });
 
         $('#rejectCancelBtn').click(function() {
             const orderId = $(this).data('order-id');
@@ -496,7 +546,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `/admin/orders/${orderId}/cancel`,
+                        url: `/admin/orders/cancel/${orderId}`,
                         method: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({ action: 'reject' }),
@@ -514,62 +564,62 @@
         // Return request handling
         $('#approveReturnBtn').click(function() {
             const orderId = $(this).data('order-id');
-                Swal.fire({
-                    title: 'Approve Return Request',
-                    text: 'Are you sure you want to approve this return and refund the amount?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Approve',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/admin/orders/process-return/${orderId}`, // Updated
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({ action: 'approve' }),
-                            success: function(response) {
-                                Swal.fire('Success', response.message, 'success').then(() => {
-                                    location.reload();
-                                });
-                            },
-                            error: function(xhr) {
-                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                            }
-                        });
-                    }
-                });
+            Swal.fire({
+                title: 'Approve Return Request',
+                text: 'Are you sure you want to approve this return and refund the amount?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Approve',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/return`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'approve' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                        }
+                    });
+                }
             });
+        });
 
-            $('#rejectReturnBtn').click(function() {
-                const orderId = $(this).data('order-id');
-                Swal.fire({
-                    title: 'Reject Return Request',
-                    text: 'Are you sure you want to reject this return request?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Reject',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/admin/orders/process-return/${orderId}`, // Updated
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({ action: 'reject' }),
-                            success: function(response) {
-                                Swal.fire('Success', response.message, 'success').then(() => {
-                                    location.reload();
-                                });
-                            },
-                            error: function(xhr) {
-                                Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                            }
-                        });
-                    }
-                });
+        $('#rejectReturnBtn').click(function() {
+            const orderId = $(this).data('order-id');
+            Swal.fire({
+                title: 'Reject Return Request',
+                text: 'Are you sure you want to reject this return request?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/${orderId}/return`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'reject' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                        }
+                    });
+                }
             });
-    
+        });
+    });
 </script>
 
 <%- include('../partials/admin/footer') %>

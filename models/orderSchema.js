@@ -159,33 +159,27 @@ orderSchema.pre('save', async function(next) {
     if (this.isNew) {
         const today = new Date();
         const dateStr = today.toISOString().slice(0,10).replace(/-/g,"");
-
         try {
             const counter = await Counter.findByIdAndUpdate(
                 { _id: dateStr },
                 { $inc: { seq: 1 } },
                 { new: true, upsert: true }
             );
-
             this.orderId = `HZ-${dateStr}-${String(counter.seq).padStart(4, '0')}`;
         } catch (error) {
             return next(error);
         }
     }
 
-    // Ensure subTotal is set for all items
     this.orderedItems.forEach(item => {
         item.subTotal = item.price * item.quantity;
     });
 
-    // Recalculate totalPrice based on non-cancelled items
     this.totalPrice = this.orderedItems.reduce((total, item) => 
         item.cancellationStatus === 'Cancelled' ? total : total + item.subTotal, 0);
     
-    // Recalculate finalAmount
     this.finalAmount = this.totalPrice - this.discount + this.taxes + this.shippingCost;
 
-    // Update order status based on item cancellation statuses
     const allItemsCancelled = this.orderedItems.every(item => item.cancellationStatus === 'Cancelled');
     const anyCancelRequest = this.orderedItems.some(item => item.cancellationStatus === 'Cancel Request');
 

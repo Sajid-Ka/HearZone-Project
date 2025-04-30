@@ -40,19 +40,8 @@ const generateInvoice = async (req, order, res, isAdmin = false) => { // Add req
         res.setHeader('Content-Type', 'application/pdf');
         
         doc.pipe(res);
+
         
-        // Define the absolute path to the logo
-        const logoPath = path.join(__dirname, '../../public/images/logo.png');
-
-        // Check if the logo file exists before adding it
-        if (fs.existsSync(logoPath)) {
-            doc.image(logoPath, 50, 45, { width: 50 });
-        } else {
-            console.warn('Logo file not found at:', logoPath);
-            doc.fontSize(10).text('Logo not available', 50, 45);
-        }
-
-        // Header
         doc.fillColor('#444444')
            .fontSize(20)
            .text('INVOICE', 200, 50, { align: 'right' })
@@ -360,11 +349,53 @@ const searchOrders = async (req, res) => {
 };
 
 
+const cancelReturnRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const order = await Order.findOne({ orderId, userId: req.session.user.id });
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.status !== 'Return Request') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Order is not in Return Request status' 
+            });
+        }
+
+        order.status = 'Delivered';
+        order.returnReason = null;
+
+        await trackStatusChange(
+            order, 
+            'Delivered', 
+            'Return request cancelled by user'
+        );
+
+        await order.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Return request cancelled successfully' 
+        });
+    } catch (error) {
+        console.error('Error in cancelReturnRequest:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to cancel return request' 
+        });
+    }
+};
+
+
 module.exports = {
     getOrderList,
     getOrderDetails,
     cancelOrder,
     returnOrder,
     downloadInvoice,
-    searchOrders
+    searchOrders,
+    cancelReturnRequest
 };
