@@ -36,7 +36,9 @@ router.post('/orders/update-status/:orderId', orderController.updateOrderStatus)
 router.post('/orders/cancel/:orderId', orderController.processCancelRequest);
 router.post('/orders/:orderId/return', orderController.processReturnRequest);
 router.get('/orders/invoice/:orderId', orderController.downloadInvoice); 
-router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline); 
+router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline);
+router.post('/orders/cancel-item/:orderId', orderController.processCancelItemRequest);
+router.post('/orders/return-item/:orderId', orderController.processReturnItemRequest); 
 
 //category
 router.get('/category', categoryController.categoryInfo);

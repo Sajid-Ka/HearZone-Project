@@ -157,6 +157,9 @@ router.post('/orders/:orderId/return', orderController.returnOrder);
 router.post('/orders/:orderId/cancel-return-request', orderController.cancelReturnRequest);
 router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
 router.get('/orders/search', orderController.searchOrders);
+router.post('/orders/:orderId/cancel-item', orderController.cancelOrderItem);
+router.post('/orders/:orderId/return-item', orderController.returnOrderItem);
+router.post('/orders/:orderId/cancel-return-item', orderController.cancelReturnItem);
 
 
 

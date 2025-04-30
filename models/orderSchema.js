@@ -39,7 +39,13 @@ const orderSchema = new Schema({
             enum: ['None', 'Cancel Request', 'Cancelled'], 
             default: 'None' 
         },
-        cancellationReason: { type: String }
+        cancellationReason: { type: String },
+        returnStatus: {
+            type: String,
+            enum: ['None', 'Return Request', 'Returned'],
+            default: 'None'
+        },
+        returnReason: { type: String }
     }],
     totalPrice: {
         type: Number,
@@ -105,28 +111,24 @@ const orderSchema = new Schema({
     },
     statusHistory: [{
         status: {
-            type: String,
-            required: true,
-            enum: [
-                'Pending', 'Processing', 'Shipped', 
-                'Out for Delivery', 'Delivered', 
-                'Cancelled', 'Cancel Request', 
-                'Return Request', 'Returned'
-            ]
-        },
+             type: String,
+              enum: ['None', 'Cancel Request',
+                 'Cancelled', 'Return Request',
+                  'Returned'
+                ] },
         date: { 
             type: Date, 
             default: Date.now 
         },
         description: String,
         changedBy: {
-            type: Schema.Types.ObjectId,
-            refPath: 'statusHistory.changedByModel'
-        },
+             type: Schema.Types.ObjectId, 
+             refPath: 'orderedItems.statusHistory.changedByModel' 
+            },
         changedByModel: {
-            type: String,
-            enum: ['User', 'Admin']
-        }
+             type: String, enum:
+              ['User', 'Admin'] 
+            }
     }],
     couponApplied: {
         type: Boolean,

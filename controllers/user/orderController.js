@@ -390,6 +390,194 @@ const cancelReturnRequest = async (req, res) => {
 };
 
 
+
+const cancelOrderItem = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { itemIndex, reason } = req.body;
+        const order = await Order.findOne({ orderId, userId: req.session.user.id })
+            .populate('orderedItems.product');
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (['Delivered', 'Cancelled', 'Returned'].includes(order.status)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel items in this order state' 
+            });
+        }
+
+        const item = order.orderedItems[itemIndex];
+        if (!item) {
+            return res.status(400).json({ success: false, message: 'Item not found' });
+        }
+
+        if (['Cancel Request', 'Cancelled', 'Return Request', 'Returned'].includes(item.cancellationStatus)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item is already cancelled or has a pending request' 
+            });
+        }
+
+        item.cancellationStatus = 'Cancel Request';
+        item.cancellationReason = reason || 'Not specified';
+
+        // Update order status if all items are cancelled or have cancel requests
+        const allItemsCancelled = order.orderedItems.every(i => i.cancellationStatus === 'Cancelled' || i.cancellationStatus === 'Cancel Request');
+        if (allItemsCancelled) {
+            order.status = 'Cancel Request';
+        }
+
+        await trackStatusChange(
+            order,
+            'Cancel Request',
+            `Cancellation requested for item: ${item.product.productName}${reason ? ` - ${reason}` : ''}`
+        );
+
+        await order.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Item cancellation request submitted successfully' 
+        });
+    } catch (error) {
+        console.error('Error in cancelOrderItem:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to request item cancellation' 
+        });
+    }
+};
+
+
+
+const returnOrderItem = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { itemIndex, reason } = req.body;
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Return reason is required' 
+            });
+        }
+
+        const order = await Order.findOne({ orderId, userId: req.session.user.id })
+            .populate('orderedItems.product');
+
+        if (!order || order.status !== 'Delivered') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Only delivered orders can be returned' 
+            });
+        }
+
+        const item = order.orderedItems[itemIndex];
+        if (!item) {
+            return res.status(400).json({ success: false, message: 'Item not found' });
+        }
+
+        if (item.cancellationStatus !== 'None') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot return a cancelled item' 
+            });
+        }
+
+        if (item.returnStatus !== 'None') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item already has a return request or is returned' 
+            });
+        }
+
+        item.returnStatus = 'Return Request';
+        item.returnReason = reason;
+
+        // Update order status if any item has a return request
+        order.status = 'Return Request';
+
+        await trackStatusChange(
+            order,
+            'Return Request',
+            `Return requested for item: ${item.product.productName} - ${reason}`
+        );
+
+        await order.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Item return request submitted successfully' 
+        });
+    } catch (error) {
+        console.error('Error in returnOrderItem:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to request item return' 
+        });
+    }
+};
+
+
+
+const cancelReturnItem = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { itemIndex } = req.body;
+
+        const order = await Order.findOne({ orderId, userId: req.session.user.id })
+            .populate('orderedItems.product');
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const item = order.orderedItems[itemIndex];
+        if (!item) {
+            return res.status(400).json({ success: false, message: 'Item not found' });
+        }
+
+        if (item.returnStatus !== 'Return Request') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item is not in Return Request status' 
+            });
+        }
+
+        item.returnStatus = 'None';
+        item.returnReason = null;
+
+        // Update order status if no other items have return requests
+        const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
+        if (!anyReturnRequest) {
+            order.status = 'Delivered';
+        }
+
+        await trackStatusChange(
+            order,
+            'Delivered',
+            `Return request cancelled for item: ${item.product.productName}`
+        );
+
+        await order.save();
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Item return request cancelled successfully' 
+        });
+    } catch (error) {
+        console.error('Error in cancelReturnItem:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to cancel item return request' 
+        });
+    }
+};
+
+
 module.exports = {
     getOrderList,
     getOrderDetails,
@@ -397,5 +585,8 @@ module.exports = {
     returnOrder,
     downloadInvoice,
     searchOrders,
-    cancelReturnRequest
+    cancelReturnRequest,
+    cancelOrderItem,
+    returnOrderItem,
+    cancelReturnItem
 };

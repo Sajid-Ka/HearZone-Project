@@ -253,15 +253,41 @@
         </div>
         <div class="items-section">
             <h4>Items</h4>
-            <% order.orderedItems.forEach(item => { %>
-                <div class="item-row">
+            <% order.orderedItems.forEach((item, index) => { %>
+                <div class="item-row" data-item-index="<%= index %>">
                     <a href="/product-details?id=<%= item.product._id %>">
-                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/Uploads/product-images/' + item.product.productImage[0] : '/Uploads/product-images/placeholder.jpg' %>" 
                              alt="<%= item.product ? item.product.productName : 'Product' %>">
                     </a>
                     <span><%= item.product.productName %></span>
                     <span>Qty: <%= item.quantity %></span>
                     <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
+                    <span>
+                        <!-- Display item status -->
+                        <% if (item.cancellationStatus !== 'None') { %>
+                            <span class="status-<%= item.cancellationStatus.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= item.cancellationStatus %>
+                            </span>
+                        <% } else if (item.returnStatus !== 'None') { %>
+                            <span class="status-<%= item.returnStatus.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= item.returnStatus %>
+                            </span>
+                        <% } %>
+                    </span>
+                    <div style="display: flex; gap: 10px; margin-left: 10px;">
+                        <!-- Cancel Button -->
+                        <% if (!['Cancel Request', 'Cancelled', 'Return Request', 'Returned'].includes(item.cancellationStatus) && !['Delivered', 'Cancelled', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
+                            <button class="btn btn-danger btn-sm cancel-item-btn" data-item-index="<%= index %>">Cancel Item</button>
+                        <% } %>
+                        <!-- Return Button -->
+                        <% if (order.status === 'Delivered' && item.cancellationStatus === 'None' && item.returnStatus === 'None') { %>
+                            <button class="btn btn-warning btn-sm return-item-btn" data-item-index="<%= index %>">Return Item</button>
+                        <% } %>
+                        <!-- Cancel Return Request Button -->
+                        <% if (item.returnStatus === 'Return Request') { %>
+                            <button class="btn btn-danger btn-sm cancel-return-item-btn" data-item-index="<%= index %>">Cancel Return Request</button>
+                        <% } %>
+                    </div>
                 </div>
             <% }) %>
         </div>
@@ -293,72 +319,101 @@
 <br>
 
 <script>
-    document.getElementById('cancelOrderBtn')?.addEventListener('click', async () => {
-        const reason = await Swal.fire({
-            title: 'Cancel Order',
-            input: 'text',
-            inputLabel: 'Reason for cancellation (optional)',
-            showCancelButton: true
-        });
-        if (reason.isConfirmed) {
-            const response = await fetch(`/orders/<%= order.orderId %>/cancel`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: reason.value })
+    // Cancel Item
+    document.querySelectorAll('.cancel-item-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const itemIndex = e.target.dataset.itemIndex;
+            const result = await Swal.fire({
+                title: 'Cancel Item',
+                input: 'text',
+                inputLabel: 'Reason for cancellation (optional)',
+                showCancelButton: true,
+                confirmButtonText: 'Submit',
+                cancelButtonText: 'Cancel'
             });
-            const data = await response.json();
-            if (data.success) {
-                Swal.fire('Success', data.message, 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', data.message, 'error');
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/orders/<%= order.orderId %>/cancel-item`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIndex, reason: result.value })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Failed to request cancellation', 'error');
+                }
             }
-        }
+        });
     });
 
-    document.getElementById('returnOrderBtn')?.addEventListener('click', async () => {
-        const reason = await Swal.fire({
-            title: 'Return Order',
-            input: 'text',
-            inputLabel: 'Reason for return (required)',
-            inputValidator: (value) => !value && 'Reason is required!'
-        });
-        if (reason.isConfirmed) {
-            const response = await fetch(`/orders/<%= order.orderId %>/return`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: reason.value })
+    // Return Item
+    document.querySelectorAll('.return-item-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const itemIndex = e.target.dataset.itemIndex;
+            const result = await Swal.fire({
+                title: 'Return Item',
+                input: 'text',
+                inputLabel: 'Reason for return (required)',
+                inputValidator: (value) => !value && 'Reason is required!',
+                showCancelButton: true,
+                confirmButtonText: 'Submit',
+                cancelButtonText: 'Cancel'
             });
-            const data = await response.json();
-            if (data.success) {
-                Swal.fire('Success', data.message, 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', data.message, 'error');
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/orders/<%= order.orderId %>/return-item`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIndex, reason: result.value })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Failed to request return', 'error');
+                }
             }
-        }
+        });
     });
 
-    document.getElementById('cancelReturnRequestBtn')?.addEventListener('click', async () => {
-        const result = await Swal.fire({
-            title: 'Cancel Return Request',
-            text: 'Are you sure you want to cancel your return request? This will revert the order status to Delivered.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, cancel it',
-            cancelButtonText: 'No'
-        });
-        if (result.isConfirmed) {
-            const response = await fetch(`/orders/<%= order.orderId %>/cancel-return-request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
+    // Cancel Return Request
+    document.querySelectorAll('.cancel-return-item-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const itemIndex = e.target.dataset.itemIndex;
+            const result = await Swal.fire({
+                title: 'Cancel Return Request',
+                text: 'Are you sure you want to cancel the return request for this item?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, cancel it',
+                cancelButtonText: 'No'
             });
-            const data = await response.json();
-            if (data.success) {
-                Swal.fire('Success', data.message, 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', data.message, 'error');
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/orders/<%= order.orderId %>/cancel-return-item`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itemIndex })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Failed to cancel return request', 'error');
+                }
             }
-        }
+        });
     });
 </script>
 <%- include('../partials/user/footer') %>

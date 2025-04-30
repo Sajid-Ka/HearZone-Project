@@ -483,32 +483,110 @@ const downloadInvoice = async (req, res) => {
 const processCancelRequest = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { action } = req.body; // 'approve' or 'reject'
+        const { action } = req.body;
 
-        const order = await Order.findOne({ orderId });
+        const order = await Order.findOne({ orderId })
+            .populate('userId')
+            .populate('orderedItems.product');
+
         if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
         }
 
         if (order.status !== 'Cancel Request') {
-            return res.status(400).json({ success: false, message: 'Order is not in cancel request status' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Order is not in cancel request status' 
+            });
         }
 
         if (action === 'approve') {
-            order.status = 'Cancelled';
+            const user = await User.findById(order.userId._id);
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'User not found' 
+                });
+            }
+
+            let refundMessage = '';
+            if (order.paymentMethod === 'Cash on Delivery') {
+                refundMessage = 'Cancellation approved for Cash on Delivery order. No refund processed as no payment was made.';
+            } else {
+                if (!user.wallet) {
+                    user.wallet = { balance: 0, transactions: [] };
+                }
+
+                const refundAmount = order.finalAmount;
+                user.wallet.balance += refundAmount;
+                user.wallet.transactions.push({
+                    amount: refundAmount,
+                    type: 'credit',
+                    description: `Refund for cancelled order ${order.orderId}`,
+                    date: new Date()
+                });
+
+                refundMessage = `Cancellation approved. Amount ₹${refundAmount} refunded to wallet.`;
+                await user.save();
+            }
+
             await restoreProductStock(order.orderedItems);
+
+            order.status = 'Cancelled';
+            order.cancellationReason = null;
+
+            await trackStatusChange(
+                order, 
+                'Cancelled', 
+                refundMessage,
+                req.admin._id
+            );
+
             await order.save();
-            return res.json({ success: true, message: 'Cancellation approved' });
+
+            return res.json({ 
+                success: true, 
+                message: refundMessage,
+                newStatus: 'Cancelled' // Include new status in response
+            });
         } else if (action === 'reject') {
-            order.status = 'Pending'; // Or revert to previous status if tracked
+            // Revert to the previous status or 'Pending' if no previous status
+            const previousStatus = order.statusHistory.length > 1 
+                ? order.statusHistory[order.statusHistory.length - 2].status 
+                : 'Pending';
+            
+            order.status = previousStatus;
+            order.cancellationReason = null;
+
+            await trackStatusChange(
+                order, 
+                previousStatus, 
+                'Cancellation request rejected by admin',
+                req.admin._id
+            );
+
             await order.save();
-            return res.json({ success: true, message: 'Cancellation request rejected' });
+
+            return res.json({ 
+                success: true, 
+                message: 'Cancellation request rejected',
+                newStatus: previousStatus // Include new status in response
+            });
         } else {
-            return res.status(400).json({ success: false, message: 'Invalid action' });
-        } // Removed the erroneous .Concurrent line
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid action' 
+            });
+        }
     } catch (error) {
         console.error('Error processing cancel request:', error);
-        res.status(500).json({ success: false, message: 'Failed to process cancel request' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to process cancel request' 
+        });
     }
 };
 
@@ -653,27 +731,11 @@ const getOrderStatusTimeline = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Get all status changes from the order's updatedAt timestamps
-        const statusTimeline = [];
-        if (order.createdAt) {
-            statusTimeline.push({
-                status: 'Created',
-                date: order.createdAt,
-                description: 'Order was placed'
-            });
-        }
-
-        // Add other status changes if they exist in the order history
-        if (order.updatedAt && order.status !== 'Pending') {
-            statusTimeline.push({
-                status: order.status,
-                date: order.updatedAt,
-                description: `Order status changed to ${order.status}`
-            });
-        }
-
-        // Sort by date
-        statusTimeline.sort((a, b) => a.date - b.date);
+        const statusTimeline = order.statusHistory.map(entry => ({
+            status: entry.status,
+            date: entry.date,
+            description: entry.description
+        }));
 
         res.json({ 
             success: true, 
@@ -689,14 +751,259 @@ const getOrderStatusTimeline = async (req, res) => {
 };
 
 
+const processCancelItemRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { itemIndex, action } = req.body;
+
+        const order = await Order.findOne({ orderId })
+            .populate('userId')
+            .populate('orderedItems.product');
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        const item = order.orderedItems[itemIndex];
+        if (!item) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item not found' 
+            });
+        }
+
+        if (item.cancellationStatus !== 'Cancel Request') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item is not in cancel request status' 
+            });
+        }
+
+        if (action === 'approve') {
+            const user = await User.findById(order.userId._id);
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'User not found' 
+                });
+            }
+
+            let refundMessage = '';
+            if (order.paymentMethod === 'Cash on Delivery') {
+                refundMessage = `Cancellation approved for item: ${item.product.productName} (Cash on Delivery). No refund processed.`;
+            } else {
+                if (!user.wallet) {
+                    user.wallet = { balance: 0, transactions: [] };
+                }
+
+                const refundAmount = item.price * item.quantity;
+                user.wallet.balance += refundAmount;
+                user.wallet.transactions.push({
+                    amount: refundAmount,
+                    type: 'credit',
+                    description: `Refund for cancelled item in order ${order.orderId}`,
+                    date: new Date()
+                });
+
+                refundMessage = `Cancellation approved for item: ${item.product.productName}. Amount ₹${refundAmount} refunded to wallet.`;
+                await user.save();
+            }
+
+            await Product.updateOne(
+                { _id: item.product._id },
+                { $inc: { quantity: item.quantity } }
+            );
+
+            item.cancellationStatus = 'Cancelled';
+            item.cancellationReason = null;
+
+            // Update order status
+            const allItemsCancelled = order.orderedItems.every(i => i.cancellationStatus === 'Cancelled');
+            const anyCancelRequest = order.orderedItems.some(i => i.cancellationStatus === 'Cancel Request');
+            order.status = allItemsCancelled ? 'Cancelled' : anyCancelRequest ? 'Cancel Request' : order.status;
+
+            await trackStatusChange(
+                order,
+                order.status,
+                refundMessage,
+                req.admin._id
+            );
+
+            await order.save();
+
+            return res.json({ 
+                success: true, 
+                message: refundMessage,
+                newStatus: order.status
+            });
+        } else if (action === 'reject') {
+            item.cancellationStatus = 'None';
+            item.cancellationReason = null;
+
+            // Update order status
+            const anyCancelRequest = order.orderedItems.some(i => i.cancellationStatus === 'Cancel Request');
+            order.status = anyCancelRequest ? 'Cancel Request' : 'Pending';
+
+            await trackStatusChange(
+                order,
+                order.status,
+                `Cancellation request rejected for item: ${item.product.productName}`,
+                req.admin._id
+            );
+
+            await order.save();
+
+            return res.json({ 
+                success: true, 
+                message: 'Item cancellation request rejected',
+                newStatus: order.status
+            });
+        } else {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid action' 
+            });
+        }
+    } catch (error) {
+        console.error('Error processing item cancel request:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to process item cancel request' 
+        });
+    }
+};
+
+
+
+const processReturnItemRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { itemIndex, action } = req.body;
+
+        const order = await Order.findOne({ orderId })
+            .populate('userId')
+            .populate('orderedItems.product');
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        const item = order.orderedItems[itemIndex];
+        if (!item) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item not found' 
+            });
+        }
+
+        if (item.returnStatus !== 'Return Request') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item is not in return request status' 
+            });
+        }
+
+        if (action === 'approve') {
+            const user = await User.findById(order.userId._id);
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'User not found' 
+                });
+            }
+
+            if (!user.wallet) {
+                user.wallet = { balance: 0, transactions: [] };
+            }
+
+            const refundAmount = item.price * item.quantity;
+            user.wallet.balance += refundAmount;
+            user.wallet.transactions.push({
+                amount: refundAmount,
+                type: 'credit',
+                description: `Refund for returned item in order ${order.orderId}`,
+                date: new Date()
+            });
+
+            await Product.updateOne(
+                { _id: item.product._id },
+                { $inc: { quantity: item.quantity } }
+            );
+
+            item.returnStatus = 'Returned';
+            item.returnReason = null;
+
+            // Update order status
+            const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
+            order.status = anyReturnRequest ? 'Return Request' : 'Delivered';
+
+            await trackStatusChange(
+                order,
+                order.status,
+                `Return approved for item: ${item.product.productName}. Amount ₹${refundAmount} refunded to wallet`,
+                req.admin._id
+            );
+
+            await Promise.all([user.save(), order.save()]);
+
+            return res.json({ 
+                success: true, 
+                message: 'Item return approved and amount refunded to wallet',
+                newStatus: order.status
+            });
+        } else if (action === 'reject') {
+            item.returnStatus = 'None';
+            item.returnReason = null;
+
+            // Update order status
+            const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
+            order.status = anyReturnRequest ? 'Return Request' : 'Delivered';
+
+            await trackStatusChange(
+                order,
+                order.status,
+                `Return request rejected for item: ${item.product.productName}`,
+                req.admin._id
+            );
+
+            await order.save();
+
+            return res.json({ 
+                success: true, 
+                message: 'Item return request rejected',
+                newStatus: order.status
+            });
+        } else {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid action' 
+            });
+        }
+    } catch (error) {
+        console.error('Error processing item return request:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to process item return request' 
+        });
+    }
+};
+
 
 module.exports = {
     listOrders,
     viewOrderDetails,
     updateOrderStatus,
     processReturnRequest,
-    processCancelRequest, 
+    processCancelRequest,
     downloadInvoice,
     getOrderStatusTimeline,
     generateInvoice,
+    processCancelItemRequest,
+    processReturnItemRequest
 };
