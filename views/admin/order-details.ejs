@@ -31,15 +31,13 @@
         letter-spacing: 0.05em;
     }
     
-    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
-    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
-    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
-    .status-delivered { background: #28a745; color: #fff; } /* Green */
-    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
-    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
-    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-returned { background: #6c757d; color: #fff; } /* Gray */
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-delivered { background: #28a745; color: #fff; }
+    .status-cancelled { background: #dc3545; color: #fff; }
+    .status-cancel-request { background: #f8d7da; color: #721c24; }
+    .status-return-request { background: #fff3cd; color: #856404; }
+    .status-returned { background: #6c757d; color: #fff; }
     
     .order-section {
         margin-bottom: 30px;
@@ -253,6 +251,9 @@
             </div>
         </div>
     </div>
+
+    <p><strong>Payment Method:</strong> <%= order.paymentMethod %></p>
+    <p><strong>Payment Status:</strong> <%= order.paymentStatus %></p>
     
     <div class="order-section">
         <h3 class="section-title">Shipping Information</h3>
@@ -389,7 +390,6 @@
     <div class="order-section">
         <h3 class="section-title">Order Status Timeline</h3>
         <div class="timeline-container" id="statusTimeline">
-            <!-- Timeline will be loaded via AJAX -->
             <div class="text-center py-3">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -405,7 +405,7 @@
                     id="statusSelect" 
                     data-order-id="<%= order.orderId %>"
                     data-original-status="<%= order.status %>">
-                <% const statuses = ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Cancel Request', 'Return Request', 'Returned']; %>
+                <% const statuses = ['Pending', 'Shipped', 'Delivered', 'Cancelled', 'Cancel Request', 'Return Request', 'Returned']; %>
                 <% statuses.forEach(status => { %>
                     <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>>
                         <%= status %>
@@ -536,9 +536,7 @@
             });
         });
 
-
         function updateUIAfterCancel(newStatus, message) {
-            // Update status badge
             const statusBadge = $('.order-status');
             statusBadge.text(newStatus);
             statusBadge.removeClass(function(index, className) {
@@ -546,21 +544,14 @@
             });
             statusBadge.addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
 
-            // Hide action buttons
             $('#approveCancelBtn, #rejectCancelBtn').hide();
-
-            // Update dropdown state
             updateDropdownState($statusSelect, newStatus);
             $statusSelect.val(newStatus);
             $statusSelect.data('original-status', newStatus);
-
-            // Reload timeline
             loadStatusTimeline();
-
             Swal.fire('Success', message, 'success');
         }
 
-        // Cancel request handling
         $('#approveCancelBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -605,7 +596,7 @@
                         contentType: 'application/json',
                         data: JSON.stringify({ action: 'reject' }),
                         success: function(response) {
-                            updateUIAfterCancel('Pending', response.message); // Assuming it reverts to 'Pending'
+                            updateUIAfterCancel('Pending', response.message);
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
@@ -615,7 +606,6 @@
             });
         });
         
-        // Return request handling
         $('#approveReturnBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -673,10 +663,8 @@
                 }
             });
         });
-    });
 
-    // Approve Cancel Item
-    $('.approve-cancel-item').click(function() {
+        $('.approve-cancel-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
             Swal.fire({
@@ -706,7 +694,6 @@
             });
         });
 
-        // Reject Cancel Item
         $('.reject-cancel-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
@@ -737,7 +724,6 @@
             });
         });
 
-        // Approve Return Item
         $('.approve-return-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
@@ -768,7 +754,6 @@
             });
         });
 
-        // Reject Return Item
         $('.reject-return-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
@@ -798,6 +783,7 @@
                 }
             });
         });
+    });
 </script>
 
 <%- include('../partials/admin/footer') %>

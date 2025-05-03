@@ -6,8 +6,6 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-
-
 const generateHr = (doc, y) => {
     doc.strokeColor('#aaaaaa')
        .lineWidth(1)
@@ -69,7 +67,6 @@ const generateItemsTable = (doc, order, y) => {
         generateHr(doc, position + 20);
     }
     
-    // Totals
     const subtotalPosition = tableTop + (i * 30);
     generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${order.totalPrice.toFixed(2)}`);
     
@@ -98,7 +95,6 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
 
         doc.pipe(res);
 
-        // Header (without logo)
         doc.fillColor('#444444')
            .fontSize(20)
            .text('INVOICE', 50, 50, { align: 'right' })
@@ -107,7 +103,6 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
            .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 50, 95, { align: 'right' })
            .moveDown();
 
-        // Customer Information
         const customer = isAdmin ? order.userId : req.session.user;
         const shippingAddress = order.address;
 
@@ -121,14 +116,10 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
            .text(`Phone: ${shippingAddress.phone}`, 50, 195)
            .moveDown();
 
-        // Items Table
         const invoiceTableTop = 250;
-
         generateTableHeader(doc, invoiceTableTop);
         generateItemsTable(doc, order, invoiceTableTop);
-
-        // Footer
-        generateFooter(doc, order);
+        generateFooter(doc);
 
         doc.end();
     } catch (error) {
@@ -137,11 +128,6 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
     }
 };
 
-
-
-
-
-// List all orders with sorting, pagination, search and filters
 const listOrders = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -156,10 +142,9 @@ const listOrders = async (req, res) => {
         let query = {};
 
         if (search) {
-
             if (search.startsWith('Order #')) {
                 search = search.replace('Order #', '').trim();
-            }else if(search.startsWith('Order Details - #')){
+            } else if(search.startsWith('Order Details - #')) {
                 search = search.replace('Order Details - #', '').trim();
             }
 
@@ -208,9 +193,8 @@ const listOrders = async (req, res) => {
         ]);
 
         const statuses = [
-            'Pending', 'Processing', 'Shipped', 
-            'Out for Delivery', 'Delivered', 
-            'Cancelled', 'Cancel Request', 
+            'Pending', 'Shipped', 'Delivered', 
+            'Cancel Request', 'Cancelled', 
             'Return Request', 'Returned'
         ];
 
@@ -234,8 +218,6 @@ const listOrders = async (req, res) => {
     }
 };
 
-
-// View order details
 const viewOrderDetails = async (req, res) => {
     try {
         const order = await Order.findOne({ orderId: req.params.orderId })
@@ -253,7 +235,6 @@ const viewOrderDetails = async (req, res) => {
     }
 };
 
-
 const trackStatusChange = async (order, newStatus, description, adminId) => {
     if (!order.statusHistory) {
         order.statusHistory = [];
@@ -263,13 +244,12 @@ const trackStatusChange = async (order, newStatus, description, adminId) => {
         status: newStatus,
         date: new Date(),
         description: description || `Status changed to ${newStatus}`,
-        changedBy: adminId, // Now using passed parameter
+        changedBy: adminId,
         changedByModel: 'Admin'
     });
     
     await order.save();
 };
-
 
 const updateOrderStatus = async (req, res) => {
     try {
@@ -286,14 +266,12 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Ensure subTotal is calculated for all items
         order.orderedItems.forEach(item => {
             if (!item.subTotal) {
                 item.subTotal = item.price * item.quantity;
             }
         });
 
-        // Define terminal statuses that cannot be changed
         const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
         if (terminalStatuses.includes(order.status)) {
             return res.status(400).json({ 
@@ -302,17 +280,13 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Define valid status transitions
         const validTransitions = {
-            'Pending': ['Processing', 'Cancelled'],
-            'Processing': ['Shipped', 'Cancelled'],
-            'Shipped': ['Out for Delivery', 'Cancelled'],
-            'Out for Delivery': ['Delivered', 'Cancelled'],
-            'Cancel Request': ['Cancelled', 'Processing'],
+            'Pending': ['Shipped', 'Cancelled'],
+            'Shipped': ['Delivered', 'Cancelled'],
+            'Cancel Request': ['Cancelled', 'Pending'],
             'Return Request': ['Returned', 'Delivered']
         };
 
-        // Check if the transition is valid
         if (!validTransitions[order.status] || !validTransitions[order.status].includes(status)) {
             return res.status(400).json({ 
                 success: false, 
@@ -320,23 +294,22 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Special handling for Delivered status
         if (status === 'Delivered' && order.status !== 'Delivered') {
             order.invoiceDate = new Date();
             await trackStatusChange(
                 order, 
                 'Delivered', 
-                'Order delivered to customer'
+                'Order delivered to customer',
+                req.admin._id
             );
         }
 
-        // Special handling for Cancelled status
         if (status === 'Cancelled') {
             await restoreProductStock(order.orderedItems);
             await trackStatusChange(
                 order, 
-                'Delivered', 
-                'Order delivered to customer',
+                'Cancelled', 
+                'Order cancelled',
                 req.admin._id 
             );
         }
@@ -356,8 +329,6 @@ const updateOrderStatus = async (req, res) => {
         });
     }
 };
-
-
 
 const processReturnRequest = async (req, res) => {
     try {
@@ -451,8 +422,6 @@ const processReturnRequest = async (req, res) => {
     }
 };
 
-
-// Generate and download invoice
 const downloadInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -472,13 +441,11 @@ const downloadInvoice = async (req, res) => {
         }
         
         await generateInvoice(req, order, res, isAdmin);
-
     } catch (error) {
         console.error('Error in downloadInvoice:', error);
         res.status(500).send('Failed to generate invoice');
     }
 };
-
 
 const processCancelRequest = async (req, res) => {
     try {
@@ -550,10 +517,9 @@ const processCancelRequest = async (req, res) => {
             return res.json({ 
                 success: true, 
                 message: refundMessage,
-                newStatus: 'Cancelled' // Include new status in response
+                newStatus: 'Cancelled'
             });
         } else if (action === 'reject') {
-            // Revert to the previous status or 'Pending' if no previous status
             const previousStatus = order.statusHistory.length > 1 
                 ? order.statusHistory[order.statusHistory.length - 2].status 
                 : 'Pending';
@@ -573,7 +539,7 @@ const processCancelRequest = async (req, res) => {
             return res.json({ 
                 success: true, 
                 message: 'Cancellation request rejected',
-                newStatus: previousStatus // Include new status in response
+                newStatus: previousStatus
             });
         } else {
             return res.status(400).json({ 
@@ -590,8 +556,6 @@ const processCancelRequest = async (req, res) => {
     }
 };
 
-
-// Helper function to restore product stock
 const restoreProductStock = async (orderedItems) => {
     const bulkOps = orderedItems.map(item => ({
         updateOne: {
@@ -604,123 +568,6 @@ const restoreProductStock = async (orderedItems) => {
         await Product.bulkWrite(bulkOps);
     }
 };
-
-
-// Helper functions for PDF generation
-function generateInvoiceHeader(doc, order) {
-    doc
-        .fillColor('#444444')
-        .fontSize(20)
-        .text('INVOICE', 50, 50)
-        .fontSize(10)
-        .text(`Order ID: ${order.orderId}`, 50, 80)
-        .text(`Invoice Date: ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}`, 50, 95)
-        .moveDown();
-}
-
-
-function generateCustomerInformation(doc, order) {
-    doc
-        .fillColor('#444444')
-        .fontSize(20)
-        .text('Bill To:', 50, 130)
-        .fontSize(10)
-        .text(order.userId.name, 50, 150)
-        .text(order.userId.email, 50, 165)
-        .text(order.userId.phone, 50, 180)
-        .text(
-            `${order.address.name}, ${order.address.landmark}, ${order.address.city}, ${order.address.state} - ${order.address.pinCode}`,
-            50,
-            195
-        )
-        .moveDown();
-}
-
-function generateInvoiceTable(doc, order) {
-    let i;
-    const invoiceTableTop = 250;
-
-    doc.font('Helvetica-Bold');
-    generateTableRow(
-        doc,
-        invoiceTableTop,
-        'Item',
-        'Unit Price',
-        'Quantity',
-        'Line Total'
-    );
-    generateHr(doc, invoiceTableTop + 20);
-    doc.font('Helvetica');
-
-    for (i = 0; i < order.orderedItems.length; i++) {
-        const item = order.orderedItems[i];
-        const position = invoiceTableTop + (i + 1) * 30;
-        
-        generateTableRow(
-            doc,
-            position,
-            item.product.productName,
-            `₹${item.price.toFixed(2)}`,
-            item.quantity,
-            `₹${(item.price * item.quantity).toFixed(2)}`
-        );
-
-        generateHr(doc, position + 20);
-    }
-
-    const subtotalPosition = invoiceTableTop + (i + 1) * 30;
-    generateTableRow(
-        doc,
-        subtotalPosition,
-        '',
-        '',
-        'Subtotal',
-        `₹${order.totalPrice.toFixed(2)}`
-    );
-
-    const discountPosition = subtotalPosition + 20;
-    generateTableRow(
-        doc,
-        discountPosition,
-        '',
-        '',
-        'Discount',
-        `-₹${order.discount.toFixed(2)}`
-    );
-
-    const taxPosition = discountPosition + 20;
-    generateTableRow(
-        doc,
-        taxPosition,
-        '',
-        '',
-        'Tax',
-        `₹${order.taxes.toFixed(2)}`
-    );
-
-    const shippingPosition = taxPosition + 20;
-    generateTableRow(
-        doc,
-        shippingPosition,
-        '',
-        '',
-        'Shipping',
-        `₹${order.shippingCost.toFixed(2)}`
-    );
-
-    const totalPosition = shippingPosition + 20;
-    doc.font('Helvetica-Bold');
-    generateTableRow(
-        doc,
-        totalPosition,
-        '',
-        '',
-        'Total',
-        `₹${order.finalAmount.toFixed(2)}`
-    );
-    doc.font('Helvetica');
-}
-
 
 const getOrderStatusTimeline = async (req, res) => {
     try {
@@ -755,7 +602,6 @@ const processCancelItemRequest = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { itemIndex, action } = req.body;
-
         const order = await Order.findOne({ orderId })
             .populate('userId')
             .populate('orderedItems.product');
@@ -792,9 +638,7 @@ const processCancelItemRequest = async (req, res) => {
             }
 
             let refundMessage = '';
-            if (order.paymentMethod === 'Cash on Delivery') {
-                refundMessage = `Cancellation approved for item: ${item.product.productName} (Cash on Delivery). No refund processed.`;
-            } else {
+            if (order.paymentMethod !== 'Cash on Delivery') {
                 if (!user.wallet) {
                     user.wallet = { balance: 0, transactions: [] };
                 }
@@ -810,8 +654,11 @@ const processCancelItemRequest = async (req, res) => {
 
                 refundMessage = `Cancellation approved for item: ${item.product.productName}. Amount ₹${refundAmount} refunded to wallet.`;
                 await user.save();
+            } else {
+                refundMessage = `Cancellation approved for item: ${item.product.productName} (Cash on Delivery). No refund processed.`;
             }
 
+            // Restore product stock
             await Product.updateOne(
                 { _id: item.product._id },
                 { $inc: { quantity: item.quantity } }
@@ -820,10 +667,21 @@ const processCancelItemRequest = async (req, res) => {
             item.cancellationStatus = 'Cancelled';
             item.cancellationReason = null;
 
-            // Update order status
-            const allItemsCancelled = order.orderedItems.every(i => i.cancellationStatus === 'Cancelled');
-            const anyCancelRequest = order.orderedItems.some(i => i.cancellationStatus === 'Cancel Request');
-            order.status = allItemsCancelled ? 'Cancelled' : anyCancelRequest ? 'Cancel Request' : order.status;
+            // Check if all items are now cancelled
+            const allItemsCancelled = order.orderedItems.every(i => 
+                i.cancellationStatus === 'Cancelled'
+            );
+
+            // Update order status if all items are cancelled
+            if (allItemsCancelled) {
+                order.status = 'Cancelled';
+            } else {
+                // Check if there are still pending cancel requests
+                const hasPendingRequests = order.orderedItems.some(i => 
+                    i.cancellationStatus === 'Cancel Request'
+                );
+                order.status = hasPendingRequests ? 'Cancel Request' : order.status;
+            }
 
             await trackStatusChange(
                 order,
@@ -843,9 +701,15 @@ const processCancelItemRequest = async (req, res) => {
             item.cancellationStatus = 'None';
             item.cancellationReason = null;
 
-            // Update order status
-            const anyCancelRequest = order.orderedItems.some(i => i.cancellationStatus === 'Cancel Request');
-            order.status = anyCancelRequest ? 'Cancel Request' : 'Pending';
+            // Check if there are still pending cancel requests
+            const hasPendingRequests = order.orderedItems.some(i => 
+                i.cancellationStatus === 'Cancel Request'
+            );
+
+            // Update order status if no pending requests
+            if (!hasPendingRequests) {
+                order.status = 'Pending';
+            }
 
             await trackStatusChange(
                 order,
@@ -939,7 +803,6 @@ const processReturnItemRequest = async (req, res) => {
             item.returnStatus = 'Returned';
             item.returnReason = null;
 
-            // Update order status
             const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
             order.status = anyReturnRequest ? 'Return Request' : 'Delivered';
 
@@ -961,7 +824,6 @@ const processReturnItemRequest = async (req, res) => {
             item.returnStatus = 'None';
             item.returnReason = null;
 
-            // Update order status
             const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
             order.status = anyReturnRequest ? 'Return Request' : 'Delivered';
 
@@ -993,7 +855,6 @@ const processReturnItemRequest = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     listOrders,

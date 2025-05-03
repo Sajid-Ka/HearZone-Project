@@ -47,7 +47,7 @@ const login = async (req, res) => {
         }
 
         req.session.admin = admin._id.toString();
-        delete req.session.user; // Ensure no user data is set
+        delete req.session.user; 
 
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Expires', '0');

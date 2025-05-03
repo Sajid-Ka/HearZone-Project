@@ -79,7 +79,8 @@ const placeOrder = async (req, res) => {
             shippingCost: 50,
             finalAmount: cart.finalAmount + 50,
             address: selectedAddress,
-            paymentMethod: 'Cash on Delivery',
+            paymentMethod: req.body.paymentMethod || 'Cash on Delivery',
+            paymentStatus: req.body.paymentMethod === 'Razorpay' ? 'Paid' : 'Pending',
             status: 'Pending'
         });
 

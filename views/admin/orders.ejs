@@ -98,15 +98,13 @@
         letter-spacing: 0.05em;
     }
     
-    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
-    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
-    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
-    .status-delivered { background: #28a745; color: #fff; } /* Green */
-    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
-    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
-    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-returned { background: #6c757d; color: #fff; } /* Gray */
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-delivered { background: #28a745; color: #fff; }
+    .status-cancelled { background: #dc3545; color: #fff; }
+    .status-cancel-request { background: #f8d7da; color: #721c24; }
+    .status-return-request { background: #fff3cd; color: #856404; }
+    .status-returned { background: #6c757d; color: #fff; }
     
     .order-details {
         display: grid;
@@ -437,7 +435,7 @@
     $(document).ready(function() {
         // Function to update dropdown state based on order status
         function updateDropdownState(dropdown, status) {
-            const allowedStatuses = ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
+            const allowedStatuses = ['Pending', 'Shipped', 'Delivered'];
             const terminalStatuses = ['Cancel Request', 'Cancelled', 'Return Request', 'Returned', 'Delivered'];
             
             if (terminalStatuses.includes(status)) {
@@ -484,7 +482,7 @@
                             Swal.fire('Success', response.message, 'success').then(() => {
                                 // Update the original status data attribute
                                 $dropdown.data('original-status', newStatus);
-                                // Update dropdown state (disable if new status is Delivered or terminal)
+                                // Update dropdown state
                                 updateDropdownState($dropdown, newStatus);
                                 // Update the displayed status badge
                                 const statusBadge = $dropdown.closest('.order-card').find('.order-status');
@@ -597,127 +595,79 @@
                 }
             });
         });
-    });
 
-
-
-    // Handle cancel request approval
-    $('.approve-cancel').click(function() {
-        const orderId = $(this).data('order-id');
-        Swal.fire({
-            title: 'Approve Cancel Request',
-            text: 'Are you sure you want to approve this cancellation and refund the amount (if applicable)?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Approve',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `/admin/orders/cancel/${orderId}`,
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ action: 'approve' }),
-                    success: function(response) {
-                        Swal.fire('Success', response.message, 'success').then(() => {
-                            // Update UI or reload
-                            const $card = $(`.order-card:has([data-order-id="${orderId}"])`);
-                            $card.find('.order-status')
-                                .text('Cancelled')
-                                .removeClass(function(index, className) {
-                                    return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-                                })
-                                .addClass('status-cancelled');
-                            $card.find('.approve-cancel, .reject-cancel').hide();
-                            $card.find('.update-status').val('Cancelled').prop('disabled', true);
-                        });
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
-                    }
-                });
-            }
-        });
-    });
-
-    // Handle cancel request rejection
-    $('.reject-cancel').click(function() {
-        const orderId = $(this).data('order-id');
-        Swal.fire({
-            title: 'Reject Cancel Request',
-            text: 'Are you sure you want to reject this cancellation request?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Reject',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `/admin/orders/cancel/${orderId}`,
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ action: 'reject' }),
-                    success: function(response) {
-                        Swal.fire('Success', response.message, 'success').then(() => {
-                            // Update UI or reload
-                            const $card = $(`.order-card:has([data-order-id="${orderId}"])`);
-                            $card.find('.order-status')
-                                .text(response.newStatus || 'Pending')
-                                .removeClass(function(index, className) {
-                                    return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-                                })
-                                .addClass(`status-${(response.newStatus || 'Pending').toLowerCase().replace(/\s+/g, '-')}`);
-                            $card.find('.approve-cancel, .reject-cancel').hide();
-                            $card.find('.update-status').val(response.newStatus || 'Pending').prop('disabled', false);
-                        });
-                    },
-                    error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
-                    }
-                });
-            }
-        });
-    });
-
-
-    $(document).ready(function() {
-        // Handle filter form submission
-        $('#filterForm').on('submit', function(e) {
-            e.preventDefault();
-            const formData = $(this).serialize();
-            window.location.href = `/admin/orders?${formData}`;
-        });
-        
-        // Handle status updates
-        $('.status-select').change(function() {
+        // Handle cancel request approval
+        $('.approve-cancel').click(function() {
             const orderId = $(this).data('order-id');
-            const newStatus = $(this).val();
-            
             Swal.fire({
-                title: 'Confirm Status Change',
-                text: `Are you sure you want to change status to ${newStatus}?`,
+                title: 'Approve Cancel Request',
+                text: 'Are you sure you want to approve this cancellation and refund the amount (if applicable)?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Update',
+                confirmButtonText: 'Approve',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `/admin/orders/${orderId}/status`,
+                        url: `/admin/orders/cancel/${orderId}`,
                         method: 'POST',
                         contentType: 'application/json',
-                        data: JSON.stringify({ status: newStatus }),
-                        success: function() {
-                            Swal.fire('Success', 'Status updated successfully', 'success')
-                                .then(() => location.reload());
+                        data: JSON.stringify({ action: 'approve' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                const $card = $(`.order-card:has([data-order-id="${orderId}"])`);
+                                $card.find('.order-status')
+                                    .text('Cancelled')
+                                    .removeClass(function(index, className) {
+                                        return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
+                                    })
+                                    .addClass('status-cancelled');
+                                $card.find('.approve-cancel, .reject-cancel').hide();
+                                $card.find('.update-status').val('Cancelled').prop('disabled', true);
+                            });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
                         }
                     });
-                } else {
-                    // Reset to original value
-                    $(this).val($(this).data('original-status'));
+                }
+            });
+        });
+
+        // Handle cancel request rejection
+        $('.reject-cancel').click(function() {
+            const orderId = $(this).data('order-id');
+            Swal.fire({
+                title: 'Reject Cancel Request',
+                text: 'Are you sure you want to reject this cancellation request?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/admin/orders/cancel/${orderId}`,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ action: 'reject' }),
+                        success: function(response) {
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                const $card = $(`.order-card:has([data-order-id="${orderId}"])`);
+                                $card.find('.order-status')
+                                    .text(response.newStatus || 'Pending')
+                                    .removeClass(function(index, className) {
+                                        return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
+                                    })
+                                    .addClass(`status-${(response.newStatus || 'Pending').toLowerCase().replace(/\s+/g, '-')}`);
+                                $card.find('.approve-cancel, .reject-cancel').hide();
+                                $card.find('.update-status').val(response.newStatus || 'Pending').prop('disabled', false);
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
+                        }
+                    });
                 }
             });
         });

@@ -5,8 +5,8 @@ const Counter = require('./Counter');
 const orderSchema = new Schema({
     orderId: {
         type: String,
-        default : true,
-        unique : true
+        default: true,
+        unique: true
     },
     userId: {
         type: Schema.Types.ObjectId,
@@ -88,11 +88,12 @@ const orderSchema = new Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['Cash on Delivery', 'Online Payment'],
+        enum: ['Cash on Delivery', 'Razorpay', 'Wallet', 'Other'],
         default: 'Cash on Delivery'
     },
     paymentStatus: { 
         type: String, 
+        enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
         default: 'Pending' 
     },
     invoiceDate: {
@@ -102,8 +103,7 @@ const orderSchema = new Schema({
         type: String,
         required: true,
         enum: [
-            'Pending', 'Processing', 'Shipped', 
-            'Out for Delivery', 'Delivered', 
+            'Pending', 'Shipped', 'Delivered', 
             'Cancel Request', 'Cancelled', 
             'Return Request', 'Returned'
         ],
@@ -111,24 +111,22 @@ const orderSchema = new Schema({
     },
     statusHistory: [{
         status: {
-             type: String,
-              enum: ['None', 'Cancel Request',
-                 'Cancelled', 'Return Request',
-                  'Returned'
-                ] },
+            type: String,
+            enum: ['None', 'Cancel Request', 'Cancelled', 'Return Request', 'Returned', 'Pending', 'Shipped', 'Delivered']
+        },
         date: { 
             type: Date, 
             default: Date.now 
         },
         description: String,
         changedBy: {
-             type: Schema.Types.ObjectId, 
-             refPath: 'orderedItems.statusHistory.changedByModel' 
-            },
+            type: Schema.Types.ObjectId, 
+            refPath: 'orderedItems.statusHistory.changedByModel' 
+        },
         changedByModel: {
-             type: String, enum:
-              ['User', 'Admin'] 
-            }
+            type: String, 
+            enum: ['User', 'Admin'] 
+        }
     }],
     couponApplied: {
         type: Boolean,
@@ -203,7 +201,6 @@ orderSchema.pre('save', async function(next) {
 
     next();
 });
-
 
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

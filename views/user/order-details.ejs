@@ -155,23 +155,6 @@
         box-shadow: 0 4px 10px rgba(231,76,60,0.3);
     }
 
-    .btn-warning {
-        background: #f1c40f;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 20px;
-        font-weight: 600;
-        color: #2c3e50;
-        transition: all 0.3s ease;
-    }
-
-    .btn-warning:hover {
-        background: #e1b307;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(241,196,15,0.3);
-        color: #2c3e50;
-    }
-
     .btn-primary {
         background: #3498db;
         border: none;
@@ -197,7 +180,6 @@
         cursor: pointer;
     }
 
-
     .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
     .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
     .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
@@ -207,7 +189,6 @@
     .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
     .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
     .status-returned { background: #6c757d; color: #fff; } /* Gray */
-
 
     /* Responsive Design */
     @media (max-width: 768px) {
@@ -227,7 +208,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        .btn-back, .btn-danger, .btn-warning, .btn-primary {
+        .btn-back, .btn-danger, .btn-primary {
             width: 100%;
         }
     }
@@ -249,6 +230,8 @@
         <div class="order-info">
             <p><strong>Status:</strong> <span class="status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
             <p><strong>Date:</strong> <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
+            <p><strong>Payment Method:</strong> <%= order.paymentMethod %></p>
+            <p><strong>Payment Status:</strong> <%= order.paymentStatus %></p>
             <p><strong>Address:</strong> <%= order.address.name %>, <%= order.address.city %>, <%= order.address.landmark %> - <%= order.address.pinCode %></p>
         </div>
         <div class="items-section">
@@ -263,29 +246,40 @@
                     <span>Qty: <%= item.quantity %></span>
                     <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
                     <span>
-                        <!-- Display item status -->
-                        <% if (item.cancellationStatus !== 'None') { %>
-                            <span class="status-<%= item.cancellationStatus.toLowerCase().replace(/\s+/g, '-') %>">
-                                <%= item.cancellationStatus %>
-                            </span>
-                        <% } else if (item.returnStatus !== 'None') { %>
-                            <span class="status-<%= item.returnStatus.toLowerCase().replace(/\s+/g, '-') %>">
-                                <%= item.returnStatus %>
-                            </span>
+                        <% if (item.cancellationStatus === 'Cancelled') { %>
+                            <span class="badge bg-danger">Cancelled</span>
+                        <% } else if (item.returnStatus === 'Returned') { %>
+                            <span class="badge bg-secondary">Returned</span>
+                        <% } else if (item.cancellationStatus === 'Cancel Request') { %>
+                            <span class="badge bg-warning text-dark">Cancel Requested</span>
+                        <% } else if (item.returnStatus === 'Return Request') { %>
+                            <span class="badge bg-warning text-dark">Return Requested</span>
                         <% } %>
                     </span>
-                    <div style="display: flex; gap: 10px; margin-left: 10px;">
-                        <!-- Cancel Button -->
-                        <% if (!['Cancel Request', 'Cancelled', 'Return Request', 'Returned'].includes(item.cancellationStatus) && !['Delivered', 'Cancelled', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
-                            <button class="btn btn-danger btn-sm cancel-item-btn" data-item-index="<%= index %>">Cancel Item</button>
+                    <div class="item-actions">
+                        <% if (item.cancellationStatus === 'None' && 
+                              item.returnStatus === 'None' && 
+                              ['Pending', 'Processing'].includes(order.status)) { %>
+                            <button class="btn btn-sm btn-danger cancel-item-btn" 
+                                    data-item-index="<%= index %>">
+                                Cancel Item
+                            </button>
                         <% } %>
-                        <!-- Return Button -->
-                        <% if (order.status === 'Delivered' && item.cancellationStatus === 'None' && item.returnStatus === 'None') { %>
-                            <button class="btn btn-warning btn-sm return-item-btn" data-item-index="<%= index %>">Return Item</button>
+                        
+                        <% if (order.status === 'Delivered' && 
+                              item.cancellationStatus === 'None' && 
+                              item.returnStatus === 'None') { %>
+                            <button class="btn btn-sm btn-warning return-item-btn" 
+                                    data-item-index="<%= index %>">
+                                Return Item
+                            </button>
                         <% } %>
-                        <!-- Cancel Return Request Button -->
+                        
                         <% if (item.returnStatus === 'Return Request') { %>
-                            <button class="btn btn-danger btn-sm cancel-return-item-btn" data-item-index="<%= index %>">Cancel Return Request</button>
+                            <button class="btn btn-sm btn-danger cancel-return-item-btn" 
+                                    data-item-index="<%= index %>">
+                                Cancel Return
+                            </button>
                         <% } %>
                     </div>
                 </div>
@@ -302,12 +296,6 @@
         <div class="action-buttons">
             <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
                 <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
-            <% } %>
-            <% if (order.status === 'Delivered') { %>
-                <button class="btn btn-warning" id="returnOrderBtn">Return Order</button>
-            <% } %>
-            <% if (order.status === 'Return Request') { %>
-                <button class="btn btn-danger" id="cancelReturnRequestBtn">Cancel Return Request</button>
             <% } %>
             <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
         </div>

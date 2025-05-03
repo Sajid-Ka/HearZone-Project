@@ -1,4 +1,3 @@
-// orderController.js
 const Order = require('../../models/orderSchema');
 const Product = require('../../models/productSchema');
 const PDFDocument = require('pdfkit');
@@ -13,7 +12,6 @@ const generateHr = (doc, y) => {
        .stroke();
 };
 
-
 const generateTableRow = (doc, y, item, unitPrice, quantity, lineTotal) => {
     doc.fontSize(10)
        .text(item, 50, y)
@@ -22,64 +20,13 @@ const generateTableRow = (doc, y, item, unitPrice, quantity, lineTotal) => {
        .text(lineTotal, 0, y, { align: 'right' });
 };
 
-const generateFooter = (doc, order) => {
+const generateFooter = (doc) => {
     doc.fontSize(10)
        .text('Thank you for your purchase!', 50, 700, {
            align: 'center',
            width: 500
        });
 };
-
-
-const generateInvoice = async (req, order, res, isAdmin = false) => { // Add req as a parameter
-    try {
-        const doc = new PDFDocument({ margin: 50 });
-        const fileName = `invoice_${order.orderId}.pdf`;
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        res.setHeader('Content-Type', 'application/pdf');
-        
-        doc.pipe(res);
-
-        
-        doc.fillColor('#444444')
-           .fontSize(20)
-           .text('INVOICE', 200, 50, { align: 'right' })
-           .fontSize(10)
-           .text(`Invoice #: ${order.orderId}`, 200, 80, { align: 'right' })
-           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 200, 95, { align: 'right' })
-           .moveDown();
-        
-        // Customer Information
-        const customer = isAdmin ? order.userId : req.session.user; // Now req is defined
-        const shippingAddress = order.address;
-        
-        doc.fillColor('#444444')
-           .fontSize(14)
-           .text('Bill To:', 50, 130)
-           .fontSize(10)
-           .text(customer.name, 50, 150)
-           .text(shippingAddress.landmark, 50, 165)
-           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 180)
-           .text(`Phone: ${shippingAddress.phone}`, 50, 195)
-           .moveDown();
-        
-        // Items Table
-        const invoiceTableTop = 250;
-        
-        generateTableHeader(doc, invoiceTableTop);
-        generateItemsTable(doc, order, invoiceTableTop);
-        
-        // Footer
-        generateFooter(doc, order);
-        
-        doc.end();
-    } catch (error) {
-        console.error('Error generating invoice:', error);
-        res.status(500).send('Failed to generate invoice');
-    }
-};
-
 
 const generateTableHeader = (doc, y) => {
     doc.font('Helvetica-Bold')
@@ -90,6 +37,12 @@ const generateTableHeader = (doc, y) => {
        .text('Line Total', 0, y, { align: 'right' });
     
     generateHr(doc, y + 20);
+};
+
+const generateTotalRow = (doc, y, label, value) => {
+    doc.fontSize(10)
+       .text(label, 50, y)
+       .text(value, 0, y, { align: 'right' });
 };
 
 const generateItemsTable = (doc, order, y) => {
@@ -112,7 +65,6 @@ const generateItemsTable = (doc, order, y) => {
         generateHr(doc, position + 20);
     }
     
-    // Totals
     const subtotalPosition = tableTop + (i * 30);
     generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${order.totalPrice.toFixed(2)}`);
     
@@ -131,14 +83,48 @@ const generateItemsTable = (doc, order, y) => {
     doc.font('Helvetica');
 };
 
-const generateTotalRow = (doc, y, label, value) => {
-    doc.fontSize(10)
-       .text(label, 50, y)
-       .text(value, 0, y, { align: 'right' });
+const generateInvoice = async (req, order, res, isAdmin = false) => {
+    try {
+        const doc = new PDFDocument({ margin: 50 });
+        const fileName = `invoice_${order.orderId}.pdf`;
+        
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        
+        doc.pipe(res);
+        
+        doc.fillColor('#444444')
+           .fontSize(20)
+           .text('INVOICE', 200, 50, { align: 'right' })
+           .fontSize(10)
+           .text(`Invoice #: ${order.orderId}`, 200, 80, { align: 'right' })
+           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 200, 95, { align: 'right' })
+           .moveDown();
+        
+        const customer = isAdmin ? order.userId : req.session.user;
+        const shippingAddress = order.address;
+        
+        doc.fillColor('#444444')
+           .fontSize(14)
+           .text('Bill To:', 50, 130)
+           .fontSize(10)
+           .text(customer.name, 50, 150)
+           .text(shippingAddress.landmark, 50, 165)
+           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 180)
+           .text(`Phone: ${shippingAddress.phone}`, 50, 195)
+           .moveDown();
+        
+        const invoiceTableTop = 250;
+        generateTableHeader(doc, invoiceTableTop);
+        generateItemsTable(doc, order, invoiceTableTop);
+        generateFooter(doc);
+        
+        doc.end();
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        res.status(500).send('Failed to generate invoice');
+    }
 };
-
-
-
 
 const getOrderList = async (req, res) => {
     try {
@@ -149,7 +135,6 @@ const getOrderList = async (req, res) => {
             .populate('orderedItems.product')
             .sort({ createdAt: -1 });
 
-        // Ensure orders is always an array
         res.render('user/orders', {
             orders: orders || [],
             user: req.session.user,
@@ -182,7 +167,6 @@ const getOrderDetails = async (req, res) => {
     }
 };
 
-
 const trackStatusChange = async (order, newStatus, description) => {
     if (!order.statusHistory) {
         order.statusHistory = [];
@@ -196,7 +180,6 @@ const trackStatusChange = async (order, newStatus, description) => {
     
     await order.save();
 };
-
 
 const cancelOrder = async (req, res) => {
     try {
@@ -239,7 +222,6 @@ const cancelOrder = async (req, res) => {
         });
     }
 };
-
 
 const returnOrder = async (req, res) => {
     try {
@@ -286,8 +268,6 @@ const returnOrder = async (req, res) => {
     }
 };
 
-
-// Update downloadInvoice function
 const downloadInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -306,14 +286,12 @@ const downloadInvoice = async (req, res) => {
             return res.status(404).send('Order not found');
         }
         
-        // Pass req to generateInvoice
         await generateInvoice(req, order, res, isAdmin);
     } catch (error) {
         console.error('Error in downloadInvoice:', error);
         res.status(500).send('Failed to generate invoice');
     }
 };
-
 
 const searchOrders = async (req, res) => {
     try {
@@ -347,7 +325,6 @@ const searchOrders = async (req, res) => {
         res.status(500).render('user/page-500');
     }
 };
-
 
 const cancelReturnRequest = async (req, res) => {
     try {
@@ -389,8 +366,6 @@ const cancelReturnRequest = async (req, res) => {
     }
 };
 
-
-
 const cancelOrderItem = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -402,7 +377,8 @@ const cancelOrderItem = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        if (['Delivered', 'Cancelled', 'Returned'].includes(order.status)) {
+        // Check if order is cancellable (only Pending or Processing)
+        if (!['Pending', 'Processing'].includes(order.status)) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Cannot cancel items in this order state' 
@@ -414,33 +390,41 @@ const cancelOrderItem = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Item not found' });
         }
 
-        if (['Cancel Request', 'Cancelled', 'Return Request', 'Returned'].includes(item.cancellationStatus)) {
+        // Check if item is already cancelled or has pending request
+        if (item.cancellationStatus !== 'None') {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Item is already cancelled or has a pending request' 
+                message: 'Item already has a cancellation request or is cancelled' 
             });
         }
 
+        // Set item cancellation status
         item.cancellationStatus = 'Cancel Request';
         item.cancellationReason = reason || 'Not specified';
 
-        // Update order status if all items are cancelled or have cancel requests
-        const allItemsCancelled = order.orderedItems.every(i => i.cancellationStatus === 'Cancelled' || i.cancellationStatus === 'Cancel Request');
+        // Check if all items are now cancelled or requested for cancellation
+        const allItemsCancelled = order.orderedItems.every(i => 
+            ['Cancel Request', 'Cancelled'].includes(i.cancellationStatus)
+        );
+
+        // Update order status if all items are cancelled
         if (allItemsCancelled) {
             order.status = 'Cancel Request';
         }
 
         await trackStatusChange(
             order,
-            'Cancel Request',
-            `Cancellation requested for item: ${item.product.productName}${reason ? ` - ${reason}` : ''}`
+            order.status,
+            `Cancellation requested for item: ${item.product.productName}` + 
+            (reason ? ` (Reason: ${reason})` : '')
         );
 
         await order.save();
 
         res.status(200).json({ 
             success: true, 
-            message: 'Item cancellation request submitted successfully' 
+            message: 'Item cancellation request submitted successfully',
+            newStatus: order.status
         });
     } catch (error) {
         console.error('Error in cancelOrderItem:', error);
@@ -450,7 +434,6 @@ const cancelOrderItem = async (req, res) => {
         });
     }
 };
-
 
 
 const returnOrderItem = async (req, res) => {
@@ -497,8 +480,10 @@ const returnOrderItem = async (req, res) => {
         item.returnStatus = 'Return Request';
         item.returnReason = reason;
 
-        // Update order status if any item has a return request
-        order.status = 'Return Request';
+        // Update order status if not already in Return Request status
+        if (order.status !== 'Return Request') {
+            order.status = 'Return Request';
+        }
 
         await trackStatusChange(
             order,
@@ -550,7 +535,6 @@ const cancelReturnItem = async (req, res) => {
         item.returnStatus = 'None';
         item.returnReason = null;
 
-        // Update order status if no other items have return requests
         const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
         if (!anyReturnRequest) {
             order.status = 'Delivered';
@@ -576,6 +560,7 @@ const cancelReturnItem = async (req, res) => {
         });
     }
 };
+
 
 
 module.exports = {
