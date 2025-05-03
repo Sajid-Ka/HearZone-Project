@@ -74,6 +74,11 @@
         border-color: #cbd5e0;
     }
     
+    .order-card.pending-request {
+        border-left: 4px solid #f59e0b;
+        background: #fefce8;
+    }
+    
     .order-header {
         display: flex;
         justify-content: space-between;
@@ -105,6 +110,15 @@
     .status-cancel-request { background: #f8d7da; color: #721c24; }
     .status-return-request { background: #fff3cd; color: #856404; }
     .status-returned { background: #6c757d; color: #fff; }
+    
+    .pending-request-badge {
+        background: #f59e0b;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
     
     .order-details {
         display: grid;
@@ -312,7 +326,6 @@
         </form>
     </div>
     
-    
     <% if (orders.length === 0) { %>
         <div class="no-orders">
             <i class="fas fa-box-open fa-3x mb-3"></i>
@@ -321,10 +334,13 @@
         </div>
     <% } else { %>
         <% orders.forEach(order => { %>
-            <div class="order-card">
+            <div class="order-card <%= order.hasPendingItemRequests ? 'pending-request' : '' %>">
                 <div class="order-header">
                     <div>
                         <span class="order-id">Order #<%= order.orderId %></span>
+                        <% if (order.hasPendingItemRequests) { %>
+                            <span class="pending-request-badge">Pending Item Requests</span>
+                        <% } %>
                     </div>
                     <span class="order-status status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>">
                         <%= order.status %>
@@ -372,6 +388,7 @@
                     </button>
                     
                     <select class="form-select update-status w-auto d-inline-block" 
+                            SHRUTI
                             data-order-id="<%= order.orderId %>"
                             data-original-status="<%= order.status %>">
                         <% statuses.forEach(status => { %>

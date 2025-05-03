@@ -40,12 +40,14 @@ const orderSchema = new Schema({
             default: 'None' 
         },
         cancellationReason: { type: String },
+        cancellationRejected: { type: Boolean, default: false },
         returnStatus: {
             type: String,
             enum: ['None', 'Return Request', 'Returned'],
             default: 'None'
         },
-        returnReason: { type: String }
+        returnReason: { type: String },
+        returnRejected: { type: Boolean, default: false }
     }],
     totalPrice: {
         type: Number,
@@ -135,6 +137,9 @@ const orderSchema = new Schema({
     cancellationReason: {
         type: String
     },
+    cancellationRejected: {
+         type: Boolean, default: false 
+        },
     returnReason: {
         type: String
     }

@@ -180,6 +180,19 @@
         cursor: pointer;
     }
 
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .alert-warning {
+        padding: 10px 15px;
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 4px;
+        color: #856404;
+        margin-bottom: 15px;
+    }
+
     .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
     .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
     .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
@@ -260,19 +273,31 @@
                         <% if (item.cancellationStatus === 'None' && 
                               item.returnStatus === 'None' && 
                               ['Pending', 'Processing'].includes(order.status)) { %>
-                            <button class="btn btn-sm btn-danger cancel-item-btn" 
-                                    data-item-index="<%= index %>">
-                                Cancel Item
-                            </button>
+                            
+                            <% if (!item.cancellationRejected) { %>
+                                <button class="btn btn-sm btn-danger cancel-item-btn" 
+                                        data-item-index="<%= index %>">
+                                    Cancel Item
+                                </button>
+                            <% } else { %>
+                                <span class="text-danger small">Cancel request was rejected</span>
+                            <% } %>
+                            
                         <% } %>
                         
                         <% if (order.status === 'Delivered' && 
                               item.cancellationStatus === 'None' && 
                               item.returnStatus === 'None') { %>
-                            <button class="btn btn-sm btn-warning return-item-btn" 
-                                    data-item-index="<%= index %>">
-                                Return Item
-                            </button>
+                            
+                            <% if (!item.returnRejected) { %>
+                                <button class="btn btn-sm btn-warning return-item-btn" 
+                                        data-item-index="<%= index %>">
+                                    Return Item
+                                </button>
+                            <% } else { %>
+                                <span class="text-danger small">Return request was rejected</span>
+                            <% } %>
+                            
                         <% } %>
                         
                         <% if (item.returnStatus === 'Return Request') { %>
@@ -295,7 +320,13 @@
         </div>
         <div class="action-buttons">
             <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
-                <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
+                <% if (!order.cancellationRejected) { %>
+                    <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
+                <% } else { %>
+                    <div class="alert alert-warning">
+                        Your cancellation request was rejected by admin.
+                    </div>
+                <% } %>
             <% } %>
             <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
         </div>
@@ -402,6 +433,35 @@
                 }
             }
         });
+    });
+
+    document.getElementById('cancelOrderBtn')?.addEventListener('click', async () => {
+        const result = await Swal.fire({
+            title: 'Cancel Order',
+            input: 'text',
+            inputLabel: 'Reason for cancellation (optional)',
+            showCancelButton: true,
+            confirmButtonText: 'Submit',
+            cancelButtonText: 'Cancel'
+        });
+        
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/orders/<%= order.orderId %>/cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: result.value })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to request cancellation', 'error');
+            }
+        }
     });
 </script>
 <%- include('../partials/user/footer') %>

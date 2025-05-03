@@ -185,12 +185,25 @@ const listOrders = async (req, res) => {
         const [orders, count] = await Promise.all([
             Order.find(query)
                 .populate('userId', 'name email phone')
-                .sort({ [sortBy]: sortOrder })
+                .sort({ 
+                    // Prioritize orders with pending item cancel/return requests
+                    'orderedItems.cancellationStatus': -1, // Cancel Request first
+                    'orderedItems.returnStatus': -1,      // Return Request first
+                    [sortBy]: sortOrder 
+                })
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .lean(),
             Order.countDocuments(query)
         ]);
+
+        // Add flag to indicate pending item requests
+        orders.forEach(order => {
+            order.hasPendingItemRequests = order.orderedItems.some(item => 
+                item.cancellationStatus === 'Cancel Request' || 
+                item.returnStatus === 'Return Request'
+            );
+        });
 
         const statuses = [
             'Pending', 'Shipped', 'Delivered', 
@@ -394,7 +407,9 @@ const processReturnRequest = async (req, res) => {
             });
         } else if (action === 'reject') {
             order.status = 'Delivered';
+            order.returnRejected = true;
             order.returnReason = null;
+
             await trackStatusChange(
                 order, 
                 'Delivered', 
@@ -525,6 +540,7 @@ const processCancelRequest = async (req, res) => {
                 : 'Pending';
             
             order.status = previousStatus;
+            order.cancellationRejected = true;
             order.cancellationReason = null;
 
             await trackStatusChange(
@@ -557,12 +573,14 @@ const processCancelRequest = async (req, res) => {
 };
 
 const restoreProductStock = async (orderedItems) => {
-    const bulkOps = orderedItems.map(item => ({
-        updateOne: {
-            filter: { _id: item.product },
-            update: { $inc: { quantity: item.quantity } }
-        }
-    }));
+    const bulkOps = orderedItems
+        .filter(item => item.cancellationStatus !== 'Cancelled') // Only restore stock for non-cancelled items
+        .map(item => ({
+            updateOne: {
+                filter: { _id: item.product },
+                update: { $inc: { quantity: item.quantity } }
+            }
+        }));
 
     if (bulkOps.length > 0) {
         await Product.bulkWrite(bulkOps);
@@ -596,7 +614,6 @@ const getOrderStatusTimeline = async (req, res) => {
         });
     }
 };
-
 
 const processCancelItemRequest = async (req, res) => {
     try {
@@ -667,20 +684,27 @@ const processCancelItemRequest = async (req, res) => {
             item.cancellationStatus = 'Cancelled';
             item.cancellationReason = null;
 
-            // Check if all items are now cancelled
+            // Recalculate order financials
+            order.totalPrice = order.orderedItems.reduce((total, i) => 
+                i.cancellationStatus === 'Cancelled' ? total : total + i.subTotal, 0);
+            order.finalAmount = order.totalPrice - order.discount + order.taxes + order.shippingCost;
+
+            // Update order status
             const allItemsCancelled = order.orderedItems.every(i => 
                 i.cancellationStatus === 'Cancelled'
             );
+            const hasPendingCancelRequests = order.orderedItems.some(i => 
+                i.cancellationStatus === 'Cancel Request'
+            );
 
-            // Update order status if all items are cancelled
             if (allItemsCancelled) {
                 order.status = 'Cancelled';
+            } else if (hasPendingCancelRequests) {
+                order.status = 'Cancel Request';
             } else {
-                // Check if there are still pending cancel requests
-                const hasPendingRequests = order.orderedItems.some(i => 
-                    i.cancellationStatus === 'Cancel Request'
-                );
-                order.status = hasPendingRequests ? 'Cancel Request' : order.status;
+                order.status = order.statusHistory.length > 1 
+                    ? order.statusHistory[order.statusHistory.length - 2].status 
+                    : 'Pending';
             }
 
             await trackStatusChange(
@@ -700,15 +724,16 @@ const processCancelItemRequest = async (req, res) => {
         } else if (action === 'reject') {
             item.cancellationStatus = 'None';
             item.cancellationReason = null;
+            item.cancellationRejected = true;
 
-            // Check if there are still pending cancel requests
-            const hasPendingRequests = order.orderedItems.some(i => 
+            // Update order status
+            const hasPendingCancelRequests = order.orderedItems.some(i => 
                 i.cancellationStatus === 'Cancel Request'
             );
-
-            // Update order status if no pending requests
-            if (!hasPendingRequests) {
-                order.status = 'Pending';
+            if (!hasPendingCancelRequests) {
+                order.status = order.statusHistory.length > 1 
+                    ? order.statusHistory[order.statusHistory.length - 2].status 
+                    : 'Pending';
             }
 
             await trackStatusChange(
@@ -739,8 +764,6 @@ const processCancelItemRequest = async (req, res) => {
         });
     }
 };
-
-
 
 const processReturnItemRequest = async (req, res) => {
     try {
@@ -803,6 +826,7 @@ const processReturnItemRequest = async (req, res) => {
             item.returnStatus = 'Returned';
             item.returnReason = null;
 
+            // Update order status
             const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');
             order.status = anyReturnRequest ? 'Return Request' : 'Delivered';
 
@@ -822,6 +846,7 @@ const processReturnItemRequest = async (req, res) => {
             });
         } else if (action === 'reject') {
             item.returnStatus = 'None';
+            item.returnRejected = true;
             item.returnReason = null;
 
             const anyReturnRequest = order.orderedItems.some(i => i.returnStatus === 'Return Request');

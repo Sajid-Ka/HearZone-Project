@@ -120,7 +120,7 @@ const updateProfile = async (req, res) => {
         const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         const namePattern = /^[A-Za-z.\s]+$/;
 
-        // Validate and collect Name update
+        
         if (name && name.trim() !== user.name) {
             if (!namePattern.test(name.trim())) {
                 errors.name = "Name must contain only letters and spaces";
@@ -132,7 +132,7 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Validate and collect Phone update
+        
         if (phone && phone.trim() !== '' && phone !== user.phone) {
             if (/[a-zA-Z]/.test(phone)) {
                 errors.phone = "Phone number must contain only numbers";
@@ -144,7 +144,7 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // Validate Password Changes
+        
         const isPasswordChangeAttempted = currentPassword || newPassword || confirmNewPassword;
         if (isPasswordChangeAttempted) {
             if (!currentPassword) {
@@ -178,19 +178,19 @@ const updateProfile = async (req, res) => {
             }
         }
 
-        // If there are any errors, return them immediately
+        
         if (Object.keys(errors).length > 0) {
             return res.status(400).json({ success: false, errors });
         }
 
-        // Save non-email changes (name, phone, password) if any
+        
         if (changesMade) {
             await User.findByIdAndUpdate(userId, updateData);
             if (updateData.name) req.session.user.name = updateData.name;
             if (updateData.phone) req.session.user.phone = updateData.phone;
         }
 
-        // Handle Email change separately
+        
         if (email && email !== user.email) {
             if (!emailPattern.test(email)) {
                 errors.email = "Please enter a valid email address (e.g., example@domain.com)";
@@ -212,7 +212,7 @@ const updateProfile = async (req, res) => {
                     req.session.emailOtp = otp;
                     console.log("Stored OTP in session:", req.session.emailOtp);
 
-                    // Return response indicating OTP is required
+                    
                     return res.json({
                         success: true,
                         requiresOtp: true,
@@ -222,13 +222,12 @@ const updateProfile = async (req, res) => {
                     });
                 }
             }
-            // If email validation fails, return errors
             if (Object.keys(errors).length > 0) {
                 return res.status(400).json({ success: false, errors });
             }
         }
 
-        // If no email change but other changes were made
+    
         if (changesMade) {
             return res.json({
                 success: true,
@@ -239,7 +238,7 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // If no changes were made at all
+        
         return res.json({ success: false, message: "No changes were made" });
 
     } catch (error) {

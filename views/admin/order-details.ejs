@@ -314,28 +314,42 @@
                                 <span class="order-status status-<%= item.cancellationStatus.toLowerCase().replace(/\s+/g, '-') %>">
                                     <%= item.cancellationStatus %>
                                 </span>
+                                <% if (item.cancellationReason) { %>
+                                    <div class="reason-text">Reason: <%= item.cancellationReason %></div>
+                                <% } %>
                             <% } else if (item.returnStatus !== 'None') { %>
                                 <span class="order-status status-<%= item.returnStatus.toLowerCase().replace(/\s+/g, '-') %>">
                                     <%= item.returnStatus %>
                                 </span>
+                                <% if (item.returnReason) { %>
+                                    <div class="reason-text">Reason: <%= item.returnReason %></div>
+                                <% } %>
                             <% } else { %>
                                 <span>N/A</span>
                             <% } %>
                         </td>
                         <td>
                             <% if (item.cancellationStatus === 'Cancel Request') { %>
-                                <button class="btn btn-sm btn-success approve-cancel-item" data-order-id="<%= order.orderId %>" data-item-index="<%= index %>">
+                                <button class="btn btn-sm btn-success approve-cancel-item" 
+                                        data-order-id="<%= order.orderId %>" 
+                                        data-item-index="<%= index %>">
                                     <i class="fas fa-check-circle"></i> Approve
                                 </button>
-                                <button class="btn btn-sm btn-danger reject-cancel-item" data-order-id="<%= order.orderId %>" data-item-index="<%= index %>">
+                                <button class="btn btn-sm btn-danger reject-cancel-item" 
+                                        data-order-id="<%= order.orderId %>" 
+                                        data-item-index="<%= index %>">
                                     <i class="fas fa-times-circle"></i> Reject
                                 </button>
                             <% } %>
                             <% if (item.returnStatus === 'Return Request') { %>
-                                <button class="btn btn-sm btn-success approve-return-item" data-order-id="<%= order.orderId %>" data-item-index="<%= index %>">
+                                <button class="btn btn-sm btn-success approve-return-item" 
+                                        data-order-id="<%= order.orderId %>" 
+                                        data-item-index="<%= index %>">
                                     <i class="fas fa-check-circle"></i> Approve
                                 </button>
-                                <button class="btn btn-sm btn-danger reject-return-item" data-order-id="<%= order.orderId %>" data-item-index="<%= index %>">
+                                <button class="btn btn-sm btn-danger reject-return-item" 
+                                        data-order-id="<%= order.orderId %>" 
+                                        data-item-index="<%= index %>">
                                     <i class="fas fa-times-circle"></i> Reject
                                 </button>
                             <% } %>
@@ -441,40 +455,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Load status timeline
-        function loadStatusTimeline() {
-            const orderId = '<%= order.orderId %>';
-            $.get(`/admin/orders/timeline/${orderId}`, function(data) {
-                if (data.success) {
-                    let timelineHtml = '';
-                    if (data.timeline.length > 0) {
-                        data.timeline.forEach(item => {
-                            timelineHtml += `
-                                <div class="timeline-item">
-                                    <div class="timeline-date">
-                                        ${new Date(item.date).toLocaleString()}
-                                    </div>
-                                    <div class="timeline-content">
-                                        <strong>${item.status}</strong><br>
-                                        ${item.description}
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        timelineHtml = '<p>No status history available</p>';
-                    }
-                    $('#statusTimeline').html(timelineHtml);
-                } else {
-                    $('#statusTimeline').html('<p>Failed to load timeline</p>');
-                }
-            }).fail(function() {
-                $('#statusTimeline').html('<p>Error loading timeline</p>');
-            });
-        }
-        
-        loadStatusTimeline();
-        
         // Function to update dropdown state based on order status
         function updateDropdownState(dropdown, status) {
             const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
@@ -485,12 +465,38 @@
             }
         }
 
-        // Initialize dropdown state on page load
+        // Initialize dropdown state
         const $statusSelect = $('#statusSelect');
-        const orderStatus = '<%= order.status %>';
-        updateDropdownState($statusSelect, orderStatus);
+        updateDropdownState($statusSelect, $statusSelect.data('original-status'));
 
-        // Handle status updates
+        // Load timeline
+        $.ajax({
+            url: `/admin/orders/timeline/${$statusSelect.data('order-id')}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    let timelineHtml = '';
+                    response.timeline.forEach(item => {
+                        timelineHtml += `
+                            <div class="timeline-item">
+                                <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
+                                <div class="timeline-content">
+                                    <strong>${item.status}</strong>
+                                    <p>${item.description}</p>
+                                </div>
+                            </div>`;
+                    });
+                    $('#statusTimeline').html(timelineHtml || '<p>No timeline events available.</p>');
+                } else {
+                    $('#statusTimeline').html('<p>Failed to load timeline.</p>');
+                }
+            },
+            error: function() {
+                $('#statusTimeline').html('<p>Failed to load timeline.</p>');
+            }
+        });
+
+        // Handle status update
         $statusSelect.change(function() {
             const orderId = $(this).data('order-id');
             const newStatus = $(this).val();
@@ -512,51 +518,42 @@
                         data: JSON.stringify({ status: newStatus }),
                         success: function(response) {
                             Swal.fire('Success', response.message, 'success').then(() => {
-                                // Update the original status data attribute
+                                // Update UI
                                 $statusSelect.data('original-status', newStatus);
-                                // Update dropdown state
                                 updateDropdownState($statusSelect, newStatus);
-                                // Update the displayed status badge
-                                const statusBadge = $('.order-status');
-                                statusBadge.text(newStatus);
-                                statusBadge.removeClass(function(index, className) {
-                                    return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-                                });
-                                statusBadge.addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
+                                $('.order-status')
+                                    .text(newStatus)
+                                    .removeClass(function(index, className) {
+                                        return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
+                                    })
+                                    .addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
+                                
+                                // Hide cancel/return buttons if status changes
+                                if (newStatus !== 'Cancel Request') {
+                                    $('#approveCancelBtn, #rejectCancelBtn').hide();
+                                }
+                                if (newStatus !== 'Return Request') {
+                                    $('#approveReturnBtn, #rejectReturnBtn').hide();
+                                }
                             });
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            $statusSelect.val(originalStatus); // Reset on error
+                            $statusSelect.val(originalStatus);
                         }
                     });
                 } else {
-                    $statusSelect.val(originalStatus); // Reset on cancel
+                    $statusSelect.val(originalStatus);
                 }
             });
         });
 
-        function updateUIAfterCancel(newStatus, message) {
-            const statusBadge = $('.order-status');
-            statusBadge.text(newStatus);
-            statusBadge.removeClass(function(index, className) {
-                return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-            });
-            statusBadge.addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
-
-            $('#approveCancelBtn, #rejectCancelBtn').hide();
-            updateDropdownState($statusSelect, newStatus);
-            $statusSelect.val(newStatus);
-            $statusSelect.data('original-status', newStatus);
-            loadStatusTimeline();
-            Swal.fire('Success', message, 'success');
-        }
-
+        // Handle cancel request approval
         $('#approveCancelBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
                 title: 'Approve Cancel Request',
-                text: 'Are you sure you want to approve this cancellation?',
+                text: 'Are you sure you want to approve this cancellation and refund the amount (if applicable)?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Approve',
@@ -569,16 +566,19 @@
                         contentType: 'application/json',
                         data: JSON.stringify({ action: 'approve' }),
                         success: function(response) {
-                            updateUIAfterCancel('Cancelled', response.message);
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
                         }
                     });
                 }
             });
         });
 
+        // Handle cancel request rejection
         $('#rejectCancelBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -596,16 +596,19 @@
                         contentType: 'application/json',
                         data: JSON.stringify({ action: 'reject' }),
                         success: function(response) {
-                            updateUIAfterCancel('Pending', response.message);
+                            Swal.fire('Success', response.message, 'success').then(() => {
+                                location.reload();
+                            });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancel', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
                         }
                     });
                 }
             });
         });
-        
+
+        // Handle return request approval
         $('#approveReturnBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -635,6 +638,7 @@
             });
         });
 
+        // Handle return request rejection
         $('#rejectReturnBtn').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -664,12 +668,13 @@
             });
         });
 
+        // Handle item cancel request approval
         $('.approve-cancel-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
             Swal.fire({
                 title: 'Approve Item Cancellation',
-                text: 'Are you sure you want to approve this item cancellation?',
+                text: 'Are you sure you want to approve the cancellation of this item and refund the amount (if applicable)?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Approve',
@@ -687,19 +692,20 @@
                             });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item cancellation', 'error');
                         }
                     });
                 }
             });
         });
 
+        // Handle item cancel request rejection
         $('.reject-cancel-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
             Swal.fire({
                 title: 'Reject Item Cancellation',
-                text: 'Are you sure you want to reject this item cancellation request?',
+                text: 'Are you sure you want to reject the cancellation of this item?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
@@ -717,19 +723,20 @@
                             });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item cancellation', 'error');
                         }
                     });
                 }
             });
         });
 
+        // Handle item return request approval
         $('.approve-return-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
             Swal.fire({
                 title: 'Approve Item Return',
-                text: 'Are you sure you want to approve this item return and refund the amount?',
+                text: 'Are you sure you want to approve the return of this item and refund the amount?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Approve',
@@ -747,19 +754,20 @@
                             });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item return', 'error');
                         }
                     });
                 }
             });
         });
 
+        // Handle item return request rejection
         $('.reject-return-item').click(function() {
             const orderId = $(this).data('order-id');
             const itemIndex = $(this).data('item-index');
             Swal.fire({
                 title: 'Reject Item Return',
-                text: 'Are you sure you want to reject this item return request?',
+                text: 'Are you sure you want to reject the return of this item?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
@@ -777,7 +785,7 @@
                             });
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item return', 'error');
                         }
                     });
                 }
