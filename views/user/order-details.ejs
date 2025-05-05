@@ -89,8 +89,10 @@
     }
 
     .item-row {
-        display: flex;
+        display: grid;
+        grid-template-columns: 60px 2fr 1fr 1fr 1.5fr;
         align-items: center;
+        gap: 15px;
         padding: 15px 0;
         border-bottom: 1px solid #eee;
     }
@@ -100,18 +102,54 @@
         height: 60px;
         object-fit: cover;
         border-radius: 8px;
-        margin-right: 15px;
     }
 
     .item-row span {
-        flex: 1;
         color: #636e72;
         font-size: 0.95rem;
+        display: flex;
+        align-items: center;
     }
 
-    .item-row span:last-child {
+    .item-row span:nth-child(4) {
         font-weight: 600;
         color: #2c3e50;
+    }
+
+
+    .item-row .item-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 5px;
+    }
+
+
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .item-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .item-row a {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .item-row .item-actions {
+            justify-content: center;
+        }
     }
 
     /* Pricing Section */
@@ -259,20 +297,30 @@
                     <span>Qty: <%= item.quantity %></span>
                     <span>₹<%= (item.price * item.quantity).toFixed(2) %></span>
                     <span>
-                        <% if (item.cancellationStatus === 'Cancelled') { %>
-                            <span class="badge bg-danger">Cancelled</span>
-                        <% } else if (item.returnStatus === 'Returned') { %>
-                            <span class="badge bg-secondary">Returned</span>
-                        <% } else if (item.cancellationStatus === 'Cancel Request') { %>
-                            <span class="badge bg-warning text-dark">Cancel Requested</span>
-                        <% } else if (item.returnStatus === 'Return Request') { %>
-                            <span class="badge bg-warning text-dark">Return Requested</span>
+                        <% if (item.cancellationStatus !== 'None') { %>
+                            <span class="badge bg-danger status-<%= item.cancellationStatus.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= item.cancellationStatus %>
+                            </span>
+                            <% if (item.cancellationReason) { %>
+                                
+                            <% } %>
+                        <% } else if (item.returnStatus !== 'None') { %>
+                            <span class="badge bg-secondary status-<%= item.returnStatus.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= item.returnStatus %>
+                            </span>
+                            <% if (item.returnReason) { %>
+                                
+                            <% } %>
+                        <% } else { %>
+                            <span class="badge status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>">
+                                <%= order.status %>
+                            </span>
                         <% } %>
                     </span>
                     <div class="item-actions">
                         <% if (item.cancellationStatus === 'None' && 
                               item.returnStatus === 'None' && 
-                              ['Pending', 'Processing'].includes(order.status)) { %>
+                              order.status === 'Pending') { %>
                             
                             <% if (!item.cancellationRejected) { %>
                                 <button class="btn btn-sm btn-danger cancel-item-btn" 
@@ -319,15 +367,6 @@
             <p><strong>Total:</strong> <strong>₹<%= order.finalAmount.toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
-            <% if (!['Cancelled', 'Delivered', 'Cancel Request', 'Returned', 'Return Request'].includes(order.status)) { %>
-                <% if (!order.cancellationRejected) { %>
-                    <button class="btn btn-danger" id="cancelOrderBtn">Cancel Order</button>
-                <% } else { %>
-                    <div class="alert alert-warning">
-                        Your cancellation request was rejected by admin.
-                    </div>
-                <% } %>
-            <% } %>
             <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
         </div>
     </div>
@@ -433,35 +472,6 @@
                 }
             }
         });
-    });
-
-    document.getElementById('cancelOrderBtn')?.addEventListener('click', async () => {
-        const result = await Swal.fire({
-            title: 'Cancel Order',
-            input: 'text',
-            inputLabel: 'Reason for cancellation (optional)',
-            showCancelButton: true,
-            confirmButtonText: 'Submit',
-            cancelButtonText: 'Cancel'
-        });
-        
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/orders/<%= order.orderId %>/cancel`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: result.value })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                Swal.fire('Error', 'Failed to request cancellation', 'error');
-            }
-        }
     });
 </script>
 <%- include('../partials/user/footer') %>

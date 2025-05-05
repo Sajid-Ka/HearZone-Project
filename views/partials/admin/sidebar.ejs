@@ -1,0 +1,46 @@
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/orders">
+                            <i class="fas fa-shopping-cart"></i>
+                            Orders
+                            <span class="badge bg-warning rounded-pill ms-2" id="requestCount">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/order-requests">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Order Requests
+                            <span class="badge bg-warning" id="requestCount">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/pending-requests">
+                            <i class="fas fa-bell"></i>
+                            Pending Requests
+                        </a>
+                    </li>
+
+<script>
+    // Function to update request count badge
+    async function updateRequestCount() {
+        try {
+            const response = await fetch('/admin/orders/request-counts');
+            const data = await response.json();
+            const totalRequests = data.cancelRequests + data.returnRequests;
+            const badge = document.getElementById('requestCount');
+            badge.textContent = totalRequests;
+            
+            // Show/hide badge based on count
+            if (totalRequests > 0) {
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error updating request count:', error);
+        }
+    }
+
+    // Update count every 30 seconds
+    updateRequestCount();
+    setInterval(updateRequestCount, 30000);
+</script> 

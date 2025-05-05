@@ -192,16 +192,24 @@ const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        if (['Delivered', 'Cancelled', 'Returned'].includes(order.status)) {
+        // Check if any items can be cancelled
+        const cancellableItems = order.orderedItems.filter(item => 
+            item.itemStatus === 'Pending' && item.cancellationStatus === 'None'
+        );
+
+        if (cancellableItems.length === 0) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Cannot cancel this order in its current state' 
+                message: 'No items available for cancellation' 
             });
         }
 
-        order.status = 'Cancel Request';
-        order.cancellationReason = reason || 'Not specified';
-        
+        // Set all pending items to Cancel Request
+        cancellableItems.forEach(item => {
+            item.cancellationStatus = 'Cancel Request';
+            item.cancellationReason = reason || 'Not specified';
+        });
+
         await trackStatusChange(
             order, 
             'Cancel Request', 
@@ -301,14 +309,27 @@ const searchOrders = async (req, res) => {
         if (!query || query.trim() === '') {
             return res.redirect('/orders');
         }
+
+        // Clean up the search query
+        let searchQuery = query.trim();
+        
+        // Remove common prefixes if present
+        if (searchQuery.startsWith('Order #')) {
+            searchQuery = searchQuery.replace('Order #', '').trim();
+        } else if (searchQuery.startsWith('Order Details - #')) {
+            searchQuery = searchQuery.replace('Order Details - #', '').trim();
+        }
+
+        // Create regex pattern for partial order ID match
+        const orderIdPattern = new RegExp(searchQuery.replace(/[-\s]/g, '.*'), 'i');
         
         const orders = await Order.find({
             userId,
             $or: [
-                { orderId: { $regex: query, $options: 'i' } },
-                { 'address.name': { $regex: query, $options: 'i' } },
-                { 'address.city': { $regex: query, $options: 'i' } },
-                { 'address.state': { $regex: query, $options: 'i' } }
+                { orderId: orderIdPattern },
+                { 'address.name': { $regex: searchQuery, $options: 'i' } },
+                { 'address.city': { $regex: searchQuery, $options: 'i' } },
+                { 'address.state': { $regex: searchQuery, $options: 'i' } }
             ]
         })
         .populate('orderedItems.product')
@@ -377,17 +398,17 @@ const cancelOrderItem = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Check if order is cancellable (only Pending or Processing)
-        if (!['Pending', 'Processing'].includes(order.status)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot cancel items in this order state' 
-            });
-        }
-
         const item = order.orderedItems[itemIndex];
         if (!item) {
             return res.status(400).json({ success: false, message: 'Item not found' });
+        }
+
+        // Check if item can be cancelled
+        if (item.itemStatus !== 'Pending') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Can only cancel items that are in Pending status' 
+            });
         }
 
         // Check if item is already cancelled or has pending request
@@ -401,16 +422,6 @@ const cancelOrderItem = async (req, res) => {
         // Set item cancellation status
         item.cancellationStatus = 'Cancel Request';
         item.cancellationReason = reason || 'Not specified';
-
-        // Check if all items are now cancelled or requested for cancellation
-        const allItemsCancelled = order.orderedItems.every(i => 
-            ['Cancel Request', 'Cancelled'].includes(i.cancellationStatus)
-        );
-
-        // Update order status if all items are cancelled
-        if (allItemsCancelled) {
-            order.status = 'Cancel Request';
-        }
 
         await trackStatusChange(
             order,
@@ -434,7 +445,6 @@ const cancelOrderItem = async (req, res) => {
         });
     }
 };
-
 
 const returnOrderItem = async (req, res) => {
     try {
@@ -506,8 +516,6 @@ const returnOrderItem = async (req, res) => {
     }
 };
 
-
-
 const cancelReturnItem = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -561,7 +569,185 @@ const cancelReturnItem = async (req, res) => {
     }
 };
 
+// Cancel item request
+const cancelItemRequest = async (req, res) => {
+    try {
+        const { orderId, itemId } = req.params;
+        const { reason } = req.body;
 
+        const order = await Order.findOne({ 
+            _id: orderId,
+            userId: req.user._id
+        });
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        // Check if order is already cancelled
+        if (order.status === 'Cancelled') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Order is already cancelled' 
+            });
+        }
+
+        // Find the item
+        const item = order.orderedItems.id(itemId);
+        if (!item) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Item not found in order' 
+            });
+        }
+
+        // Check if item is already cancelled or has a pending cancellation request
+        if (item.cancellationStatus === 'Cancelled') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item is already cancelled' 
+            });
+        }
+
+        if (item.cancellationStatus === 'Cancel Request') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cancellation request already pending' 
+            });
+        }
+
+        // Check if item is already delivered
+        if (item.itemStatus === 'Delivered') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel delivered item' 
+            });
+        }
+
+        // Check if item cancellation was previously rejected
+        if (item.cancellationRejected) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cancellation request was previously rejected' 
+            });
+        }
+
+        // Update item status
+        item.cancellationStatus = 'Cancel Request';
+        item.cancellationReason = reason;
+
+        // Add to status history
+        order.statusHistory.push({
+            status: 'Cancel Request',
+            description: `Cancellation requested for item: ${item.product}`,
+            changedBy: req.user._id,
+            changedByModel: 'User'
+        });
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Cancellation request submitted successfully',
+            order
+        });
+
+    } catch (error) {
+        console.error('Cancel item request error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error processing cancellation request',
+            error: error.message 
+        });
+    }
+};
+
+// Cancel order request
+const cancelOrderRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { reason } = req.body;
+
+        const order = await Order.findOne({ 
+            _id: orderId,
+            userId: req.user._id
+        });
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        // Check if order is already cancelled
+        if (order.status === 'Cancelled') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Order is already cancelled' 
+            });
+        }
+
+        // Check if any item has a pending cancellation request
+        const hasPendingCancelRequest = order.orderedItems.some(item => 
+            item.cancellationStatus === 'Cancel Request'
+        );
+
+        if (hasPendingCancelRequest) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel order while item cancellation requests are pending' 
+            });
+        }
+
+        // Check if any item is already delivered
+        const hasDeliveredItems = order.orderedItems.some(item => 
+            item.itemStatus === 'Delivered'
+        );
+
+        if (hasDeliveredItems) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel order with delivered items' 
+            });
+        }
+
+        // Update all non-delivered items to cancel request
+        order.orderedItems.forEach(item => {
+            if (item.itemStatus !== 'Delivered' && !item.cancellationRejected) {
+                item.cancellationStatus = 'Cancel Request';
+                item.cancellationReason = reason;
+            }
+        });
+
+        // Add to status history
+        order.statusHistory.push({
+            status: 'Cancel Request',
+            description: 'Order cancellation requested',
+            changedBy: req.user._id,
+            changedByModel: 'User'
+        });
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Order cancellation request submitted successfully',
+            order
+        });
+
+    } catch (error) {
+        console.error('Cancel order request error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error processing order cancellation request',
+            error: error.message 
+        });
+    }
+};
 
 module.exports = {
     getOrderList,
@@ -573,5 +759,7 @@ module.exports = {
     cancelReturnRequest,
     cancelOrderItem,
     returnOrderItem,
-    cancelReturnItem
+    cancelReturnItem,
+    cancelItemRequest,
+    cancelOrderRequest
 };

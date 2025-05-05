@@ -269,7 +269,22 @@
 </style>
 
 <div class="order-management-container">
-    <h2 class="mb-4">Order Management</h2>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Order Management</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="/admin/pending-requests" class="btn btn-sm btn-warning position-relative">
+                    <i class="fas fa-exclamation-circle"></i> Pending Requests
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="pendingRequestCount">
+                        0
+                    </span>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
     
     <div class="filter-section">
         <form id="filterForm" class="row g-3">
@@ -306,8 +321,8 @@
             <div class="col-md-2">
                 <label for="sortBy" class="form-label">Sort By</label>
                 <select class="form-select" id="sortBy" name="sortBy">
-                    <option value="createdAt" <%= sortBy === 'createdAt' ? 'selected' : '' %>>Order Date</option>
-                    <option value="finalAmount" <%= sortBy === 'finalAmount' ? 'selected' : '' %>>Amount</option>
+                    <option value="date" <%= sortBy === 'date' ? 'selected' : '' %>>Order Date</option>
+                    <option value="amount" <%= sortBy === 'amount' ? 'selected' : '' %>>Amount</option>
                 </select>
             </div>
             
@@ -387,35 +402,16 @@
                         <i class="fas fa-clock"></i> View Timeline
                     </button>
                     
-                    <select class="form-select update-status w-auto d-inline-block" 
-                            SHRUTI
-                            data-order-id="<%= order.orderId %>"
-                            data-original-status="<%= order.status %>">
-                        <% statuses.forEach(status => { %>
-                            <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>>
-                                <%= status %>
-                            </option>
-                        <% }) %>
-                    </select>
-                    
-                    <% if (order.status === 'Return Request') { %>
-                        <button class="btn btn-sm btn-success approve-return" data-order-id="<%= order.orderId %>">
-                            <i class="fas fa-check-circle"></i> Approve Return
-                        </button>
-                        
-                        <button class="btn btn-sm btn-danger reject-return" data-order-id="<%= order.orderId %>">
-                            <i class="fas fa-times-circle"></i> Reject Return
-                        </button>
-                    <% } %>
-                    
-                    <% if (order.status === 'Cancel Request') { %>
-                        <button class="btn btn-sm btn-success approve-cancel" data-order-id="<%= order.orderId %>">
-                            <i class="fas fa-check-circle"></i> Approve Cancel
-                        </button>
-                        
-                        <button class="btn btn-sm btn-danger reject-cancel" data-order-id="<%= order.orderId %>">
-                            <i class="fas fa-times-circle"></i> Reject Cancel
-                        </button>
+                    <% if (!order.hasPendingItemRequests) { %>
+                        <select class="form-select update-status w-auto d-inline-block" 
+                                data-order-id="<%= order.orderId %>"
+                                data-original-status="<%= order.status %>">
+                            <% statuses.forEach(status => { %>
+                                <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>>
+                                    <%= status %>
+                                </option>
+                            <% }) %>
+                        </select>
                     <% } %>
                 </div>
             </div>
@@ -450,22 +446,46 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Function to update dropdown state based on order status
-        function updateDropdownState(dropdown, status) {
-            const allowedStatuses = ['Pending', 'Shipped', 'Delivered'];
-            const terminalStatuses = ['Cancel Request', 'Cancelled', 'Return Request', 'Returned', 'Delivered'];
+        // Function to get valid next statuses
+        function getValidNextStatuses(currentStatus) {
+            const validTransitions = {
+                'Pending': ['Shipped', 'Cancelled'],
+                'Shipped': ['Delivered', 'Cancelled'],
+                'Delivered': [],
+                'Cancelled': [],
+                'Returned': []
+            };
+            return validTransitions[currentStatus] || [];
+        }
+
+        // Function to update dropdown options based on current status
+        function updateStatusDropdown(dropdown, currentStatus) {
+            const validStatuses = getValidNextStatuses(currentStatus);
+            const $dropdown = $(dropdown);
             
-            if (terminalStatuses.includes(status)) {
-                dropdown.prop('disabled', true);
-            } else if (allowedStatuses.includes(status)) {
-                dropdown.prop('disabled', false);
+            // Clear dropdown
+            $dropdown.empty();
+            
+            // Add current status
+            $dropdown.append(`<option value="${currentStatus}" selected>${currentStatus}</option>`);
+            
+            // Add valid next statuses
+            validStatuses.forEach(status => {
+                $dropdown.append(`<option value="${status}">${status}</option>`);
+            });
+
+            // Disable dropdown for Delivered, Cancelled, and Returned orders
+            if (currentStatus === 'Delivered' || currentStatus === 'Cancelled' || currentStatus === 'Returned') {
+                $dropdown.prop('disabled', true);
+            } else {
+                $dropdown.prop('disabled', false);
             }
         }
 
         // Initialize dropdown states on page load
         $('.update-status').each(function() {
             const orderStatus = $(this).data('original-status');
-            updateDropdownState($(this), orderStatus);
+            updateStatusDropdown(this, orderStatus);
         });
 
         // Handle filter form submission
@@ -480,6 +500,11 @@
             const orderId = $(this).data('order-id');
             const newStatus = $(this).val();
             const $dropdown = $(this);
+
+            // Don't proceed if dropdown is disabled
+            if ($dropdown.prop('disabled')) {
+                return;
+            }
 
             Swal.fire({
                 title: 'Update Order Status',
@@ -499,8 +524,8 @@
                             Swal.fire('Success', response.message, 'success').then(() => {
                                 // Update the original status data attribute
                                 $dropdown.data('original-status', newStatus);
-                                // Update dropdown state
-                                updateDropdownState($dropdown, newStatus);
+                                // Update dropdown options
+                                updateStatusDropdown($dropdown[0], newStatus);
                                 // Update the displayed status badge
                                 const statusBadge = $dropdown.closest('.order-card').find('.order-status');
                                 statusBadge.text(newStatus);
@@ -512,11 +537,15 @@
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            $dropdown.val($dropdown.data('original-status')); // Reset on error
+                            // Reset dropdown to current status
+                            const currentStatus = $dropdown.data('original-status');
+                            updateStatusDropdown($dropdown[0], currentStatus);
                         }
                     });
                 } else {
-                    $dropdown.val($dropdown.data('original-status')); // Reset on cancel
+                    // Reset dropdown to current status
+                    const currentStatus = $dropdown.data('original-status');
+                    updateStatusDropdown($dropdown[0], currentStatus);
                 }
             });
         });
@@ -687,6 +716,35 @@
                     });
                 }
             });
+        });
+
+        // Function to update pending request count
+        async function updatePendingRequestCount() {
+            try {
+                const response = await fetch('/admin/orders/request-counts');
+                const data = await response.json();
+                const totalRequests = data.cancelRequests + data.returnRequests;
+                const badge = document.getElementById('pendingRequestCount');
+                badge.textContent = totalRequests;
+                
+                // Show/hide badge based on count
+                if (totalRequests > 0) {
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error updating request count:', error);
+            }
+        }
+
+        // Update count every 30 seconds
+        updatePendingRequestCount();
+        setInterval(updatePendingRequestCount, 30000);
+
+        // Add refresh button handler
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            updatePendingRequestCount();
         });
     });
 </script>

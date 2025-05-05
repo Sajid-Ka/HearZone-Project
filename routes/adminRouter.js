@@ -40,6 +40,14 @@ router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline);
 router.post('/orders/cancel-item/:orderId', orderController.processCancelItemRequest);
 router.post('/orders/return-item/:orderId', orderController.processReturnItemRequest); 
 
+// Order request routes
+router.get('/pending-requests', orderController.getPendingRequests);
+router.get('/orders/request-counts', orderController.getRequestCounts);
+router.get('/orders/cancel-requests', orderController.getCancelRequests);
+router.get('/orders/return-requests', orderController.getReturnRequests);
+router.post('/orders/cancel-request/:orderId', orderController.handleCancelRequest);
+router.post('/orders/return-request/:orderId', orderController.handleReturnRequest);
+
 //category
 router.get('/category', categoryController.categoryInfo);
 router.post('/category', categoryController.addCategory);

@@ -142,24 +142,25 @@ const listOrders = async (req, res) => {
         let query = {};
 
         if (search) {
-            if (search.startsWith('Order #')) {
-                search = search.replace('Order #', '').trim();
-            } else if(search.startsWith('Order Details - #')) {
-                search = search.replace('Order Details - #', '').trim();
+            // Clean up the search query
+            let searchQuery = search.trim();
+            
+            // Remove common prefixes if present
+            if (searchQuery.startsWith('Order #')) {
+                searchQuery = searchQuery.replace('Order #', '').trim();
+            } else if (searchQuery.startsWith('Order Details - #')) {
+                searchQuery = searchQuery.replace('Order Details - #', '').trim();
             }
 
-            const searchRegex = new RegExp(search, 'i');
-            const isPossibleUUID = search.length >= 8 && search.includes('-');
+            // Create regex pattern for partial order ID match
+            const orderIdPattern = new RegExp(searchQuery.replace(/[-\s]/g, '.*'), 'i');
+            
             query.$or = [
-                { 
-                    orderId: isPossibleUUID 
-                        ? { $regex: search, $options: 'i' } 
-                        : search 
-                },
-                { 'address.name': searchRegex },
-                { 'address.city': searchRegex },
-                { 'userId.name': searchRegex },
-                { 'userId.email': searchRegex }
+                { orderId: orderIdPattern },
+                { 'address.name': { $regex: searchQuery, $options: 'i' } },
+                { 'address.city': { $regex: searchQuery, $options: 'i' } },
+                { 'userId.name': { $regex: searchQuery, $options: 'i' } },
+                { 'userId.email': { $regex: searchQuery, $options: 'i' } }
             ];
         }
 
@@ -182,15 +183,20 @@ const listOrders = async (req, res) => {
             };
         }
 
+        // Create sort object based on sortBy and sortOrder
+        let sortObject = {};
+        if (sortBy === 'amount') {
+            sortObject = { finalAmount: sortOrder };
+        } else if (sortBy === 'date') {
+            sortObject = { createdAt: sortOrder };
+        } else {
+            sortObject = { createdAt: -1 }; // Default sort by date descending
+        }
+
         const [orders, count] = await Promise.all([
             Order.find(query)
                 .populate('userId', 'name email phone')
-                .sort({ 
-                    // Prioritize orders with pending item cancel/return requests
-                    'orderedItems.cancellationStatus': -1, // Cancel Request first
-                    'orderedItems.returnStatus': -1,      // Return Request first
-                    [sortBy]: sortOrder 
-                })
+                .sort(sortObject)
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .lean(),
@@ -269,9 +275,7 @@ const updateOrderStatus = async (req, res) => {
         const { orderId } = req.params;
         const { status } = req.body;
 
-        const order = await Order.findOne({ orderId })
-            .populate('orderedItems.product');
-
+        const order = await Order.findOne({ orderId }).populate('orderedItems.product');
         if (!order) {
             return res.status(404).json({ 
                 success: false, 
@@ -279,61 +283,65 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        order.orderedItems.forEach(item => {
-            if (!item.subTotal) {
-                item.subTotal = item.price * item.quantity;
-            }
-        });
-
-        const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
-        if (terminalStatuses.includes(order.status)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Cannot change status from ${order.status} as it is a final state`
-            });
-        }
-
+        // Define valid status transitions
         const validTransitions = {
             'Pending': ['Shipped', 'Cancelled'],
             'Shipped': ['Delivered', 'Cancelled'],
-            'Cancel Request': ['Cancelled', 'Pending'],
-            'Return Request': ['Returned', 'Delivered']
+            'Delivered': [],
+            'Cancelled': [],
+            'Returned': []
         };
 
-        if (!validTransitions[order.status] || !validTransitions[order.status].includes(status)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Invalid status transition from ${order.status} to ${status}`
+        // Check if the status transition is valid
+        const currentStatus = order.status;
+        const allowedNextStatuses = validTransitions[currentStatus] || [];
+        
+        if (!allowedNextStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot change status from ${currentStatus} to ${status}. Valid next statuses are: ${allowedNextStatuses.join(', ')}`
             });
         }
 
-        if (status === 'Delivered' && order.status !== 'Delivered') {
-            order.invoiceDate = new Date();
-            await trackStatusChange(
-                order, 
-                'Delivered', 
-                'Order delivered to customer',
-                req.admin._id
-            );
-        }
-
+        // If changing to Cancelled status, restore product quantities
         if (status === 'Cancelled') {
-            await restoreProductStock(order.orderedItems);
-            await trackStatusChange(
-                order, 
-                'Cancelled', 
-                'Order cancelled',
-                req.admin._id 
-            );
+            // Restore quantities for all non-cancelled items
+            for (const item of order.orderedItems) {
+                if (item.cancellationStatus === 'None' && item.returnStatus === 'None') {
+                    await Product.findByIdAndUpdate(
+                        item.product._id,
+                        { $inc: { quantity: item.quantity } }
+                    );
+                }
+            }
         }
 
+        // Update only non-cancelled items
+        order.orderedItems.forEach(item => {
+            if (item.cancellationStatus === 'None' && item.returnStatus === 'None') {
+                item.itemStatus = status;
+            }
+        });
+
+        // Update overall order status
         order.status = status;
+
+        // Add to status history
+        order.statusHistory.push({
+            status: status,
+            description: `Order status updated to ${status}`,
+            changedBy: req.admin._id,
+            changedByModel: 'Admin'
+        });
+
         await order.save();
 
-        res.json({ 
-            success: true, 
-            message: 'Order status updated successfully' 
+        res.status(200).json({
+            success: true,
+            message: 'Order status updated successfully',
+            order
         });
+
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ 
@@ -881,6 +889,187 @@ const processReturnItemRequest = async (req, res) => {
     }
 };
 
+const getOrderDetails = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await Order.findById(orderId)
+            .populate('userId', 'name email phone')
+            .populate('orderedItems.product', 'name images price');
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            order
+        });
+
+    } catch (error) {
+        console.error('Get order details error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching order details',
+            error: error.message 
+        });
+    }
+};
+
+// Get request counts
+const getRequestCounts = async (req, res) => {
+    try {
+        // Count orders with items that have cancel or return requests
+        const cancelRequests = await Order.countDocuments({
+            'orderedItems.cancellationStatus': 'Cancel Request'
+        });
+        const returnRequests = await Order.countDocuments({
+            'orderedItems.returnStatus': 'Return Request'
+        });
+        
+        res.json({
+            cancelRequests,
+            returnRequests
+        });
+    } catch (error) {
+        console.error('Error getting request counts:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Get cancel requests
+const getCancelRequests = async (req, res) => {
+    try {
+        const requests = await Order.find({
+            'orderedItems.cancellationStatus': 'Cancel Request'
+        })
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 });
+        
+        res.json(requests);
+    } catch (error) {
+        console.error('Error getting cancel requests:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Get return requests
+const getReturnRequests = async (req, res) => {
+    try {
+        const requests = await Order.find({
+            'orderedItems.returnStatus': 'Return Request'
+        })
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 });
+        
+        res.json(requests);
+    } catch (error) {
+        console.error('Error getting return requests:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Handle cancel request
+const handleCancelRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { action } = req.body;
+
+        const order = await Order.findOne({ orderId });
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        // Find items with cancel requests
+        const itemsWithCancelRequest = order.orderedItems.filter(item => 
+            item.cancellationStatus === 'Cancel Request'
+        );
+
+        if (itemsWithCancelRequest.length === 0) {
+            return res.status(400).json({ error: 'No cancel requests found for this order' });
+        }
+
+        if (action === 'approve') {
+            // Update all items with cancel requests
+            order.orderedItems.forEach(item => {
+                if (item.cancellationStatus === 'Cancel Request') {
+                    item.cancellationStatus = 'Cancelled';
+                }
+            });
+        } else if (action === 'reject') {
+            // Reset cancel request status
+            order.orderedItems.forEach(item => {
+                if (item.cancellationStatus === 'Cancel Request') {
+                    item.cancellationStatus = 'None';
+                }
+            });
+        }
+
+        await order.save();
+        res.json({ message: 'Request handled successfully' });
+    } catch (error) {
+        console.error('Error handling cancel request:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Handle return request
+const handleReturnRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { action } = req.body;
+
+        const order = await Order.findOne({ orderId });
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        // Find items with return requests
+        const itemsWithReturnRequest = order.orderedItems.filter(item => 
+            item.returnStatus === 'Return Request'
+        );
+
+        if (itemsWithReturnRequest.length === 0) {
+            return res.status(400).json({ error: 'No return requests found for this order' });
+        }
+
+        if (action === 'approve') {
+            // Update all items with return requests
+            order.orderedItems.forEach(item => {
+                if (item.returnStatus === 'Return Request') {
+                    item.returnStatus = 'Returned';
+                }
+            });
+        } else if (action === 'reject') {
+            // Reset return request status
+            order.orderedItems.forEach(item => {
+                if (item.returnStatus === 'Return Request') {
+                    item.returnStatus = 'None';
+                }
+            });
+        }
+
+        await order.save();
+        res.json({ message: 'Request handled successfully' });
+    } catch (error) {
+        console.error('Error handling return request:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Get pending requests page
+const getPendingRequests = async (req, res) => {
+    try {
+        res.render('admin/pending-requests');
+    } catch (error) {
+        console.error('Error rendering pending requests page:', error);
+        res.status(500).render('error', { error: 'Internal server error' });
+    }
+};
+
 module.exports = {
     listOrders,
     viewOrderDetails,
@@ -891,5 +1080,12 @@ module.exports = {
     getOrderStatusTimeline,
     generateInvoice,
     processCancelItemRequest,
-    processReturnItemRequest
+    processReturnItemRequest,
+    getOrderDetails,
+    getRequestCounts,
+    getCancelRequests,
+    getReturnRequests,
+    handleCancelRequest,
+    handleReturnRequest,
+    getPendingRequests
 };

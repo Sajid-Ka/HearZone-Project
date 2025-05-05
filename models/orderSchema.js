@@ -34,6 +34,11 @@ const orderSchema = new Schema({
             required: true, 
             min: 0 
         },
+        itemStatus: {
+            type: String,
+            enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
+            default: 'Pending'
+        },
         cancellationStatus: { 
             type: String, 
             enum: ['None', 'Cancel Request', 'Cancelled'], 
@@ -159,7 +164,7 @@ orderSchema.virtual('totalItems').get(function() {
         item.cancellationStatus === 'Cancelled' ? total : total + item.quantity, 0);
 });
 
-// Pre-save hook to ensure financial consistency
+// Pre-save hook to ensure financial consistency and status management
 orderSchema.pre('save', async function(next) {
     if (this.isNew) {
         const today = new Date();
@@ -176,32 +181,67 @@ orderSchema.pre('save', async function(next) {
         }
     }
 
+    // Calculate subtotal for each item
     this.orderedItems.forEach(item => {
         item.subTotal = item.price * item.quantity;
     });
 
+    // Calculate total price excluding cancelled items
     this.totalPrice = this.orderedItems.reduce((total, item) => 
         item.cancellationStatus === 'Cancelled' ? total : total + item.subTotal, 0);
     
     this.finalAmount = this.totalPrice - this.discount + this.taxes + this.shippingCost;
 
-    const allItemsCancelled = this.orderedItems.every(item => item.cancellationStatus === 'Cancelled');
-    const anyCancelRequest = this.orderedItems.some(item => item.cancellationStatus === 'Cancel Request');
+    // Determine order status based on item statuses
+    const allItemsCancelled = this.orderedItems.every(item => 
+        item.cancellationStatus === 'Cancelled'
+    );
+    
+    const allItemsCancelRequest = this.orderedItems.every(item => 
+        item.cancellationStatus === 'Cancel Request'
+    );
 
-    if (allItemsCancelled && this.status !== 'Cancelled') {
+    const allItemsReturnRequest = this.orderedItems.every(item => 
+        item.returnStatus === 'Return Request'
+    );
+
+    const allItemsReturned = this.orderedItems.every(item => 
+        item.returnStatus === 'Returned'
+    );
+
+    const hasDeliveredItems = this.orderedItems.some(item => 
+        item.itemStatus === 'Delivered' && item.cancellationStatus === 'None'
+    );
+
+    const hasReturnedItems = this.orderedItems.some(item => 
+        item.returnStatus === 'Returned'
+    );
+
+    const hasShippedItems = this.orderedItems.some(item => 
+        item.itemStatus === 'Shipped' && item.cancellationStatus === 'None'
+    );
+
+    const hasPendingItems = this.orderedItems.some(item => 
+        item.itemStatus === 'Pending' && item.cancellationStatus === 'None'
+    );
+
+    // Update order status based on priority
+    if (allItemsCancelled) {
         this.status = 'Cancelled';
-        this.statusHistory.push({
-            status: 'Cancelled',
-            date: new Date(),
-            description: 'All items in the order were cancelled'
-        });
-    } else if (anyCancelRequest && this.status !== 'Cancel Request') {
+    } else if (allItemsCancelRequest) {
         this.status = 'Cancel Request';
-        this.statusHistory.push({
-            status: 'Cancel Request',
-            date: new Date(),
-            description: 'Cancellation requested for one or more items'
-        });
+    } else if (allItemsReturnRequest) {
+        this.status = 'Return Request';
+    } else if (allItemsReturned) {
+        this.status = 'Returned';
+    } else if (hasDeliveredItems) {
+        this.status = 'Delivered';
+    } else if (hasReturnedItems) {
+        this.status = 'Returned';
+    } else if (hasShippedItems) {
+        this.status = 'Shipped';
+    } else if (hasPendingItems) {
+        this.status = 'Pending';
     }
 
     next();
