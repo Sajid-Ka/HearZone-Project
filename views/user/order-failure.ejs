@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
     /* Main Container */
-    .success-container {
+    .failure-container {
         min-height: 100vh;
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         display: flex;
@@ -10,8 +10,8 @@
         justify-content: center;
         padding: 40px 15px;
     }
-    /* Success Card */
-    .success-card {
+    /* Failure Card */
+    .failure-card {
         background: white;
         border-radius: 20px;
         padding: 40px;
@@ -22,18 +22,18 @@
         position: relative;
         overflow: hidden;
     }
-    .success-card::before {
+    .failure-card::before {
         content: '';
         position: absolute;
         top: -50%;
         left: -50%;
         width: 200%;
         height: 200%;
-        background: radial-gradient(circle, rgba(52,152,219,0.1) 0%, rgba(255,255,255,0) 70%);
+        background: radial-gradient(circle, rgba(231,76,60,0.1) 0%, rgba(255,255,255,0) 70%);
         animation: pulse 6s infinite;
     }
     /* Header */
-    .success-header {
+    .failure-header {
         color: #2c3e50;
         font-weight: 700;
         margin-bottom: 20px;
@@ -41,7 +41,7 @@
         z-index: 1;
     }
     /* Paragraph */
-    .success-message {
+    .failure-message {
         color: #636e72;
         font-size: 1.1rem;
         margin-bottom: 30px;
@@ -49,9 +49,9 @@
         z-index: 1;
     }
     /* Illustration */
-    .success-icon {
+    .failure-icon {
         font-size: 100px;
-        color: #3498db;
+        color: #e74c3c;
         margin: 0 auto 20px;
         position: relative;
         z-index: 1;
@@ -65,7 +65,7 @@
         z-index: 1;
     }
     .btn-primary {
-        background: #3498db;
+        background: #e74c3c;
         border: none;
         padding: 12px 30px;
         border-radius: 25px;
@@ -74,9 +74,9 @@
         transition: all 0.3s ease;
     }
     .btn-primary:hover {
-        background: #2980b9;
+        background: #c0392b;
         transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(52,152,219,0.4);
+        box-shadow: 0 5px 15px rgba(231,76,60,0.4);
         color: white;
         text-decoration: none;
     }
@@ -104,7 +104,7 @@
     }
     /* Responsive Design */
     @media (max-width: 768px) {
-        .success-card {
+        .failure-card {
             padding: 30px 20px;
             margin: 20px;
         }
@@ -115,7 +115,7 @@
         .btn-primary, .btn-secondary {
             width: 100%;
         }
-        .success-icon {
+        .failure-icon {
             font-size: 80px;
         }
     }
@@ -125,14 +125,14 @@
 <br>
 <br>
 <br>
-<div class="success-container">
-    <div class="success-card">
-        <i class="fas fa-check-circle success-icon"></i>
-        <h2 class="success-header">Thank You for Your Order!</h2>
-        <p class="success-message">Your order #<%= order.orderId %> has been successfully placed.</p>
+<div class="failure-container">
+    <div class="failure-card">
+        <i class="fas fa-exclamation-circle failure-icon"></i>
+        <h2 class="failure-header">Payment Failed!</h2>
+        <p class="failure-message">Unfortunately, your payment could not be processed. Please try again or contact support if the issue persists.</p>
         <div class="btn-container">
-            <a href="/orders/<%= order.orderId %>" class="btn btn-primary">View Order Details</a>
-            <a href="/shop" class="btn btn-secondary">Continue Shopping</a>
+            <a href="/checkout" class="btn btn-primary">Retry Payment</a>
+            <a href="/contact" class="btn btn-secondary">Contact Support</a>
         </div>
     </div>
 </div>

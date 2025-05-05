@@ -35,6 +35,11 @@ const orderSchema = new Schema({
             min: 0 
         },
         itemStatus: {
+            type: Number,
+            required: true,
+            min: 0
+        },
+        itemStatus: {
             type: String,
             enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled', 'Returned'],
             default: 'Pending'
@@ -102,6 +107,9 @@ const orderSchema = new Schema({
         type: String, 
         enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
         default: 'Pending' 
+    },
+    razorpayOrderId: {
+        type: String
     },
     invoiceDate: {
         type: Date

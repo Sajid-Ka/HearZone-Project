@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const session = require('express-session');
 const path = require('path');
-require('dotenv').config();
 const passport = require('./config/passport');
 const db = require('./config/db');
 const userRouter = require('./routes/userRouter');

@@ -1,5 +1,6 @@
 <%- include('../partials/user/header') %>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -220,21 +221,6 @@
         display: block;
     }
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .checkout-container {
-            margin: 20px auto;
-        }
-        .address-section, .order-summary {
-            padding: 20px;
-        }
-        .product-item img {
-            width: 50px;
-            height: 50px;
-        }
-    }
-
-
     /* Payment Method Section */
     .payment-method-section {
         padding: 0 30px 30px;
@@ -312,19 +298,23 @@
 
     /* Responsive Design */
     @media (max-width: 768px) {
-        .payment-method-section {
+        .checkout-container {
+            margin: 20px auto;
+        }
+        .address-section, .order-summary, .payment-method-section {
             padding: 0 20px 20px;
         }
-
+        .product-item img {
+            width: 50px;
+            height: 50px;
+        }
         .payment-card {
             padding: 12px 15px;
         }
-
         .payment-label {
             font-size: 0.95rem;
         }
     }
-
 </style>
 
 <br>
@@ -436,7 +426,7 @@
                 <h4>Order Summary</h4>
                 <% cart.items.forEach(item => { %>
                     <div class="product-item">
-                        <img src="<%= item.productId.productImage && item.productId.productImage.length ? '/uploads/product-images/' + item.productId.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
+                        <img src="<%= item.productId.productImage && item.productId.productImage.length ? '/Uploads/product-images/' + item.productId.productImage[0] : '/Uploads/product-images/placeholder.jpg' %>" 
                              alt="<%= item.productId.productName %>">
                         <span><%= item.productId.productName %></span>
                         <span>Qty: <%= item.quantity %></span>
@@ -459,10 +449,6 @@
                         <label class="payment-card" for="razorpay">
                             <input type="radio" name="paymentMethod" id="razorpay" value="Razorpay">
                             <span class="payment-label">Pay Now (Razorpay)</span>
-                        </label>
-                        <label class="payment-card" for="wallet">
-                            <input type="radio" name="paymentMethod" id="wallet" value="Wallet">
-                            <span class="payment-label">Pay Using Wallet</span>
                         </label>
                     </div>
                 </div>
@@ -490,7 +476,7 @@
     // Address card selection
     document.querySelectorAll('.address-card').forEach(card => {
         card.addEventListener('click', function(e) {
-            if (e.target.classList.contains('btn-edit')) return; // Prevent selection on edit button click
+            if (e.target.classList.contains('btn-edit')) return;
             document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
             this.querySelector('input[type="radio"]').checked = true;
@@ -516,12 +502,78 @@
             const response = await fetch('/place-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ addressId, paymentMethod })  // send payment method
+                body: JSON.stringify({ addressId, paymentMethod })
             });
             
             const data = await response.json();
 
-            if (response.ok && data.success) {
+            if (!response.ok || !data.success) {
+                Swal.fire('Error', data.message || 'Failed to place order', 'error');
+                return;
+            }
+
+            if (paymentMethod === 'Razorpay') {
+                const options = {
+                    key: '<%= razorpayKeyId %>',
+                    amount: data.amount,
+                    currency: data.currency,
+                    name: 'Your E-commerce Store',
+                    description: 'Order Payment',
+                    order_id: data.razorpayOrderId,
+                    handler: async function (response) {
+                        try {
+                            const verifyResponse = await fetch('/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    orderId: data.orderId,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            });
+
+                            const verifyData = await verifyResponse.json();
+
+                            if (verifyData.success) {
+                                Swal.fire({
+                                    title: 'Payment Successful!',
+                                    text: `Your order #${data.orderId} has been placed successfully`,
+                                    icon: 'success'
+                                }).then(() => {
+                                    window.location.href = `/order-success?orderId=${data.orderId}`;
+                                });
+                            } else {
+                                Swal.fire('Error', verifyData.message || 'Payment verification failed', 'error').then(() => {
+                                    window.location.href = `/order-failure?orderId=${data.orderId}`;
+                                });
+                            }
+                        } catch (error) {
+                            Swal.fire('Error', 'Payment verification failed', 'error').then(() => {
+                                window.location.href = `/order-failure?orderId=${data.orderId}`;
+                            });
+                        }
+                    },
+                    prefill: {
+                        name: '<%= user.name %>',
+                        email: '<%= user.email %>',
+                        contact: '<%= user.phone || "" %>'
+                    },
+                    theme: {
+                        color: '#3498db'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            Swal.fire('Error', 'Payment window closed', 'error').then(() => {
+                                window.location.href = `/order-failure?orderId=${data.orderId}`;
+                            });
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } else {
                 Swal.fire({
                     title: 'Order Placed!',
                     text: `Your order #${data.orderId} has been placed successfully`,
@@ -529,8 +581,6 @@
                 }).then(() => {
                     window.location.href = `/order-success?orderId=${data.orderId}`;
                 });
-            } else {
-                Swal.fire('Error', data.message || 'Failed to place order', 'error');
             }
         } catch (error) {
             Swal.fire('Error', 'Something went wrong', 'error');
@@ -543,7 +593,6 @@
         const modal = document.getElementById(modalId);
         let originalValues = {};
 
-        // Store original values when modal is shown
         modal.addEventListener('show.bs.modal', function() {
             form.querySelectorAll('input, select').forEach(input => {
                 originalValues[input.name] = input.type === 'checkbox' ? input.checked : input.value;
@@ -556,11 +605,9 @@
             const formData = new FormData(this);
             const jsonData = Object.fromEntries(formData);
 
-            // Clear previous errors
             form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
             form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
-            // Check for changes
             let hasChanges = false;
             Object.keys(jsonData).forEach(key => {
                 const currentValue = key === 'isDefault' ? (jsonData[key] === 'on') : jsonData[key];
@@ -629,6 +676,77 @@
             }
         });
     });
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkoutForm = document.querySelector('#checkout-form');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(checkoutForm);
+                const data = {
+                    addressId: formData.get('address'),
+                    paymentMethod: formData.get('paymentMethod')
+                };
+
+                try {
+                    const response = await fetch('/checkout/place-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        alert(result.message);
+                        return;
+                    }
+
+                    if (data.paymentMethod === 'Razorpay') {
+                        const options = {
+                            key: '<%= razorpayKeyId %>',
+                            amount: result.amount,
+                            currency: result.currency,
+                            order_id: result.razorpayOrderId,
+                            name: 'HearZone',
+                            description: 'Order Payment',
+                            handler: async function(response) {
+                                const verifyData = {
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature
+                                };
+                                const verifyResponse = await fetch('/checkout/verify-payment', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(verifyData)
+                                });
+                                const verifyResult = await verifyResponse.json();
+                                if (verifyResult.success) {
+                                    window.location.href = `/order-success?orderId=${verifyResult.orderId}`;
+                                } else {
+                                    window.location.href = '/order-failure';
+                                }
+                            },
+                            modal: {
+                                ondismiss: function() {
+                                    window.location.href = '/order-failure';
+                                }
+                            }
+                        };
+                        const rzp = new Razorpay(options);
+                        rzp.open();
+                    } else {
+                        window.location.href = `/order-success?orderId=${result.orderId}`;
+                    }
+                } catch (error) {
+                    console.error('Checkout Error:', error);
+                    alert('An error occurred during checkout. Please try again.');
+                }
+            });
+        }
+    });
+
 </script>
 
 <%- include('../partials/user/footer') %>

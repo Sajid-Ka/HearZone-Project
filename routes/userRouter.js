@@ -82,7 +82,7 @@ router.get('/auth/google/callback',
         res.redirect('/login?message=Login error');
       }
     }
-  );
+);
 
 // Public routes with cache control
 router.get('/login', isLogin, (req, res) => {
@@ -100,7 +100,7 @@ router.get('/signup', isLogin, (req, res) => {
 });
 
 // Protected routes (require authentication)
-router.use(userAuth); // Apply authentication middleware for all routes below
+router.use(userAuth);
 
 router.get('/logout', userController.logout);
 
@@ -122,7 +122,6 @@ router.get('/review/product/:productId', reviewController.getProductReviews);
 router.get('/review/full/:productId', reviewController.getFullReviews);
 router.post('/review/delete/:reviewId', reviewController.deleteReview);
 
-
 // Address routes
 router.get('/address', addressController.getAddressPage);
 router.post('/address/add', addressController.addAddress);
@@ -137,7 +136,6 @@ router.post('/cart/update-quantity', userAuth, cartController.updateQuantity);
 router.post('/cart/remove', userAuth, cartController.removeItem);
 router.post('/cart/clear', userAuth, cartController.clearCart);
 
-
 // Wishlist routes 
 router.get('/wishlist', userAuth, wishlistController.getWishlistItems);
 router.post('/wishlist/add', userAuth, wishlistController.addToWishlist);
@@ -147,7 +145,9 @@ router.post('/wishlist/check', userAuth, wishlistController.checkWishlistStatus)
 // checkout routes
 router.get('/checkout', checkoutController.getCheckoutPage);
 router.post('/place-order', checkoutController.placeOrder);
+router.post('/verify-payment', checkoutController.verifyRazorpayPayment);
 router.get('/order-success', checkoutController.getOrderSuccessPage);
+router.get('/order-failure', checkoutController.getOrderFailurePage);
 
 //order routes
 router.get('/orders', orderController.getOrderList);
@@ -160,8 +160,6 @@ router.get('/orders/:orderId/invoice', orderController.downloadInvoice);
 router.post('/orders/:orderId/cancel-item', orderController.cancelOrderItem);
 router.post('/orders/:orderId/return-item', orderController.returnOrderItem);
 router.post('/orders/:orderId/cancel-return-item', orderController.cancelReturnItem);
-
-
 
 // Coupon routes
 router.get('/coupon/available', couponController.getAvailableCoupons);
