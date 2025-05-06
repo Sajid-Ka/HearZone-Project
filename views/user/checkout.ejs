@@ -526,7 +526,6 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    orderId: data.orderId,
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_order_id: response.razorpay_order_id,
                                     razorpay_signature: response.razorpay_signature
@@ -538,19 +537,27 @@
                             if (verifyData.success) {
                                 Swal.fire({
                                     title: 'Payment Successful!',
-                                    text: `Your order #${data.orderId} has been placed successfully`,
+                                    text: `Your order #${verifyData.orderId} has been placed successfully`,
                                     icon: 'success'
                                 }).then(() => {
-                                    window.location.href = `/order-success?orderId=${data.orderId}`;
+                                    window.location.href = `/order-success?orderId=${verifyData.orderId}`;
                                 });
                             } else {
-                                Swal.fire('Error', verifyData.message || 'Payment verification failed', 'error').then(() => {
-                                    window.location.href = `/order-failure?orderId=${data.orderId}`;
+                                Swal.fire({
+                                    title: 'Payment Failed!',
+                                    text: verifyData.message || 'Payment verification failed. Please try again.',
+                                    icon: 'error'
+                                }).then(() => {
+                                    window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
                                 });
                             }
                         } catch (error) {
-                            Swal.fire('Error', 'Payment verification failed', 'error').then(() => {
-                                window.location.href = `/order-failure?orderId=${data.orderId}`;
+                            Swal.fire({
+                                title: 'Payment Failed!',
+                                text: 'An error occurred during payment verification. Please try again.',
+                                icon: 'error'
+                            }).then(() => {
+                                window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
                             });
                         }
                     },
@@ -564,8 +571,12 @@
                     },
                     modal: {
                         ondismiss: function() {
-                            Swal.fire('Error', 'Payment window closed', 'error').then(() => {
-                                window.location.href = `/order-failure?orderId=${data.orderId}`;
+                            Swal.fire({
+                                title: 'Payment Cancelled',
+                                text: 'You closed the payment window. Please try again.',
+                                icon: 'error'
+                            }).then(() => {
+                                window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
                             });
                         }
                     }
