@@ -131,7 +131,7 @@
         <h2 class="failure-header">Payment Failed!</h2>
         <p class="failure-message">Unfortunately, your payment could not be processed. Please try again or contact support if the issue persists.</p>
         <div class="btn-container">
-            <a href="/checkout" class="btn btn-primary">Retry Payment</a>
+            <a href="/checkout?retry=true&razorpayOrderId=<%= pendingOrder.razorpayOrderId || '' %>" class="btn btn-primary">Retry Payment</a>
             <a href="/contact" class="btn btn-secondary">Contact Support</a>
         </div>
     </div>

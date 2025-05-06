@@ -573,7 +573,7 @@
                         ondismiss: function() {
                             Swal.fire({
                                 title: 'Payment Cancelled',
-                                text: 'You closed the payment window. Please try again.',
+                                text: 'The payment failed, Please try again later',
                                 icon: 'error'
                             }).then(() => {
                                 window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
@@ -758,6 +758,112 @@
         }
     });
 
+    // Handle retry payment
+    document.addEventListener('DOMContentLoaded', async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isRetry = urlParams.get('retry') === 'true';
+            const razorpayOrderId = urlParams.get('razorpayOrderId');
+
+            if (isRetry && razorpayOrderId) {
+                // Ensure Razorpay is selected
+                document.getElementById('razorpay').checked = true;
+
+                try {
+                    // Fetch the order details for retry
+                    const response = await fetch('/place-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            addressId: document.querySelector('input[name="address"]:checked')?.value,
+                            paymentMethod: 'Razorpay'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        Swal.fire('Error', data.message || 'Failed to retry payment', 'error');
+                        return;
+                    }
+
+                    // Open Razorpay modal
+                    const options = {
+                        key: '<%= razorpayKeyId %>',
+                        amount: data.amount,
+                        currency: data.currency,
+                        name: 'Your E-commerce Store',
+                        description: 'Order Payment',
+                        order_id: data.razorpayOrderId,
+                        handler: async function (response) {
+                            try {
+                                const verifyResponse = await fetch('/verify-payment', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_signature: response.razorpay_signature
+                                    })
+                                });
+
+                                const verifyData = await verifyResponse.json();
+
+                                if (verifyData.success) {
+                                    Swal.fire({
+                                        title: 'Payment Successful!',
+                                        text: `Your order #${verifyData.orderId} has been placed successfully`,
+                                        icon: 'success'
+                                    }).then(() => {
+                                        window.location.href = `/order-success?orderId=${verifyData.orderId}`;
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Payment Failed!',
+                                        text: verifyData.message || 'Payment verification failed. Please try again.',
+                                        icon: 'error'
+                                    }).then(() => {
+                                        window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
+                                    });
+                                }
+                            } catch (error) {
+                                Swal.fire({
+                                    title: 'Payment Failed!',
+                                    text: 'An error occurred during payment verification. Please try again.',
+                                    icon: 'error'
+                                }).then(() => {
+                                    window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
+                                });
+                            }
+                        },
+                        prefill: {
+                            name: '<%= user.name %>',
+                            email: '<%= user.email %>',
+                            contact: '<%= user.phone || "" %>'
+                        },
+                        theme: {
+                            color: '#3498db'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                Swal.fire({
+                                    title: 'Payment Cancelled',
+                                    text: 'You closed the payment window. Please try again.',
+                                    icon: 'error'
+                                }).then(() => {
+                                    window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
+                                });
+                            }
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                } catch (error) {
+                    Swal.fire('Error', 'Failed to initiate retry payment', 'error');
+                }
+            }
+        });
+        
 </script>
 
 <%- include('../partials/user/footer') %>

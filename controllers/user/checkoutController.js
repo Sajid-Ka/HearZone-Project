@@ -70,6 +70,7 @@ const createRazorpayOrder = async (amount, currency = 'INR') => {
     }
 };
 
+
 const verifyPayment = (orderId, paymentId, signature) => {
     const secret = process.env.RAZORPAY_KEY_SECRET;
     const body = orderId + '|' + paymentId;
@@ -79,6 +80,7 @@ const verifyPayment = (orderId, paymentId, signature) => {
         .digest('hex');
     return expectedSignature === signature;
 };
+
 
 const placeOrder = async (req, res) => {
     try {
@@ -123,8 +125,15 @@ const placeOrder = async (req, res) => {
         };
 
         if (paymentMethod === 'Razorpay') {
-            const razorpayOrder = await createRazorpayOrder(cart.finalAmount);
-            // Store orderData in session instead of saving to DB
+            let razorpayOrder;
+            // Check if there's a pending order in session for retry
+            if (req.session.pendingOrder && req.session.pendingOrder.razorpayOrderId) {
+                razorpayOrder = { id: req.session.pendingOrder.razorpayOrderId };
+            } else {
+                razorpayOrder = await createRazorpayOrder(cart.finalAmount);
+            }
+            
+            // Store orderData in session
             req.session.pendingOrder = {
                 ...orderData,
                 razorpayOrderId: razorpayOrder.id
@@ -161,6 +170,7 @@ const placeOrder = async (req, res) => {
         res.status(500).json({ success: false, message: `Failed to place order: ${error.message}` });
     }
 };
+
 
 const verifyRazorpayPayment = async (req, res) => {
     try {
@@ -232,11 +242,12 @@ const getOrderSuccessPage = async (req, res) => {
 const getOrderFailurePage = async (req, res) => {
     try {
         const orderId = req.query.orderId;
-        // Check if order exists, but don't show details if payment failed
+        const pendingOrder = req.session.pendingOrder || {}; // Get pending order from session
         const order = await Order.findOne({ orderId }).populate('orderedItems.product');
         
         res.render('user/order-failure', {
-            order: order || { orderId: 'N/A' }, // Fallback if no order
+            order: order || { orderId: orderId || 'N/A' },
+            pendingOrder, // Pass pending order details
             user: req.session.user
         });
     } catch (error) {
