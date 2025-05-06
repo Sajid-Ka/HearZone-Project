@@ -864,6 +864,7 @@ function updateCartCount(count) {
     const cartCountElements = document.querySelectorAll('.cart-count');
     cartCountElements.forEach(el => {
         el.textContent = count;
+        el.style.display = count > 0 ? 'inline-block' : 'none';
     });
 }
 
@@ -871,6 +872,7 @@ function updateWishlistCount(count) {
     const wishlistCountElements = document.querySelectorAll('.wishlist-count');
     wishlistCountElements.forEach(el => {
         el.textContent = count;
+        el.style.display = count > 0 ? 'inline-block' : 'none';
     });
 }
 

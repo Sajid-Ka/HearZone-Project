@@ -1313,14 +1313,57 @@
     }
 
     function addToCart(productId) {
-        const maxQty = <%= quantity %>;
-        if (maxQty === 0) {
-            alert('Sorry, this product is currently out of stock.');
+        <% if (!user) { %>
+            showLoginSignupPrompt();
             return;
-        }
+        <% } %>
+
+        const quantity = parseInt(document.getElementById('quantity').textContent);
         
-        const quantity = document.getElementById('quantity').textContent;
-        console.log(`Adding ${quantity} of product ${productId} to cart`);
+        $.ajax({
+            url: '/cart/add',
+            method: 'POST',
+            data: {
+                productId: productId,
+                quantity: quantity
+            },
+            success: function(response) {
+                if (response.success) {
+                    let message = response.message;
+                    
+                    if (response.removedFromWishlist) {
+                        message = 'Product added to cart and removed from wishlist!';
+                        updateWishlistCount(response.wishlistCount);
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cart Updated',
+                        text: message,
+                        confirmButtonColor: '#4f46e5',
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    
+                    updateCartCount(response.cartCount);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: xhr.responseJSON?.message || 'Failed to add to cart',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        });
     }
 
     function changeImage(index) {
@@ -1466,6 +1509,7 @@
 
     function renderReviews(reviews) {
         const reviewsList = document.querySelector('.reviews-list');
+        const userId = '<%= user ? user.id : "" %>';  // Add user ID from session
         const initialReviews = reviews.slice(0, 5);
         const hasMoreReviews = reviews.length > 5;
         
@@ -1473,7 +1517,15 @@
             <div class="review-item mb-3">
                 <div class="review-header">
                     <span class="reviewer-name">${review.username}</span>
-                    <span class="review-date">${new Date(review.createdAt).toLocaleDateString()}</span>
+                    <div>
+                        <span class="review-date">${new Date(review.createdAt).toLocaleDateString()}</span>
+                        ${userId && review.userId === userId ? `
+                            <button class="btn btn-danger btn-sm ms-2" 
+                                    onclick="confirmDelete('${review._id}')">
+                                Delete
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
                 <div class="rating">
                     ${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}
@@ -1716,75 +1768,56 @@
 
 
     function addToCart(productId) {
-        // Check if user is logged in
         <% if (!user) { %>
-            Swal.fire({
-                icon: 'error',
-                title: 'Login Required',
-                text: 'You need to login to add products to your cart',
-                showCancelButton: true,
-                confirmButtonText: 'Login',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = '/login?returnUrl=' + encodeURIComponent(window.location.pathname);
-                }
-            });
+            showLoginSignupPrompt();
             return;
         <% } %>
 
-        const maxQty = <%= quantity %>;
-        if (maxQty === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Out of Stock',
-                text: 'Sorry, this product is currently out of stock.',
-            });
-            return;
-        }
-        
         const quantity = parseInt(document.getElementById('quantity').textContent);
         
-        fetch('/cart/add', {
+        $.ajax({
+            url: '/cart/add',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+            data: {
                 productId: productId,
                 quantity: quantity
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Added to Cart!',
-                    text: 'Product has been added to your cart.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                // Update cart count in navbar if you have one
-                const cartCountEl = document.querySelector('.cart-count');
-                if (cartCountEl) {
-                    cartCountEl.textContent = data.cartCount;
+            },
+            success: function(response) {
+                if (response.success) {
+                    let message = response.message;
+                    
+                    if (response.removedFromWishlist) {
+                        message = 'Product added to cart and removed from wishlist!';
+                        updateWishlistCount(response.wishlistCount);
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cart Updated',
+                        text: message,
+                        confirmButtonColor: '#4f46e5',
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    
+                    updateCartCount(response.cartCount);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message,
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
-            } else {
+            },
+            error: function(xhr) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Failed to add to cart'
+                    text: xhr.responseJSON?.message || 'Failed to add to cart',
+                    confirmButtonColor: '#dc3545'
                 });
             }
-        })
-        .catch(error => {
-            console.error('Error adding to cart:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong while adding to cart'
-            });
         });
     }
 
@@ -1857,62 +1890,47 @@
 
 
     function addToWishlist(productId) {
-        // Check if user is logged in
         <% if (!user) { %>
-            Swal.fire({
-                icon: 'error',
-                title: 'Login Required',
-                text: 'You need to login to add products to your wishlist',
-                showCancelButton: true,
-                confirmButtonText: 'Login',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = '/login?returnUrl=' + encodeURIComponent(window.location.pathname);
-                }
-            });
+            showLoginSignupPrompt('wishlist');
             return;
         <% } %>
 
-        fetch('/wishlist/add', {
+        $.ajax({
+            url: '/wishlist/add',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                productId: productId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Added to Wishlist!',
-                    text: 'Product has been added to your wishlist.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                // Update wishlist count in navbar if you have one
-                const wishlistCountEl = document.querySelector('.wishlist-count');
-                if (wishlistCountEl) {
-                    wishlistCountEl.textContent = data.wishlistCount;
+            data: { productId },
+            success: function(response) {
+                if (response.success) {
+                    const wishlistBtn = document.querySelector('.button-add-to-wishlist');
+                    wishlistBtn.classList.add('active');
+                    wishlistBtn.innerHTML = '<i class="fas fa-heart"></i> Added to Wishlist';
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added to Wishlist',
+                        text: response.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    updateWishlistCount(response.wishlistCount);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message,
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
-            } else {
+            },
+            error: function(xhr) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Failed to add to wishlist'
+                    text: xhr.responseJSON?.message || 'Failed to add to wishlist',
+                    confirmButtonColor: '#dc3545'
                 });
             }
-        })
-        .catch(error => {
-            console.error('Error adding to wishlist:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong while adding to wishlist'
-            });
         });
     }
 
@@ -2095,6 +2113,21 @@
             });
     }*/
 
+    function updateCartCount(count) {
+        const cartCountElements = document.querySelectorAll('.cart-count');
+        cartCountElements.forEach(el => {
+            el.textContent = count;
+            el.style.display = count > 0 ? 'inline-block' : 'none';
+        });
+    }
+
+    function updateWishlistCount(count) {
+        const wishlistCountElements = document.querySelectorAll('.wishlist-count');
+        wishlistCountElements.forEach(el => {
+            el.textContent = count;
+            el.style.display = count > 0 ? 'inline-block' : 'none';
+        });
+    }
 
 </script>
 

@@ -96,8 +96,8 @@
                 <li class="nav-item" style="display: inline-block; margin-right: 15px;">
                   <a class="nav-link position-relative" href="/wishlist">
                     <i class="fas fa-heart" style="color: black;"></i>
-                    <% if (locals.user && locals.wishlistCount !== undefined) { %>
-                      <span class="top-0 start-100 translate-middle badge rounded-pill bg-danger wishlist-count <%= locals.wishlistCount > 0 ? '' : 'd-none' %>">
+                    <% if (locals.user) { %>
+                      <span class="top-0 start-100 translate-middle badge rounded-pill bg-danger wishlist-count" style="display: <%= locals.wishlistCount > 0 ? 'inline-block' : 'none' %>">
                         <%= locals.wishlistCount %>
                       </span>
                     <% } %>
@@ -108,8 +108,8 @@
                 <li class="nav-item" style="display: inline-block;">
                   <a class="nav-link position-relative" href="/cart">
                     <i class="fas fa-shopping-cart" style="color: black;"></i>
-                    <% if (locals.user && locals.cartCount !== undefined) { %>
-                      <span class="top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count <%= locals.cartCount > 0 ? '' : 'd-none' %>">
+                    <% if (locals.user) { %>
+                      <span class="top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count" style="display: <%= locals.cartCount > 0 ? 'inline-block' : 'none' %>">
                         <%= locals.cartCount %>
                       </span>
                     <% } %>
