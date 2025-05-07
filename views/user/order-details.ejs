@@ -116,14 +116,12 @@
         color: #2c3e50;
     }
 
-
     .item-row .item-actions {
         display: flex;
         justify-content: flex-end;
         gap: 8px;
         margin-top: 5px;
     }
-
 
     .badge {
         display: inline-block;
@@ -147,7 +145,7 @@
             justify-content: center;
         }
         
-        .item-row .item-actions {
+        .item-row .itemSamll {
             justify-content: center;
         }
     }
@@ -208,6 +206,21 @@
         box-shadow: 0 4px 10px rgba(52,152,219,0.3);
     }
 
+    .btn-warning {
+        background: #f1c40f;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-warning:hover {
+        background: #e1b307;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(241,196,15,0.3);
+    }
+
     .item-row a img {
         transition: transform 0.3s ease, opacity 0.3s ease;
     }
@@ -231,17 +244,18 @@
         margin-bottom: 15px;
     }
 
-    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
-    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
-    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
-    .status-delivered { background: #28a745; color: #fff; } /* Green */
-    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
-    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
-    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-returned { background: #6c757d; color: #fff; } /* Gray */
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-processing { background: #cce5ff; color: #004085; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; }
+    .status-delivered { background: #28a745; color: #fff; }
+    .status-cancelled { background: #dc3545; color: #fff; }
+    .status-cancel-request { background: #f8d7da; color: #721c24; }
+    .status-return-request { background: #fff3cd; color: #856404; }
+    .status-returned { background: #6c757d; color: #fff; }
+    .status-payment-failed { background: #dc3545; color: #fff; }
+    .status-failed { background: #dc3545; color: #fff; }
 
-    /* Responsive Design */
     @media (max-width: 768px) {
         .order-card {
             padding: 20px;
@@ -259,7 +273,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        .btn-back, .btn-danger, .btn-primary {
+        .btn-back, .btn-danger, .btn-primary, .btn-warning {
             width: 100%;
         }
     }
@@ -282,7 +296,7 @@
             <p><strong>Status:</strong> <span class="status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
             <p><strong>Date:</strong> <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
             <p><strong>Payment Method:</strong> <%= order.paymentMethod %></p>
-            <p><strong>Payment Status:</strong> <%= order.paymentStatus %></p>
+            <p><strong>Payment Status:</strong> <span class="status-<%= order.paymentStatus.toLowerCase().replace(/\s+/g, '-') %>"><%= order.paymentStatus %></span></p>
             <p><strong>Address:</strong> <%= order.address.name %>, <%= order.address.city %>, <%= order.address.landmark %> - <%= order.address.pinCode %></p>
         </div>
         <div class="items-section">
@@ -301,16 +315,10 @@
                             <span class="badge bg-danger status-<%= item.cancellationStatus.toLowerCase().replace(/\s+/g, '-') %>">
                                 <%= item.cancellationStatus %>
                             </span>
-                            <% if (item.cancellationReason) { %>
-                                
-                            <% } %>
                         <% } else if (item.returnStatus !== 'None') { %>
                             <span class="badge bg-secondary status-<%= item.returnStatus.toLowerCase().replace(/\s+/g, '-') %>">
                                 <%= item.returnStatus %>
                             </span>
-                            <% if (item.returnReason) { %>
-                                
-                            <% } %>
                         <% } else { %>
                             <span class="badge status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>">
                                 <%= order.status %>
@@ -318,10 +326,10 @@
                         <% } %>
                     </span>
                     <div class="item-actions">
-                        <% if (item.cancellationStatus === 'None' && 
+                        <% if (order.paymentStatus !== 'Failed' && 
+                              item.cancellationStatus === 'None' && 
                               item.returnStatus === 'None' && 
                               order.status === 'Pending') { %>
-                            
                             <% if (!item.cancellationRejected) { %>
                                 <button class="btn btn-sm btn-danger cancel-item-btn" 
                                         data-item-index="<%= index %>">
@@ -330,13 +338,10 @@
                             <% } else { %>
                                 <span class="text-danger small">Cancel request was rejected</span>
                             <% } %>
-                            
                         <% } %>
-                        
                         <% if (order.status === 'Delivered' && 
                               item.cancellationStatus === 'None' && 
                               item.returnStatus === 'None') { %>
-                            
                             <% if (!item.returnRejected) { %>
                                 <button class="btn btn-sm btn-warning return-item-btn" 
                                         data-item-index="<%= index %>">
@@ -345,9 +350,7 @@
                             <% } else { %>
                                 <span class="text-danger small">Return request was rejected</span>
                             <% } %>
-                            
                         <% } %>
-                        
                         <% if (item.returnStatus === 'Return Request') { %>
                             <button class="btn btn-sm btn-danger cancel-return-item-btn" 
                                     data-item-index="<%= index %>">
@@ -367,7 +370,12 @@
             <p><strong>Total:</strong> <strong>₹<%= order.finalAmount.toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
-            <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
+            <% if (order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending') { %>
+                <a href="/orders/<%= order.orderId %>/invoice" class="btn btn-primary">Download Invoice</a>
+            <% } %>
+            <% if (order.paymentStatus === 'Failed') { %>
+                <button class="btn btn-warning retry-payment-btn" data-order-id="<%= order.orderId %>">Retry Payment</button>
+            <% } %>
         </div>
     </div>
 </div>
@@ -470,6 +478,74 @@
                 } catch (error) {
                     Swal.fire('Error', 'Failed to cancel return request', 'error');
                 }
+            }
+        });
+    });
+
+    // Retry Payment
+    document.querySelectorAll('.retry-payment-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const orderId = e.target.dataset.orderId;
+            try {
+                const response = await fetch(`/orders/${orderId}/retry-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    if (data.razorpayOrderId) {
+                        const options = {
+                            key: '<%= process.env.RAZORPAY_KEY_ID %>',
+                            amount: data.amount,
+                            currency: data.currency,
+                            order_id: data.razorpayOrderId,
+                            name: 'Your Company Name',
+                            description: `Retry Payment for Order #${orderId}`,
+                            handler: async function (response) {
+                                try {
+                                    const verifyResponse = await fetch('/verify-payment', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            razorpay_payment_id: response.razorpay_payment_id,
+                                            razorpay_order_id: response.razorpay_order_id,
+                                            razorpay_signature: response.razorpay_signature
+                                        })
+                                    });
+                                    const verifyData = await verifyResponse.json();
+                                    if (verifyData.success) {
+                                        Swal.fire('Success', verifyData.message, 'success').then(() => {
+                                            window.location.href = `/order-success?orderId=${verifyData.orderId}`;
+                                        });
+                                    } else {
+                                        Swal.fire('Error', verifyData.message, 'error').then(() => {
+                                            window.location.href = `/order-failure?orderId=${verifyData.orderId}`;
+                                        });
+                                    }
+                                } catch (error) {
+                                    Swal.fire('Error', 'Failed to verify payment', 'error');
+                                }
+                            },
+                            prefill: {
+                                name: '<%= order.address.name %>',
+                                contact: '<%= order.address.phone %>'
+                            },
+                            theme: {
+                                color: '#3498db'
+                            }
+                        };
+                        const rzp = new Razorpay(options);
+                        rzp.open();
+                    } else {
+                        Swal.fire('Success', data.message, 'success').then(() => {
+                            window.location.href = `/order-success?orderId=${data.orderId}`;
+                        });
+                    }
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to retry payment', 'error');
             }
         });
     });

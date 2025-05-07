@@ -192,6 +192,13 @@ const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
+        if (order.paymentStatus === 'Failed') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel a failed payment order' 
+            });
+        }
+
         // Check if any items can be cancelled
         const cancellableItems = order.orderedItems.filter(item => 
             item.itemStatus === 'Pending' && item.cancellationStatus === 'None'
@@ -284,6 +291,8 @@ const downloadInvoice = async (req, res) => {
         const query = { orderId };
         if (!isAdmin) {
             query.userId = req.session.user.id;
+        } else {
+            query.isVisibleToAdmin = true; // Only show admin-visible orders
         }
         
         const order = await Order.findOne(query)
@@ -396,6 +405,13 @@ const cancelOrderItem = async (req, res) => {
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.paymentStatus === 'Failed') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot cancel items in a failed payment order' 
+            });
         }
 
         const item = order.orderedItems[itemIndex];
@@ -569,182 +585,75 @@ const cancelReturnItem = async (req, res) => {
     }
 };
 
-// Cancel item request
-const cancelItemRequest = async (req, res) => {
-    try {
-        const { orderId, itemId } = req.params;
-        const { reason } = req.body;
-
-        const order = await Order.findOne({ 
-            _id: orderId,
-            userId: req.user._id
-        });
-
-        if (!order) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Order not found' 
-            });
-        }
-
-        // Check if order is already cancelled
-        if (order.status === 'Cancelled') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Order is already cancelled' 
-            });
-        }
-
-        // Find the item
-        const item = order.orderedItems.id(itemId);
-        if (!item) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Item not found in order' 
-            });
-        }
-
-        // Check if item is already cancelled or has a pending cancellation request
-        if (item.cancellationStatus === 'Cancelled') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Item is already cancelled' 
-            });
-        }
-
-        if (item.cancellationStatus === 'Cancel Request') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cancellation request already pending' 
-            });
-        }
-
-        // Check if item is already delivered
-        if (item.itemStatus === 'Delivered') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot cancel delivered item' 
-            });
-        }
-
-        // Check if item cancellation was previously rejected
-        if (item.cancellationRejected) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cancellation request was previously rejected' 
-            });
-        }
-
-        // Update item status
-        item.cancellationStatus = 'Cancel Request';
-        item.cancellationReason = reason;
-
-        // Add to status history
-        order.statusHistory.push({
-            status: 'Cancel Request',
-            description: `Cancellation requested for item: ${item.product}`,
-            changedBy: req.user._id,
-            changedByModel: 'User'
-        });
-
-        await order.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Cancellation request submitted successfully',
-            order
-        });
-
-    } catch (error) {
-        console.error('Cancel item request error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error processing cancellation request',
-            error: error.message 
-        });
-    }
-};
-
-// Cancel order request
-const cancelOrderRequest = async (req, res) => {
+const retryPayment = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { reason } = req.body;
+        const userId = req.session.user.id;
 
-        const order = await Order.findOne({ 
-            _id: orderId,
-            userId: req.user._id
-        });
-
+        const order = await Order.findOne({ orderId, userId }).populate('orderedItems.product');
         if (!order) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Order not found' 
-            });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Check if order is already cancelled
-        if (order.status === 'Cancelled') {
+        if (order.paymentStatus !== 'Failed') {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Order is already cancelled' 
+                message: 'Retry payment is only available for failed payments' 
             });
         }
 
-        // Check if any item has a pending cancellation request
-        const hasPendingCancelRequest = order.orderedItems.some(item => 
-            item.cancellationStatus === 'Cancel Request'
-        );
-
-        if (hasPendingCancelRequest) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot cancel order while item cancellation requests are pending' 
-            });
-        }
-
-        // Check if any item is already delivered
-        const hasDeliveredItems = order.orderedItems.some(item => 
-            item.itemStatus === 'Delivered'
-        );
-
-        if (hasDeliveredItems) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot cancel order with delivered items' 
-            });
-        }
-
-        // Update all non-delivered items to cancel request
-        order.orderedItems.forEach(item => {
-            if (item.itemStatus !== 'Delivered' && !item.cancellationRejected) {
-                item.cancellationStatus = 'Cancel Request';
-                item.cancellationReason = reason;
+        // Check stock availability
+        for (const item of order.orderedItems) {
+            if (item.quantity > item.product.quantity) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Insufficient stock for ${item.product.productName}` 
+                });
             }
-        });
+        }
 
-        // Add to status history
-        order.statusHistory.push({
-            status: 'Cancel Request',
-            description: 'Order cancellation requested',
-            changedBy: req.user._id,
-            changedByModel: 'User'
-        });
+        if (order.paymentMethod === 'Razorpay') {
+            const razorpayOrder = await createRazorpayOrder(order.finalAmount);
+            order.razorpayOrderId = razorpayOrder.id;
+            await order.save();
 
-        await order.save();
+            // Store order in session for verification
+            req.session.pendingOrder = {
+                ...order.toObject(),
+                razorpayOrderId: razorpayOrder.id
+            };
 
-        res.status(200).json({
-            success: true,
-            message: 'Order cancellation request submitted successfully',
-            order
-        });
+            return res.status(200).json({
+                success: true,
+                razorpayOrderId: razorpayOrder.id,
+                amount: order.finalAmount * 100,
+                currency: 'INR',
+                message: 'Razorpay order created for retry payment'
+            });
+        } else {
+            // For non-Razorpay methods, update status directly (assuming retry logic for COD/Wallet)
+            order.paymentStatus = 'Pending';
+            order.isVisibleToAdmin = true;
+            await order.save();
 
+            // Update product stock
+            for (const item of order.orderedItems) {
+                await Product.findByIdAndUpdate(item.product._id, {
+                    $inc: { quantity: -item.quantity }
+                });
+            }
+
+            res.status(200).json({ 
+                success: true, 
+                orderId: order.orderId,
+                message: 'Order payment retried successfully' 
+            });
+        }
     } catch (error) {
-        console.error('Cancel order request error:', error);
+        console.error('Error in retryPayment:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Error processing order cancellation request',
-            error: error.message 
+            message: 'Failed to retry payment' 
         });
     }
 };
@@ -760,6 +669,5 @@ module.exports = {
     cancelOrderItem,
     returnOrderItem,
     cancelReturnItem,
-    cancelItemRequest,
-    cancelOrderRequest
+    retryPayment
 };

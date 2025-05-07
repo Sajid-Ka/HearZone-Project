@@ -139,20 +139,16 @@ const listOrders = async (req, res) => {
         const sortBy = req.query.sortBy || 'createdAt';
         const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
-        let query = {};
+        let query = { isVisibleToAdmin: true }; // Explicitly filter for admin-visible orders
 
         if (search) {
-            // Clean up the search query
             let searchQuery = search.trim();
-            
-            // Remove common prefixes if present
             if (searchQuery.startsWith('Order #')) {
                 searchQuery = searchQuery.replace('Order #', '').trim();
             } else if (searchQuery.startsWith('Order Details - #')) {
                 searchQuery = searchQuery.replace('Order Details - #', '').trim();
             }
 
-            // Create regex pattern for partial order ID match
             const orderIdPattern = new RegExp(searchQuery.replace(/[-\s]/g, '.*'), 'i');
             
             query.$or = [
@@ -183,14 +179,13 @@ const listOrders = async (req, res) => {
             };
         }
 
-        // Create sort object based on sortBy and sortOrder
         let sortObject = {};
         if (sortBy === 'amount') {
             sortObject = { finalAmount: sortOrder };
         } else if (sortBy === 'date') {
             sortObject = { createdAt: sortOrder };
         } else {
-            sortObject = { createdAt: -1 }; // Default sort by date descending
+            sortObject = { createdAt: -1 };
         }
 
         const [orders, count] = await Promise.all([
@@ -203,7 +198,6 @@ const listOrders = async (req, res) => {
             Order.countDocuments(query)
         ]);
 
-        // Add flag to indicate pending item requests
         orders.forEach(order => {
             order.hasPendingItemRequests = order.orderedItems.some(item => 
                 item.cancellationStatus === 'Cancel Request' || 

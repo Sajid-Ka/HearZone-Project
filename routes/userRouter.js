@@ -148,6 +148,7 @@ router.post('/place-order', checkoutController.placeOrder);
 router.post('/verify-payment', checkoutController.verifyRazorpayPayment);
 router.get('/order-success', checkoutController.getOrderSuccessPage);
 router.get('/order-failure', checkoutController.getOrderFailurePage);
+router.post('/clear-session',checkoutController.clearSession);
 
 //order routes
 router.get('/orders', orderController.getOrderList);

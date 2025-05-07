@@ -146,19 +146,17 @@
         text-decoration: none;
     }
 
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-processing { background: #cce5ff; color: #004085; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; }
+    .status-delivered { background: #28a745; color: #fff; }
+    .status-cancelled { background: #dc3545; color: #fff; }
+    .status-cancel-request { background: #f8d7da; color: #721c24; }
+    .status-return-request { background: #fff3cd; color: #856404; }
+    .status-returned { background: #6c757d; color: #fff; }
+    .status-payment-failed { background: #dc3545; color: #fff; }
 
-    .status-pending { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-processing { background: #cce5ff; color: #004085; } /* Light Blue */
-    .status-shipped { background: #d4edda; color: #155724; } /* Light Green */
-    .status-out-for-delivery { background: #d1ecf1; color: #0c5460; } /* Cyan */
-    .status-delivered { background: #28a745; color: #fff; } /* Green */
-    .status-cancelled { background: #dc3545; color: #fff; } /* Red */
-    .status-cancel-request { background: #f8d7da; color: #721c24; } /* Light Red */
-    .status-return-request { background: #fff3cd; color: #856404; } /* Yellow */
-    .status-returned { background: #6c757d; color: #fff; } /* Gray */
-
-
-    /* Responsive Design */
     @media (max-width: 768px) {
         .orders-section {
             padding: 20px;
@@ -191,11 +189,7 @@
 <div class="main-container">
     <div class="container-fluid">
         <div class="row">
-          
-                <%- include('../partials/user/profile/sidebar') %>
-            
-
-            <!-- Orders Column -->
+            <%- include('../partials/user/profile/sidebar') %>
             <div class="col-md-9">
                 <div class="orders-section">
                     <h2 class="orders-header">Your Orders</h2>

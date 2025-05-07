@@ -769,6 +769,12 @@
                 document.getElementById('razorpay').checked = true;
 
                 try {
+                    // Clear session data before retry
+                    await fetch('/clear-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
                     // Fetch the order details for retry
                     const response = await fetch('/place-order', {
                         method: 'POST',
