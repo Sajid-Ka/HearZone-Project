@@ -1,3 +1,4 @@
+
 <%- include('../partials/user/header') %>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -52,6 +53,8 @@
         max-width: 450px;
         margin-bottom: 35px;
         position: relative;
+        display: flex;
+        align-items: center;
     }
 
     .search-form .form-control {
@@ -71,11 +74,39 @@
     .search-form::after {
         content: '\1F50D';
         position: absolute;
-        right: 15px;
+        left: 15px;
         top: 50%;
         transform: translateY(-50%);
         color: #3498db;
         font-size: 18px;
+    }
+
+    .search-form .form-control {
+        padding-left: 45px;
+    }
+
+    .clear-search-btn {
+        margin-left: 15px;
+        border-radius: 25px;
+        padding: 10px 20px;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .clear-search-btn:hover {
+        background-color: #c0392b;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .clear-search-btn i {
+        margin-right: 5px;
     }
 
     .order-card {
@@ -170,6 +201,14 @@
             margin-bottom: 20px;
             position: relative;
         }
+        .search-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .clear-search-btn {
+            margin-left: 0;
+            margin-top: 10px;
+        }
     }
 </style>
 
@@ -193,15 +232,32 @@
             <div class="col-md-9">
                 <div class="orders-section">
                     <h2 class="orders-header">Your Orders</h2>
-                    <form action="/orders/search" method="GET" class="search-form">
-                        <input type="text" name="query" class="form-control" placeholder="Search orders by ID or address" value="<%= searchQuery || '' %>">
-                    </form>
+                    <div class="d-flex align-items-center">
+                        <form action="/orders/search" method="GET" class="search-form">
+                            <input type="text" name="query" class="form-control" placeholder="Search orders by ID" value="<%= searchQuery || '' %>">
+                            <% if (searchQuery && searchQuery.trim() !== '') { %>
+                                <a href="/orders" class="clear-search-btn">
+                                    <i class="fas fa-times"></i> 
+                                </a>
+                            <% } %>
+                        </form>
+                    </div>
                     <% if (!orders || orders.length === 0) { %>
                         <div class="text-center py-5">
                             <i class="fas fa-box-open fa-3x mb-3 text-muted"></i>
                             <h4>No Orders Found</h4>
-                            <p class="text-muted">You haven't placed any orders yet.</p>
-                            <a href="/shop" class="btn btn-primary mt-3">Start Shopping</a>
+                            <p class="text-muted">
+                                <% if (searchQuery && searchQuery.trim() !== '') { %>
+                                    No orders match your search criteria.
+                                <% } else { %>
+                                    You haven't placed any orders yet.
+                                <% } %>
+                            </p>
+                            <% if (searchQuery && searchQuery.trim() !== '') { %>
+                                <a href="/orders" class="btn btn-primary mt-3">View All Orders</a>
+                            <% } else { %>
+                                <a href="/shop" class="btn btn-primary mt-3">Start Shopping</a>
+                            <% } %>
                         </div>
                     <% } else { %>
                         <% orders.forEach(order => { %>

@@ -1,7 +1,8 @@
-// models/couponSchema.js
 const mongoose = require('mongoose');
 
-const couponSchema = new mongoose.Schema({
+const {Schema} = mongoose;
+
+const couponSchema = new Schema({
     code: {
        type: String,
         required: true,
@@ -29,4 +30,6 @@ const couponSchema = new mongoose.Schema({
         default: true }
 });
 
-module.exports = mongoose.models.Coupon || mongoose.model('Coupon', couponSchema);
+const Coupon = mongoose.model('Coupon',couponSchema);
+
+module.exports = Coupon;
