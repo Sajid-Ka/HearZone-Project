@@ -2,6 +2,7 @@ const Address = require('../../models/addressSchema');
 const Cart = require('../../models/cartSchema');
 const Order = require('../../models/orderSchema');
 const Product = require('../../models/productSchema');
+const Coupon = require('../../models/couponSchema');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
@@ -18,6 +19,12 @@ const getCheckoutPage = async (req, res) => {
 
         const cart = await Cart.findOne({ userId }).populate('items.productId');
         const addressDoc = await Address.findOne({ userId });
+        const coupons = await Coupon.find({ 
+            isActive: true,
+            expiryDate: { $gte: new Date() },
+            $expr: { $lt: ["$usedCount", "$usageLimit"] },
+            usersUsed: { $nin: [userId] }
+        });
 
         if (!cart || !cart.items.length) {
             return res.redirect('/cart');
@@ -40,10 +47,12 @@ const getCheckoutPage = async (req, res) => {
             cart,
             addresses: addressDoc ? addressDoc.addresses : [],
             subTotal: cart.subTotal,
-            discountAmount: cart.discountAmount,
-            finalAmount: cart.finalAmount,
+            discountAmount: cart.discountAmount || 0,
+            finalAmount: cart.finalAmount || cart.subTotal,
             user: req.session.user,
-            razorpayKeyId: process.env.RAZORPAY_KEY_ID
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+            appliedCoupon: req.session.appliedCoupon,
+            availableCoupons: coupons
         });
     } catch (error) {
         console.error('Error in getCheckoutPage:', error);
@@ -113,25 +122,29 @@ const placeOrder = async (req, res) => {
             }
         }
         
-        // Prepare order data - this is common regardless of payment method
+        // Prepare order data
         const orderData = {
             userId,
             orderedItems: cart.items.map(item => ({
                 product: item.productId._id,
                 quantity: item.quantity,
                 price: item.price,
-                subTotal: item.price * item.quantity 
+                subTotal: item.totalPrice,
+                status: item.status,
+                cancellationReason: item.cancellationReason
             })),
             totalPrice: cart.subTotal,
-            discount: cart.discountAmount,
+            discount: cart.discountAmount || 0,
             taxes: 0,
             shippingCost: 0,
-            finalAmount: cart.finalAmount,
+            finalAmount: cart.finalAmount || cart.subTotal,
             address: selectedAddress,
             paymentMethod,
             paymentStatus: 'Pending',
             status: 'Pending',
-            isVisibleToAdmin: true
+            isVisibleToAdmin: true,
+            couponApplied: !!cart.couponCode,
+            couponCode: cart.couponCode
         };
 
         if (paymentMethod === 'Razorpay') {
@@ -186,7 +199,7 @@ const placeOrder = async (req, res) => {
                     errorMessage: 'Simulated payment failure'
                 });
                 
-                // Save the failed order - directly handle any errors with saving
+                // Save the failed order
                 try {
                     const savedFailedOrder = await failedOrder.save();
                     
@@ -216,7 +229,19 @@ const placeOrder = async (req, res) => {
                 });
             }
 
+            // Update coupon usage if applied
+            if (cart.couponCode) {
+                await Coupon.findOneAndUpdate(
+                    { code: cart.couponCode },
+                    { 
+                        $inc: { usedCount: 1 },
+                        $push: { usersUsed: userId }
+                    }
+                );
+            }
+
             await Cart.findOneAndDelete({ userId });
+            delete req.session.appliedCoupon;
 
             res.status(200).json({ 
                 success: true, 
@@ -263,7 +288,6 @@ const placeOrder = async (req, res) => {
         }
     }
 };
-
 
 const verifyRazorpayPayment = async (req, res) => {
     try {
@@ -368,8 +392,20 @@ const verifyRazorpayPayment = async (req, res) => {
             }
         }
 
+        // Update coupon usage if applied
+        if (savedOrder.couponCode) {
+            await Coupon.findOneAndUpdate(
+                { code: savedOrder.couponCode },
+                { 
+                    $inc: { usedCount: 1 },
+                    $push: { usersUsed: userId }
+                }
+            );
+        }
+
         await Cart.findOneAndDelete({ userId });
         delete req.session.pendingOrder;
+        delete req.session.appliedCoupon;
 
         res.status(200).json({ 
             success: true, 
@@ -403,12 +439,11 @@ const verifyRazorpayPayment = async (req, res) => {
 
         res.status(500).json({ 
             success: false, 
-            orderId: savedFailedOrder.orderId,
+            orderId: savedFailedOrder.orderId, 
             message: `Failed to verify payment: ${error.message}` 
         });
     }
 };
-
 
 const getOrderSuccessPage = async (req, res) => {
     try {
@@ -446,17 +481,16 @@ const getOrderFailurePage = async (req, res) => {
     }
 };
 
-
 const clearSession = async (req, res) => {
     try {
         delete req.session.pendingOrder;
+        delete req.session.appliedCoupon;
         res.status(200).json({ success: true, message: 'Session cleared' });
     } catch (error) {
         console.error('Error clearing session:', error);
         res.status(500).json({ success: false, message: 'Failed to clear session' });
     }
 };
-
 
 module.exports = {
     getCheckoutPage,

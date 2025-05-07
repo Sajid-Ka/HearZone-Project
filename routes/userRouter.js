@@ -164,5 +164,7 @@ router.post('/orders/:orderId/cancel-return-item', orderController.cancelReturnI
 
 // Coupon routes
 router.get('/coupon/available', couponController.getAvailableCoupons);
+router.post('/coupon/apply', couponController.applyCoupon);
+router.post('/coupon/remove', couponController.removeCoupon);
 
 module.exports = router;
