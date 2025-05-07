@@ -41,7 +41,7 @@
 
   thead {
     background-color: #2c3e50;
-    color: rgb(1, 1, 1);
+    color: white; /* Fixed color for better visibility */
   }
 
   th, td {
@@ -107,6 +107,12 @@
       padding: 10px;
     }
   }
+
+
+  .headings{
+    background-color: rgb(48, 47, 47);
+  }
+
 </style>
 
 <div class="page-container">
@@ -117,14 +123,14 @@
     </div>
 
     <table>
-      <thead>
+      <thead class="headings">
         <tr>
           <th>Code</th>
           <th>Discount</th>
           <th>Expiration</th>
           <th>Usage Limit</th>
           <th>Used</th>
-          <th>Min Order</th>
+          <th>Min Purchase</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -133,11 +139,13 @@
         <% coupons.forEach(coupon => { %>
           <tr>
             <td><%= coupon.code %></td>
-            <td><%= coupon.discount %>%</td>
-            <td><%= coupon.expirationDate.toLocaleDateString() %></td>
+            <td>
+              <%= coupon.discountType === 'percentage' ? coupon.value + '%' : '₹' + coupon.value %>
+            </td>
+            <td><%= coupon.expiryDate ? coupon.expiryDate.toLocaleDateString() : 'N/A' %></td>
             <td><%= coupon.usageLimit %></td>
             <td><%= coupon.usedCount %></td>
-            <td>₹<%= coupon.minOrderValue %></td>
+            <td>₹<%= coupon.minPurchase %></td>
             <td><%= coupon.isActive ? 'Active' : 'Inactive' %></td>
             <td>
               <form action="/admin/coupons/toggle/<%= coupon._id %>" method="POST" class="toggle-coupon-form" style="display:inline;">

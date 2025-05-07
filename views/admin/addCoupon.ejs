@@ -116,8 +116,16 @@
         <span class="error-message"></span>
       </div>
       <div class="form-group">
-        <label>Discount (%)</label>
-        <input type="number" name="discount" min="0" max="100" placeholder="e.g., 20">
+        <label>Discount Type</label>
+        <select name="discountType">
+          <option value="percentage">Percentage</option>
+          <option value="fixed">Fixed Amount</option>
+        </select>
+        <span class="error-message"></span>
+      </div>
+      <div class="form-group">
+        <label>Discount Value</label>
+        <input type="number" name="discount" min="0" placeholder="e.g., 20 for percentage or 100 for fixed">
         <span class="error-message"></span>
       </div>
       <div class="form-group">
@@ -131,7 +139,7 @@
         <span class="error-message"></span>
       </div>
       <div class="form-group">
-        <label>Minimum Order Value</label>
+        <label>Minimum Purchase</label>
         <input type="number" name="minOrderValue" min="0" placeholder="e.g., 500">
         <span class="error-message"></span>
       </div>
@@ -148,7 +156,7 @@
   document.getElementById('addCouponForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = this;
-    const inputs = form.querySelectorAll('input');
+    const inputs = form.querySelectorAll('input, select');
     let hasErrors = false;
 
     inputs.forEach(input => {
@@ -173,8 +181,8 @@
       } else {
         switch (name) {
           case 'discount':
-            if (value < 0 || value > 100) {
-              errorSpan.textContent = 'Discount must be between 0 and 100';
+            if (value < 0) {
+              errorSpan.textContent = 'Discount must be at least 0';
               formGroup.classList.add('error');
               errorSpan.style.display = 'block';
               hasErrors = true;
@@ -190,7 +198,7 @@
             break;
           case 'minOrderValue':
             if (value < 0) {
-              errorSpan.textContent = 'Minimum order value cannot be negative';
+              errorSpan.textContent = 'Minimum purchase cannot be negative';
               formGroup.classList.add('error');
               errorSpan.style.display = 'block';
               hasErrors = true;
@@ -233,7 +241,7 @@
         });
       } else {
         if (result.field && result.message) {
-          const formGroup = document.querySelector(`input[name="${result.field}"]`).closest('.form-group');
+          const formGroup = document.querySelector(`input[name="${result.field}"], select[name="${result.field}"]`).closest('.form-group');
           const errorSpan = formGroup.querySelector('.error-message');
           errorSpan.textContent = result.message;
           formGroup.classList.add('error');
