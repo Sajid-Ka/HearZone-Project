@@ -127,7 +127,10 @@ const orderSchema = new Schema({
     statusHistory: [{
         status: {
             type: String,
-            enum: ['None', 'Cancel Request', 'Cancelled', 'Return Request', 'Returned', 'Pending', 'Shipped', 'Delivered', 'Payment Failed']
+            enum: ['None', 'Cancel Request', 
+                'Cancelled', 'Return Request', 
+                'Returned', 'Pending', 'Shipped', 
+                'Delivered', 'Payment Failed']
         },
         date: { 
             type: Date, 
@@ -175,7 +178,7 @@ orderSchema.virtual('totalItems').get(function() {
         item.cancellationStatus === 'Cancelled' ? total : total + item.quantity, 0);
 });
 
-// Pre-save hook to ensure financial consistency and status management
+// Pre-save hook to ensure financial consistency, status management, and payment status update
 orderSchema.pre('save', async function(next) {
     // Always generate order ID for new orders regardless of payment status
     if (this.isNew) {
@@ -221,6 +224,11 @@ orderSchema.pre('save', async function(next) {
             
             this.finalAmount = this.totalPrice - discount + taxes + shipping;
         }
+    }
+
+    // Update payment status to Paid for COD orders when status changes to Delivered
+    if (this.isModified('status') && this.status === 'Delivered' && this.paymentMethod === 'Cash on Delivery') {
+        this.paymentStatus = 'Paid';
     }
 
     // Only proceed with normal status determination if not a failed payment

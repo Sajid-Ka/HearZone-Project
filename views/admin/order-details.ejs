@@ -22,7 +22,7 @@
         color: #2c3e50;
     }
     
-    .order-status {
+    .order-status, .payment-status {
         padding: 0.25rem 0.75rem;
         border-radius: 9999px;
         font-size: 0.75rem;
@@ -38,6 +38,12 @@
     .status-cancel-request { background: #f8d7da; color: #721c24; }
     .status-return-request { background: #fff3cd; color: #856404; }
     .status-returned { background: #6c757d; color: #fff; }
+    .status-payment-failed { background: #dc3545; color: #fff; }
+    
+    .payment-status-pending { background: #fff3cd; color: #856404; }
+    .payment-status-paid { background: #28a745; color: #fff; }
+    .payment-status-failed { background: #dc3545; color: #fff; }
+    .payment-status-refunded { background: #6c757d; color: #fff; }
     
     .order-section {
         margin-bottom: 30px;
@@ -253,7 +259,11 @@
     </div>
 
     <p><strong>Payment Method:</strong> <%= order.paymentMethod %></p>
-    <p><strong>Payment Status:</strong> <%= order.paymentStatus %></p>
+    <p><strong>Payment Status:</strong> 
+        <span class="payment-status payment-status-<%= order.paymentStatus.toLowerCase().replace(/\s+/g, '-') %>">
+            <%= order.paymentStatus %>
+        </span>
+    </p>
     
     <div class="order-section">
         <h3 class="section-title">Shipping Information</h3>
@@ -454,29 +464,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         // Function to update dropdown state based on order status
         function updateDropdownState(dropdown, status) {
             const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
-            if (terminalStatuses.includes(status)) {
-                dropdown.prop('disabled', true);
-            } else {
-                dropdown.prop('disabled', false);
-            }
+            dropdown.disabled = terminalStatuses.includes(status);
         }
 
         // Initialize dropdown state
-        const $statusSelect = $('#statusSelect');
-        updateDropdownState($statusSelect, $statusSelect.data('original-status'));
+        const statusSelect = document.getElementById('statusSelect');
+        updateDropdownState(statusSelect, statusSelect.dataset.originalStatus);
 
         // Load timeline
-        $.ajax({
-            url: `/admin/orders/timeline/${$statusSelect.data('order-id')}`,
-            method: 'GET',
-            success: function(response) {
-                if (response.success) {
+        fetch(`/admin/orders/timeline/${statusSelect.dataset.orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                const timelineContainer = document.getElementById('statusTimeline');
+                if (data.success) {
                     let timelineHtml = '';
-                    response.timeline.forEach(item => {
+                    data.timeline.forEach(item => {
                         timelineHtml += `
                             <div class="timeline-item">
                                 <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
@@ -486,324 +492,375 @@
                                 </div>
                             </div>`;
                     });
-                    $('#statusTimeline').html(timelineHtml || '<p>No timeline events available.</p>');
+                    timelineContainer.innerHTML = timelineHtml || '<p>No timeline events available.</p>';
                 } else {
-                    $('#statusTimeline').html('<p>Failed to load timeline.</p>');
+                    timelineContainer.innerHTML = '<p>Failed to load timeline.</p>';
                 }
-            },
-            error: function() {
-                $('#statusTimeline').html('<p>Failed to load timeline.</p>');
-            }
-        });
+            })
+            .catch(() => {
+                document.getElementById('statusTimeline').innerHTML = '<p>Failed to load timeline.</p>';
+            });
 
         // Handle status update
-        $statusSelect.change(function() {
-            const orderId = $(this).data('order-id');
-            const newStatus = $(this).val();
-            const originalStatus = $(this).data('original-status');
+        statusSelect.addEventListener('change', async function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+            const originalStatus = this.dataset.originalStatus;
 
-            Swal.fire({
+            const result = await Swal.fire({
                 title: 'Update Order Status',
                 text: `Are you sure you want to change the status to ${newStatus}?`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Update',
                 cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/update-status/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ 
-                            status: newStatus,
-                            updateOnlyNonCancelled: true // Flag to update only non-cancelled items
-                        }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                // Update UI
-                                $statusSelect.data('original-status', newStatus);
-                                updateDropdownState($statusSelect, newStatus);
-                                
-                                // Update only the overall order status
-                                $('.order-header .order-status')
-                                    .text(newStatus)
-                                    .removeClass(function(index, className) {
-                                        return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-                                    })
-                                    .addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
-                                
-                                // Update only non-cancelled item statuses
-                                $('.items-table tbody tr').each(function() {
-                                    const $statusCell = $(this).find('td:nth-child(5)');
-                                    const $statusSpan = $statusCell.find('.order-status');
-                                    
-                                    // Only update if the item is not cancelled or returned
-                                    if (!$statusSpan.hasClass('status-cancelled') && 
-                                        !$statusSpan.hasClass('status-returned') &&
-                                        !$statusSpan.hasClass('status-cancel-request') &&
-                                        !$statusSpan.hasClass('status-return-request')) {
-                                        $statusSpan
-                                            .text(newStatus)
-                                            .removeClass(function(index, className) {
-                                                return (className.match(/(^|\s)status-\S+/g) || []).join(' ');
-                                            })
-                                            .addClass(`status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`);
-                                    }
-                                });
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            $statusSelect.val(originalStatus);
-                        }
-                    });
-                } else {
-                    $statusSelect.val(originalStatus);
-                }
             });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/orders/update-status/${orderId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            status: newStatus,
+                            updateOnlyNonCancelled: true
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        await Swal.fire('Success', data.message, 'success');
+
+                        // Update UI
+                        this.dataset.originalStatus = newStatus;
+                        updateDropdownState(this, newStatus);
+
+                        // Update order status badge
+                        const orderStatusBadge = document.querySelector('.order-header .order-status');
+                        orderStatusBadge.textContent = newStatus;
+                        orderStatusBadge.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
+
+                        // Update payment status badge if provided in response
+                        if (data.order && data.order.paymentStatus) {
+                            const paymentStatusBadge = document.querySelector('.payment-status');
+                            paymentStatusBadge.textContent = data.order.paymentStatus;
+                            paymentStatusBadge.className = `payment-status payment-status-${data.order.paymentStatus.toLowerCase().replace(/\s+/g, '-')}`;
+                        }
+
+                        // Update non-cancelled item statuses
+                        document.querySelectorAll('.items-table tbody tr').forEach(row => {
+                            const statusCell = row.querySelector('td:nth-child(5)');
+                            const statusSpan = statusCell.querySelector('.order-status');
+                            
+                            if (statusSpan && !statusSpan.classList.contains('status-cancelled') && 
+                                !statusSpan.classList.contains('status-returned') &&
+                                !statusSpan.classList.contains('status-cancel-request') &&
+                                !statusSpan.classList.contains('status-return-request')) {
+                                statusSpan.textContent = newStatus;
+                                statusSpan.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
+                            }
+                        });
+
+                        // Update timeline
+                        fetch(`/admin/orders/timeline/${orderId}`)
+                            .then(timelineResponse => timelineResponse.json())
+                            .then(timelineData => {
+                                const timelineContainer = document.getElementById('statusTimeline');
+                                if (timelineData.success) {
+                                    let timelineHtml = '';
+                                    timelineData.timeline.forEach(item => {
+                                        timelineHtml += `
+                                            <div class="timeline-item">
+                                                <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
+                                                <div class="timeline-content">
+                                                    <strong>${item.status}</strong>
+                                                    <p>${item.description}</p>
+                                                </div>
+                                            </div>`;
+                                    });
+                                    timelineContainer.innerHTML = timelineHtml || '<p>No timeline events available.</p>';
+                                }
+                            });
+                    } else {
+                        await Swal.fire('Error', data.message || 'Failed to update status', 'error');
+                        this.value = originalStatus;
+                    }
+                } catch (error) {
+                    await Swal.fire('Error', 'Failed to update status', 'error');
+                    this.value = originalStatus;
+                }
+            } else {
+                this.value = originalStatus;
+            }
         });
 
         // Handle cancel request approval
-        $('#approveCancelBtn').click(function() {
-            const orderId = $(this).data('order-id');
-            Swal.fire({
+        document.getElementById('approveCancelBtn')?.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            const result = await Swal.fire({
                 title: 'Approve Cancel Request',
                 text: 'Are you sure you want to approve this cancellation and refund the amount (if applicable)?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Approve',
                 cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/cancel/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'approve' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
-                        }
-                    });
-                }
             });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/orders/cancel/${orderId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'approve' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        await Swal.fire('Success', data.message, 'success');
+                        window.location.reload();
+                    } else {
+                        await Swal.fire('Error', data.message || 'Failed to process cancellation', 'error');
+                    }
+                } catch (error) {
+                    await Swal.fire('Error', 'Failed to process cancellation', 'error');
+                }
+            }
         });
 
         // Handle cancel request rejection
-        $('#rejectCancelBtn').click(function() {
-            const orderId = $(this).data('order-id');
-            Swal.fire({
+        document.getElementById('rejectCancelBtn')?.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            const result = await Swal.fire({
                 title: 'Reject Cancel Request',
                 text: 'Are you sure you want to reject this cancellation request?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
                 cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/cancel/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'reject' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process cancellation', 'error');
-                        }
-                    });
-                }
             });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/orders/cancel/${orderId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'reject' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        await Swal.fire('Success', data.message, 'success');
+                        window.location.reload();
+                    } else {
+                        await Swal.fire('Error', data.message || 'Failed to process cancellation', 'error');
+                    }
+                } catch (error) {
+                    await Swal.fire('Error', 'Failed to process cancellation', 'error');
+                }
+            }
         });
 
         // Handle return request approval
-        $('#approveReturnBtn').click(function() {
-            const orderId = $(this).data('order-id');
-            Swal.fire({
+        document.getElementById('approveReturnBtn')?.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            const result = await Swal.fire({
                 title: 'Approve Return Request',
                 text: 'Are you sure you want to approve this return and refund the amount?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Approve',
                 cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/${orderId}/return`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'approve' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                        }
-                    });
-                }
             });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/orders/${orderId}/return`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'approve' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        await Swal.fire('Success', data.message, 'success');
+                        window.location.reload();
+                    } else {
+                        await Swal.fire('Error', data.message || 'Failed to process return', 'error');
+                    }
+                } catch (error) {
+                    await Swal.fire('Error', 'Failed to process return', 'error');
+                }
+            }
         });
 
         // Handle return request rejection
-        $('#rejectReturnBtn').click(function() {
-            const orderId = $(this).data('order-id');
-            Swal.fire({
+        document.getElementById('rejectReturnBtn')?.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            const result = await Swal.fire({
                 title: 'Reject Return Request',
                 text: 'Are you sure you want to reject this return request?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Reject',
                 cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/${orderId}/return`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ action: 'reject' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process return', 'error');
-                        }
-                    });
-                }
             });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/orders/${orderId}/return`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'reject' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        await Swal.fire('Success', data.message, 'success');
+                        window.location.reload();
+                    } else {
+                        await Swal.fire('Error', data.message || 'Failed to process return', 'error');
+                    }
+                } catch (error) {
+                    await Swal.fire('Error', 'Failed to process return', 'error');
+                }
+            }
         });
 
         // Handle item cancel request approval
-        $('.approve-cancel-item').click(function() {
-            const orderId = $(this).data('order-id');
-            const itemIndex = $(this).data('item-index');
-            Swal.fire({
-                title: 'Approve Item Cancellation',
-                text: 'Are you sure you want to approve the cancellation of this item and refund the amount (if applicable)?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Approve',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
+        document.querySelectorAll('.approve-cancel-item').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                const itemIndex = this.dataset.itemIndex;
+                const result = await Swal.fire({
+                    title: 'Approve Item Cancellation',
+                    text: 'Are you sure you want to approve the cancellation of this item and refund the amount (if applicable)?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve',
+                    cancelButtonText: 'Cancel'
+                });
+
                 if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/cancel-item/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ itemIndex, action: 'approve' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item cancellation', 'error');
+                    try {
+                        const response = await fetch(`/admin/orders/cancel-item/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ itemIndex, action: 'approve' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            await Swal.fire('Success', data.message, 'success');
+                            window.location.reload();
+                        } else {
+                            await Swal.fire('Error', data.message || 'Failed to process item cancellation', 'error');
                         }
-                    });
+                    } catch (error) {
+                        await Swal.fire('Error', 'Failed to process item cancellation', 'error');
+                    }
                 }
             });
         });
 
         // Handle item cancel request rejection
-        $('.reject-cancel-item').click(function() {
-            const orderId = $(this).data('order-id');
-            const itemIndex = $(this).data('item-index');
-            Swal.fire({
-                title: 'Reject Item Cancellation',
-                text: 'Are you sure you want to reject the cancellation of this item?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Reject',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
+        document.querySelectorAll('.reject-cancel-item').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                const itemIndex = this.dataset.itemIndex;
+                const result = await Swal.fire({
+                    title: 'Reject Item Cancellation',
+                    text: 'Are you sure you want to reject the cancellation of this item?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Reject',
+                    cancelButtonText: 'Cancel'
+                });
+
                 if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/cancel-item/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ itemIndex, action: 'reject' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item cancellation', 'error');
+                    try {
+                        const response = await fetch(`/admin/orders/cancel-item/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ itemIndex, action: 'reject' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            await Swal.fire('Success', data.message, 'success');
+                            window.location.reload();
+                        } else {
+                            await Swal.fire('Error', data.message || 'Failed to process item cancellation', 'error');
                         }
-                    });
+                    } catch (error) {
+                        await Swal.fire('Error', 'Failed to process item cancellation', 'error');
+                    }
                 }
             });
         });
 
         // Handle item return request approval
-        $('.approve-return-item').click(function() {
-            const orderId = $(this).data('order-id');
-            const itemIndex = $(this).data('item-index');
-            Swal.fire({
-                title: 'Approve Item Return',
-                text: 'Are you sure you want to approve the return of this item and refund the amount?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Approve',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
+        document.querySelectorAll('.approve-return-item').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                const itemIndex = this.dataset.itemIndex;
+                const result = await Swal.fire({
+                    title: 'Approve Item Return',
+                    text: 'Are you sure you want to approve the return of this item and refund the amount?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Approve',
+                    cancelButtonText: 'Cancel'
+                });
+
                 if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/return-item/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ itemIndex, action: 'approve' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item return', 'error');
+                    try {
+                        const response = await fetch(`/admin/orders/return-item/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ itemIndex, action: 'approve' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            await Swal.fire('Success', data.message, 'success');
+                            window.location.reload();
+                        } else {
+                            await Swal.fire('Error', data.message || 'Failed to process item return', 'error');
                         }
-                    });
+                    } catch (error) {
+                        await Swal.fire('Error', 'Failed to process item return', 'error');
+                    }
                 }
             });
         });
 
         // Handle item return request rejection
-        $('.reject-return-item').click(function() {
-            const orderId = $(this).data('order-id');
-            const itemIndex = $(this).data('item-index');
-            Swal.fire({
-                title: 'Reject Item Return',
-                text: 'Are you sure you want to reject the return of this item?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Reject',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
+        document.querySelectorAll('.reject-return-item').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                const itemIndex = this.dataset.itemIndex;
+                const result = await Swal.fire({
+                    title: 'Reject Item Return',
+                    text: 'Are you sure you want to reject the return of this item?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Reject',
+                    cancelButtonText: 'Cancel'
+                });
+
                 if (result.isConfirmed) {
-                    $.ajax({
-                        url: `/admin/orders/return-item/${orderId}`,
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ itemIndex, action: 'reject' }),
-                        success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        },
-                        error: function(xhr) {
-                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process item return', 'error');
+                    try {
+                        const response = await fetch(`/admin/orders/return-item/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ itemIndex, action: 'reject' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            await Swal.fire('Success', data.message, 'success');
+                            window.location.reload();
+                        } else {
+                            await Swal.fire('Error', data.message || 'Failed to process item return', 'error');
                         }
-                    });
+                    } catch (error) {
+                        await Swal.fire('Error', 'Failed to process item return', 'error');
+                    }
                 }
             });
         });
