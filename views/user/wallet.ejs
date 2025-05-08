@@ -1,0 +1,78 @@
+<%- include('../partials/user/header') %>
+
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+
+<%- include('../../views/partials/user/breadcrumb', {
+    breadcrumbs: [
+        { text: 'Address', url: '#', active: true }
+    ]
+}) %>
+
+
+<br>
+<br>
+<br>
+
+
+<div class="container-fluid mt-5">
+    <div class="row">
+        <%- include('../partials/user/profile/sidebar') %>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">Your Wallet</h1>
+        
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Wallet Balance</h2>
+            <p class="text-2xl font-bold text-green-600">₹<%= wallet.balance.toFixed(2) %></p>
+            <% if (wallet.balance > 0) { %>
+                <a href="/orders" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Use Wallet for Orders</a>
+            <% } %>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Transaction History</h2>
+            <% if (transactions.length > 0) { %>
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2 text-left">Date</th>
+                            <th class="px-4 py-2 text-left">Description</th>
+                            <th class="px-4 py-2 text-left">Type</th>
+                            <th class="px-4 py-2 text-left">Amount</th>
+                            <th class="px-4 py-2 text-left">Order</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% transactions.forEach(transaction => { %>
+                            <tr class="border-b">
+                                <td class="px-4 py-2"><%= new Date(transaction.date).toLocaleString() %></td>
+                                <td class="px-4 py-2"><%= transaction.description %></td>
+                                <td class="px-4 py-2 <%= transaction.type === 'credit' ? 'text-green-600' : 'text-red-600' %>">
+                                    <%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %>
+                                </td>
+                                <td class="px-4 py-2">₹<%= transaction.amount.toFixed(2) %></td>
+                                <td class="px-4 py-2">
+                                    <% if (transaction.orderId) { %>
+                                        <a href="/orders/<%= transaction.orderId %>" class="text-blue-500 hover:underline"><%= transaction.orderId %></a>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <p class="text-gray-600">No transactions found.</p>
+            <% } %>
+        </div>
+    </div>
+</div>
+</div>
+
+
+<br>
+<br>
+
+<%- include('../partials/user/footer') %>

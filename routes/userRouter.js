@@ -14,6 +14,7 @@ const couponController = require('../controllers/user/couponController');
 const passport = require('passport');
 const User = require('../models/userSchema'); 
 const reviewController = require('../controllers/user/reviewController');
+const walletController = require('../controllers/user/walletController');
 const multer = require('../helpers/multer');
 
 // Public routes (no authentication required)
@@ -166,5 +167,9 @@ router.post('/orders/:orderId/cancel-return-item', orderController.cancelReturnI
 router.get('/coupon/available', couponController.getAvailableCoupons);
 router.post('/coupon/apply', couponController.applyCoupon);
 router.post('/coupon/remove', couponController.removeCoupon);
+
+// Wallet routes
+router.get('/wallet', walletController.getWallet);
+router.post('/wallet/pay/:orderId', walletController.initiateWalletPayment);
 
 module.exports = router;

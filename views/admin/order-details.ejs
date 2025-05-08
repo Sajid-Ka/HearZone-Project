@@ -231,12 +231,14 @@
 </style>
 
 <div class="order-detail-container">
+    
     <div class="order-header">
         <h1 class="order-title">Order #<%= order.orderId %></h1>
         <span class="order-status status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>">
             <%= order.status %>
         </span>
     </div>
+    
     
     <div class="order-section">
         <h3 class="section-title">Customer Information</h3>
@@ -430,11 +432,44 @@
     <div class="order-section">
         <h3 class="section-title">Order Status Timeline</h3>
         <div class="timeline-container" id="statusTimeline">
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+            <!-- Initial basic timeline entry if there's a cancel request -->
+            <% if (order.orderedItems.some(item => item.cancellationStatus === 'Cancel Request')) { %>
+                <div class="timeline-item">
+                    <div class="timeline-date"><%= new Date().toLocaleString() %></div>
+                    <div class="timeline-content">
+                        <strong>Cancel Request Pending</strong>
+                        <p>A cancellation request has been submitted and is waiting for admin approval.</p>
+                    </div>
                 </div>
-            </div>
+                <div class="timeline-item">
+                    <div class="timeline-date"><%= new Date(order.orderDate).toLocaleString() %></div>
+                    <div class="timeline-content">
+                        <strong>Order Placed</strong>
+                        <p>The order has been successfully placed.</p>
+                    </div>
+                </div>
+            <% } else if (order.orderedItems.some(item => item.returnStatus === 'Return Request')) { %>
+                <div class="timeline-item">
+                    <div class="timeline-date"><%= new Date().toLocaleString() %></div>
+                    <div class="timeline-content">
+                        <strong>Return Request Pending</strong>
+                        <p>A return request has been submitted and is waiting for admin approval.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date"><%= new Date(order.orderDate).toLocaleString() %></div>
+                    <div class="timeline-content">
+                        <strong>Order Placed</strong>
+                        <p>The order has been successfully placed.</p>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            <% } %>
         </div>
     </div>
     
@@ -473,263 +508,214 @@
 
         // Initialize dropdown state
         const statusSelect = document.getElementById('statusSelect');
-        updateDropdownState(statusSelect, statusSelect.dataset.originalStatus);
+        if (statusSelect) {
+            updateDropdownState(statusSelect, statusSelect.dataset.originalStatus);
+        }
 
-        // Load timeline
-        fetch(`/admin/orders/timeline/${statusSelect.dataset.orderId}`)
-            .then(response => response.json())
-            .then(data => {
-                const timelineContainer = document.getElementById('statusTimeline');
-                if (data.success) {
-                    let timelineHtml = '';
-                    data.timeline.forEach(item => {
-                        timelineHtml += `
+        // Check if there are pending requests that would block the timeline
+        const hasPendingRequests = function() {
+            // Check for cancel requests
+            const cancelRequestElements = document.querySelectorAll('.status-cancel-request');
+            if (cancelRequestElements.length > 0) return true;
+            
+            // Check for return requests
+            const returnRequestElements = document.querySelectorAll('.status-return-request');
+            if (returnRequestElements.length > 0) return true;
+            
+            return false;
+        };
+
+        // Load timeline with timeout and error handling
+        function loadTimeline(orderId) {
+            // Skip loading external timeline if there are pending requests
+            if (hasPendingRequests()) {
+                console.log('Skipping timeline API call due to pending requests');
+                return;
+            }
+            
+            const timelineContainer = document.getElementById('statusTimeline');
+            const timeoutDuration = 10000; // 10 seconds timeout
+            
+            let timeoutId = setTimeout(() => {
+                timelineContainer.innerHTML = `
+                    <div class="timeline-item">
+                        <div class="timeline-date">${new Date().toLocaleString()}</div>
+                        <div class="timeline-content">
+                            <strong>Current Status: ${statusSelect ? statusSelect.value : 'Unknown'}</strong>
+                            <p>Detailed timeline not available. The system is processing your request.</p>
+                        </div>
+                    </div>
+                `;
+            }, timeoutDuration);
+
+            fetch(`/admin/orders/timeline/${orderId}`)
+                .then(response => {
+                    clearTimeout(timeoutId);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        let timelineHtml = '';
+                        if (data.timeline && data.timeline.length > 0) {
+                            data.timeline.forEach(item => {
+                                timelineHtml += `
+                                    <div class="timeline-item">
+                                        <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
+                                        <div class="timeline-content">
+                                            <strong>${item.status}</strong>
+                                            <p>${item.description}</p>
+                                        </div>
+                                    </div>`;
+                            });
+                        } else {
+                            timelineHtml = `
+                                <div class="timeline-item">
+                                    <div class="timeline-date">${new Date().toLocaleString()}</div>
+                                    <div class="timeline-content">
+                                        <strong>Current Status: ${statusSelect ? statusSelect.value : 'Unknown'}</strong>
+                                        <p>No additional timeline events available.</p>
+                                    </div>
+                                </div>`;
+                        }
+                        timelineContainer.innerHTML = timelineHtml;
+                    } else {
+                        timelineContainer.innerHTML = `
                             <div class="timeline-item">
-                                <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
+                                <div class="timeline-date">${new Date().toLocaleString()}</div>
                                 <div class="timeline-content">
-                                    <strong>${item.status}</strong>
-                                    <p>${item.description}</p>
+                                    <strong>Error Loading Timeline</strong>
+                                    <p>${data.message || 'Failed to load timeline data'}</p>
                                 </div>
                             </div>`;
-                    });
-                    timelineContainer.innerHTML = timelineHtml || '<p>No timeline events available.</p>';
-                } else {
-                    timelineContainer.innerHTML = '<p>Failed to load timeline.</p>';
-                }
-            })
-            .catch(() => {
-                document.getElementById('statusTimeline').innerHTML = '<p>Failed to load timeline.</p>';
-            });
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    console.error(`Error loading timeline for order ${orderId}:`, error);
+                    timelineContainer.innerHTML = `
+                        <div class="timeline-item">
+                            <div class="timeline-date">${new Date().toLocaleString()}</div>
+                            <div class="timeline-content">
+                                <strong>Error Loading Timeline</strong>
+                                <p>Failed to load timeline. Please try again later.</p>
+                            </div>
+                        </div>`;
+                });
+        }
+
+        // Load timeline on page load if there's no statusSelect or no pending requests
+        if (statusSelect && !hasPendingRequests()) {
+            loadTimeline(statusSelect.dataset.orderId);
+        }
 
         // Handle status update
-        statusSelect.addEventListener('change', async function() {
-            const orderId = this.dataset.orderId;
-            const newStatus = this.value;
-            const originalStatus = this.dataset.originalStatus;
+        if (statusSelect) {
+            statusSelect.addEventListener('change', async function() {
+                const orderId = this.dataset.orderId;
+                const newStatus = this.value;
+                const originalStatus = this.dataset.originalStatus;
 
-            const result = await Swal.fire({
-                title: 'Update Order Status',
-                text: `Are you sure you want to change the status to ${newStatus}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Update',
-                cancelButtonText: 'Cancel'
-            });
+                const result = await Swal.fire({
+                    title: 'Update Order Status',
+                    text: `Are you sure you want to change the status to ${newStatus}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Update',
+                    cancelButtonText: 'Cancel'
+                });
 
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/admin/orders/update-status/${orderId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            status: newStatus,
-                            updateOnlyNonCancelled: true
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        await Swal.fire('Success', data.message, 'success');
-
-                        // Update UI
-                        this.dataset.originalStatus = newStatus;
-                        updateDropdownState(this, newStatus);
-
-                        // Update order status badge
-                        const orderStatusBadge = document.querySelector('.order-header .order-status');
-                        orderStatusBadge.textContent = newStatus;
-                        orderStatusBadge.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
-
-                        // Update payment status badge if provided in response
-                        if (data.order && data.order.paymentStatus) {
-                            const paymentStatusBadge = document.querySelector('.payment-status');
-                            paymentStatusBadge.textContent = data.order.paymentStatus;
-                            paymentStatusBadge.className = `payment-status payment-status-${data.order.paymentStatus.toLowerCase().replace(/\s+/g, '-')}`;
-                        }
-
-                        // Update non-cancelled item statuses
-                        document.querySelectorAll('.items-table tbody tr').forEach(row => {
-                            const statusCell = row.querySelector('td:nth-child(5)');
-                            const statusSpan = statusCell.querySelector('.order-status');
-                            
-                            if (statusSpan && !statusSpan.classList.contains('status-cancelled') && 
-                                !statusSpan.classList.contains('status-returned') &&
-                                !statusSpan.classList.contains('status-cancel-request') &&
-                                !statusSpan.classList.contains('status-return-request')) {
-                                statusSpan.textContent = newStatus;
-                                statusSpan.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
-                            }
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch(`/admin/orders/update-status/${orderId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                status: newStatus,
+                                updateOnlyNonCancelled: true
+                            })
                         });
 
-                        // Update timeline
-                        fetch(`/admin/orders/timeline/${orderId}`)
-                            .then(timelineResponse => timelineResponse.json())
-                            .then(timelineData => {
-                                const timelineContainer = document.getElementById('statusTimeline');
-                                if (timelineData.success) {
-                                    let timelineHtml = '';
-                                    timelineData.timeline.forEach(item => {
-                                        timelineHtml += `
-                                            <div class="timeline-item">
-                                                <div class="timeline-date">${new Date(item.date).toLocaleString()}</div>
-                                                <div class="timeline-content">
-                                                    <strong>${item.status}</strong>
-                                                    <p>${item.description}</p>
-                                                </div>
-                                            </div>`;
-                                    });
-                                    timelineContainer.innerHTML = timelineHtml || '<p>No timeline events available.</p>';
+                        const data = await response.json();
+
+                        if (data.success) {
+                            await Swal.fire('Success', data.message, 'success');
+
+                            // Update UI
+                            this.dataset.originalStatus = newStatus;
+                            updateDropdownState(this, newStatus);
+
+                            // Update order status badge
+                            const orderStatusBadge = document.querySelector('.order-header .order-status');
+                            orderStatusBadge.textContent = newStatus;
+                            orderStatusBadge.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
+
+                            // Update payment status badge if provided in response
+                            if (data.order && data.order.paymentStatus) {
+                                const paymentStatusBadge = document.querySelector('.payment-status');
+                                paymentStatusBadge.textContent = data.order.paymentStatus;
+                                paymentStatusBadge.className = `payment-status payment-status-${data.order.paymentStatus.toLowerCase().replace(/\s+/g, '-')}`;
+                            }
+
+                            // Update non-cancelled item statuses
+                            document.querySelectorAll('.items-table tbody tr').forEach(row => {
+                                const statusCell = row.querySelector('td:nth-child(5)');
+                                const statusSpan = statusCell.querySelector('.order-status');
+                                
+                                if (statusSpan && !statusSpan.classList.contains('status-cancelled') && 
+                                    !statusSpan.classList.contains('status-returned') &&
+                                    !statusSpan.classList.contains('status-cancel-request') &&
+                                    !statusSpan.classList.contains('status-return-request')) {
+                                    statusSpan.textContent = newStatus;
+                                    statusSpan.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
                                 }
                             });
-                    } else {
-                        await Swal.fire('Error', data.message || 'Failed to update status', 'error');
+
+                            // Reload timeline if no pending requests
+                            if (!hasPendingRequests()) {
+                                loadTimeline(orderId);
+                            } else {
+                                // Add a new entry to the timeline for this status change
+                                const timelineContainer = document.getElementById('statusTimeline');
+                                const newEntry = document.createElement('div');
+                                newEntry.className = 'timeline-item';
+                                newEntry.innerHTML = `
+                                    <div class="timeline-date">${new Date().toLocaleString()}</div>
+                                    <div class="timeline-content">
+                                        <strong>Status Updated</strong>
+                                        <p>Order status updated to ${newStatus}.</p>
+                                    </div>
+                                `;
+                                timelineContainer.prepend(newEntry);
+                            }
+                        } else {
+                            await Swal.fire('Error', data.message || 'Failed to update status', 'error');
+                            this.value = originalStatus;
+                        }
+                    } catch (error) {
+                        await Swal.fire('Error', 'Failed to update status', 'error');
                         this.value = originalStatus;
                     }
-                } catch (error) {
-                    await Swal.fire('Error', 'Failed to update status', 'error');
+                } else {
                     this.value = originalStatus;
                 }
-            } else {
-                this.value = originalStatus;
-            }
-        });
-
-        // Handle cancel request approval
-        document.getElementById('approveCancelBtn')?.addEventListener('click', async function() {
-            const orderId = this.dataset.orderId;
-            const result = await Swal.fire({
-                title: 'Approve Cancel Request',
-                text: 'Are you sure you want to approve this cancellation and refund the amount (if applicable)?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Approve',
-                cancelButtonText: 'Cancel'
             });
-
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/admin/orders/cancel/${orderId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'approve' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        await Swal.fire('Success', data.message, 'success');
-                        window.location.reload();
-                    } else {
-                        await Swal.fire('Error', data.message || 'Failed to process cancellation', 'error');
-                    }
-                } catch (error) {
-                    await Swal.fire('Error', 'Failed to process cancellation', 'error');
-                }
-            }
-        });
-
-        // Handle cancel request rejection
-        document.getElementById('rejectCancelBtn')?.addEventListener('click', async function() {
-            const orderId = this.dataset.orderId;
-            const result = await Swal.fire({
-                title: 'Reject Cancel Request',
-                text: 'Are you sure you want to reject this cancellation request?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Reject',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/admin/orders/cancel/${orderId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'reject' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        await Swal.fire('Success', data.message, 'success');
-                        window.location.reload();
-                    } else {
-                        await Swal.fire('Error', data.message || 'Failed to process cancellation', 'error');
-                    }
-                } catch (error) {
-                    await Swal.fire('Error', 'Failed to process cancellation', 'error');
-                }
-            }
-        });
-
-        // Handle return request approval
-        document.getElementById('approveReturnBtn')?.addEventListener('click', async function() {
-            const orderId = this.dataset.orderId;
-            const result = await Swal.fire({
-                title: 'Approve Return Request',
-                text: 'Are you sure you want to approve this return and refund the amount?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Approve',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/admin/orders/${orderId}/return`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'approve' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        await Swal.fire('Success', data.message, 'success');
-                        window.location.reload();
-                    } else {
-                        await Swal.fire('Error', data.message || 'Failed to process return', 'error');
-                    }
-                } catch (error) {
-                    await Swal.fire('Error', 'Failed to process return', 'error');
-                }
-            }
-        });
-
-        // Handle return request rejection
-        document.getElementById('rejectReturnBtn')?.addEventListener('click', async function() {
-            const orderId = this.dataset.orderId;
-            const result = await Swal.fire({
-                title: 'Reject Return Request',
-                text: 'Are you sure you want to reject this return request?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Reject',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch(`/admin/orders/${orderId}/return`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'reject' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        await Swal.fire('Success', data.message, 'success');
-                        window.location.reload();
-                    } else {
-                        await Swal.fire('Error', data.message || 'Failed to process return', 'error');
-                    }
-                } catch (error) {
-                    await Swal.fire('Error', 'Failed to process return', 'error');
-                }
-            }
-        });
+        }
 
         // Handle item cancel request approval
         document.querySelectorAll('.approve-cancel-item').forEach(button => {
-            button.addEventListener('click', async function() {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
                 const orderId = this.dataset.orderId;
                 const itemIndex = this.dataset.itemIndex;
+
+                // Disable button to prevent multiple clicks
+                this.disabled = true;
+
                 const result = await Swal.fire({
                     title: 'Approve Item Cancellation',
                     text: 'Are you sure you want to approve the cancellation of this item and refund the amount (if applicable)?',
@@ -744,27 +730,41 @@
                         const response = await fetch(`/admin/orders/cancel-item/${orderId}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIndex, action: 'approve' })
+                            body: JSON.stringify({ 
+                                itemIndex: parseInt(itemIndex), 
+                                action: 'approve' 
+                            })
                         });
+
                         const data = await response.json();
                         if (data.success) {
                             await Swal.fire('Success', data.message, 'success');
                             window.location.reload();
                         } else {
                             await Swal.fire('Error', data.message || 'Failed to process item cancellation', 'error');
+                            this.disabled = false;
                         }
                     } catch (error) {
-                        await Swal.fire('Error', 'Failed to process item cancellation', 'error');
+                        console.error(`Error approving cancel request for order ${orderId}, item ${itemIndex}:`, error);
+                        await Swal.fire('Error', 'Failed to process item cancellation. Please try again.', 'error');
+                        this.disabled = false;
                     }
+                } else {
+                    this.disabled = false;
                 }
             });
         });
 
         // Handle item cancel request rejection
         document.querySelectorAll('.reject-cancel-item').forEach(button => {
-            button.addEventListener('click', async function() {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
                 const orderId = this.dataset.orderId;
                 const itemIndex = this.dataset.itemIndex;
+
+                // Disable button to prevent multiple clicks
+                this.disabled = true;
+
                 const result = await Swal.fire({
                     title: 'Reject Item Cancellation',
                     text: 'Are you sure you want to reject the cancellation of this item?',
@@ -779,33 +779,50 @@
                         const response = await fetch(`/admin/orders/cancel-item/${orderId}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIndex, action: 'reject' })
+                            body: JSON.stringify({ 
+                                itemIndex: parseInt(itemIndex), 
+                                action: 'reject' 
+                            })
                         });
+
                         const data = await response.json();
                         if (data.success) {
                             await Swal.fire('Success', data.message, 'success');
                             window.location.reload();
                         } else {
                             await Swal.fire('Error', data.message || 'Failed to process item cancellation', 'error');
+                            this.disabled = false;
                         }
                     } catch (error) {
-                        await Swal.fire('Error', 'Failed to process item cancellation', 'error');
+                        console.error(`Error rejecting cancel request for order ${orderId}, item ${itemIndex}:`, error);
+                        await Swal.fire('Error', 'Failed to process item cancellation. Please try again.', 'error');
+                        this.disabled = false;
                     }
+                } else {
+                    this.disabled = false;
                 }
             });
         });
 
-        // Handle item return request approval
-        document.querySelectorAll('.approve-return-item').forEach(button => {
-            button.addEventListener('click', async function() {
+        // Handle item return request approval and rejection
+        document.querySelectorAll('.approve-return-item, .reject-return-item').forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
                 const orderId = this.dataset.orderId;
                 const itemIndex = this.dataset.itemIndex;
+                const action = this.classList.contains('approve-return-item') ? 'approve' : 'reject';
+
+                // Disable button to prevent multiple clicks
+                this.disabled = true;
+
                 const result = await Swal.fire({
-                    title: 'Approve Item Return',
-                    text: 'Are you sure you want to approve the return of this item and refund the amount?',
+                    title: action === 'approve' ? 'Approve Item Return' : 'Reject Item Return',
+                    text: action === 'approve' 
+                        ? 'Are you sure you want to approve the return of this item and refund the amount?' 
+                        : 'Are you sure you want to reject the return of this item?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Approve',
+                    confirmButtonText: action === 'approve' ? 'Approve' : 'Reject',
                     cancelButtonText: 'Cancel'
                 });
 
@@ -814,7 +831,10 @@
                         const response = await fetch(`/admin/orders/return-item/${orderId}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIndex, action: 'approve' })
+                            body: JSON.stringify({ 
+                                itemIndex: parseInt(itemIndex), 
+                                action: action 
+                            })
                         });
                         const data = await response.json();
                         if (data.success) {
@@ -822,45 +842,15 @@
                             window.location.reload();
                         } else {
                             await Swal.fire('Error', data.message || 'Failed to process item return', 'error');
+                            this.disabled = false;
                         }
                     } catch (error) {
-                        await Swal.fire('Error', 'Failed to process item return', 'error');
+                        console.error(`Error ${action}ing return request for order ${orderId}, item ${itemIndex}:`, error);
+                        await Swal.fire('Error', `Failed to ${action} item return. Please try again.`, 'error');
+                        this.disabled = false;
                     }
-                }
-            });
-        });
-
-        // Handle item return request rejection
-        document.querySelectorAll('.reject-return-item').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                const itemIndex = this.dataset.itemIndex;
-                const result = await Swal.fire({
-                    title: 'Reject Item Return',
-                    text: 'Are you sure you want to reject the return of this item?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Reject',
-                    cancelButtonText: 'Cancel'
-                });
-
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(`/admin/orders/return-item/${orderId}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ itemIndex, action: 'reject' })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            await Swal.fire('Success', data.message, 'success');
-                            window.location.reload();
-                        } else {
-                            await Swal.fire('Error', data.message || 'Failed to process item return', 'error');
-                        }
-                    } catch (error) {
-                        await Swal.fire('Error', 'Failed to process item return', 'error');
-                    }
+                } else {
+                    this.disabled = false;
                 }
             });
         });

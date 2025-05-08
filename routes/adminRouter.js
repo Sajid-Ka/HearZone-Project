@@ -9,6 +9,7 @@ const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
 const couponController = require('../controllers/admin/couponController');
+const walletController = require('../controllers/admin/walletController');
 const multer = require('../helpers/multer');
 
 router.get('/pageError', adminController.pageError);
@@ -116,6 +117,11 @@ router.get('/coupons/add-page', couponController.getAddCouponPage);
 router.post('/coupons/add', couponController.createCoupon);
 router.post('/coupons/delete/:id', couponController.deleteCoupon);
 router.post('/coupons/toggle/:id', couponController.toggleCouponStatus);
+
+//Wallet routes
+router.get('/wallets', walletController.getAllWallets);
+router.get('/wallets/:userId', walletController.getWalletDetails);
+router.post('/orders/:orderId/wallet-payment', orderController.processWalletPayment);
 
 
 module.exports = router;

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <%- include('partials/admin-header', { admin }) %>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">Wallet Details for <%= user.name %></h1>
+        
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">User Information</h2>
+            <p><strong>Name:</strong> <%= user.name %></p>
+            <p><strong>Email:</strong> <%= user.email %></p>
+            <p><strong>Wallet Balance:</strong> ₹<%= (user.wallet?.balance || 0).toFixed(2) %></p>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Transaction History</h2>
+            <% if (transactions.length > 0) { %>
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="px-4 py-2 text-left">Date</th>
+                            <th class="px-4 py-2 text-left">Description</th>
+                            <th class="px-4 py-2 text-left">Type</th>
+                            <th class="px-4 py-2 text-left">Amount</th>
+                            <th class="px-4 py-2 text-left">Order</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% transactions.forEach(transaction => { %>
+                            <tr class="border-b">
+                                <td class="px-4 py-2"><%= new Date(transaction.date).toLocaleString() %></td>
+                                <td class="px-4 py-2"><%= transaction.description %></td>
+                                <td class="px-4 py-2 <%= transaction.type === 'credit' ? 'text-green-600' : 'text-red-600' %>">
+                                    <%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %>
+                                </td>
+                                <td class="px-4 py-2">₹<%= transaction.amount.toFixed(2) %></td>
+                                <td class="px-4 py-2">
+                                    <% if (transaction.orderId) { %>
+                                        <a href="/admin/orders/<%= transaction.orderId %>" class="text-blue-500 hover:underline"><%= transaction.orderId %></a>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <p class="text-gray-600">No transactions found.</p>
+            <% } %>
+        </div>
+    </div>
+
+    <%- include('partials/admin-footer') %>
+</body>
+</html>
