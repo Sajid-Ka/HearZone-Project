@@ -1,78 +1,363 @@
 <%- include('../partials/user/header') %>
 
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <%- include('../../views/partials/user/breadcrumb', {
     breadcrumbs: [
-        { text: 'Address', url: '#', active: true }
+        { text: 'Wallet', url: '#', active: true }
     ]
 }) %>
-
-
-<br>
-<br>
-<br>
-
 
 <div class="container-fluid mt-5">
     <div class="row">
         <%- include('../partials/user/profile/sidebar') %>
 
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-6">Your Wallet</h1>
-        
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">Wallet Balance</h2>
-            <p class="text-2xl font-bold text-green-600">₹<%= wallet.balance.toFixed(2) %></p>
-            <% if (wallet.balance > 0) { %>
-                <a href="/orders" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Use Wallet for Orders</a>
-            <% } %>
-        </div>
+        <div class="flex-1">
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">Your Wallet</h1>
 
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-xl font-semibold mb-4">Transaction History</h2>
-            <% if (transactions.length > 0) { %>
-                <table class="w-full table-auto">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="px-4 py-2 text-left">Date</th>
-                            <th class="px-4 py-2 text-left">Description</th>
-                            <th class="px-4 py-2 text-left">Type</th>
-                            <th class="px-4 py-2 text-left">Amount</th>
-                            <th class="px-4 py-2 text-left">Order</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% transactions.forEach(transaction => { %>
-                            <tr class="border-b">
-                                <td class="px-4 py-2"><%= new Date(transaction.date).toLocaleString() %></td>
-                                <td class="px-4 py-2"><%= transaction.description %></td>
-                                <td class="px-4 py-2 <%= transaction.type === 'credit' ? 'text-green-600' : 'text-red-600' %>">
-                                    <%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %>
-                                </td>
-                                <td class="px-4 py-2">₹<%= transaction.amount.toFixed(2) %></td>
-                                <td class="px-4 py-2">
-                                    <% if (transaction.orderId) { %>
-                                        <a href="/orders/<%= transaction.orderId %>" class="text-blue-500 hover:underline"><%= transaction.orderId %></a>
-                                    <% } else { %>
-                                        -
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Wallet Balance Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl shadow-xl p-6 transform transition-all hover:scale-105 hover:shadow-2xl">
+                    <div class="flex items-center mb-4">
+                        
+                        <div>
+                            <h2 class="text-xl font-semibold opacity-75">Wallet Balance</h2>
+                            <p class="text-4xl font-bold">₹<%= wallet.balance.toFixed(2) %></p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm opacity-75">
+                        Use your wallet balance for faster checkouts
+                    </div>
+                </div>
+
+                <!-- Add Money Section -->
+                <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 transform transition-all hover:shadow-xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-indigo-100 text-indigo-600 rounded-full p-3 mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-800">Add Money to Wallet</h2>
+                    </div>
+                    
+                    <form id="addMoneyForm" class="space-y-6">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-gray-500 text-lg font-medium">₹</span>
+                            </div>
+                            <input 
+                                type="number" 
+                                id="amount" 
+                                name="amount" 
+                                min="1" 
+                                step="1" 
+                                class="pl-10 pr-28 block w-full h-12 text-lg rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg transition duration-200"
+                                placeholder="Enter amount (e.g., 500)"
+                            >
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                                <div class="flex space-x-2">
+                                    <button type="button" onclick="quickAddAmount(100)" class="text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-medium py-1.5 px-3 rounded-lg transition duration-200">
+                                        +100
+                                    </button>
+                                    <button type="button" onclick="quickAddAmount(500)" class="text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-medium py-1.5 px-3 rounded-lg transition duration-200">
+                                        +500
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="amountError" class="text-red-500 text-sm mt-1 hidden"></p>
+                        
+                        <button 
+                            type="submit" 
+                            class="w-full bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 transition duration-200 flex items-center justify-center text-lg font-medium"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Money
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <h2 class="text-xl font-semibold text-gray-800">Transaction History</h2>
+                    </div>
+                    <span class="text-sm text-gray-500">
+                        Last updated: <%= new Date().toLocaleString() %>
+                    </span>
+                </div>
+                
+                <div id="transactionContainer">
+                    <% if (transactions.length > 0) { %>
+                        <div class="overflow-x-auto">
+                            <table class="w-full table-auto">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 border-b">
+                                        <th class="px-4 py-3 text-left text-sm font-medium">Date</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium">Description</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium">Type</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium">Amount</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium">Order</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody">
+                                    <% transactions.forEach((transaction, index) => { %>
+                                        <tr class="<%= index % 2 === 0 ? 'bg-white' : 'bg-gray-50' %> hover:bg-indigo-50 transition-colors">
+                                            <td class="px-4 py-3 text-gray-700"><%= new Date(transaction.date).toLocaleString() %></td>
+                                            <td class="px-4 py-3 text-gray-700"><%= transaction.description %></td>
+                                            <td class="px-4 py-3">
+                                                <span class="<%= transaction.type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %> text-xs font-medium px-2 py-1 rounded-full">
+                                                    <%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %>
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 <%= transaction.type === 'credit' ? 'text-green-600' : 'text-red-600' %> font-medium">
+                                                <%= transaction.type === 'credit' ? '+' : '-' %>₹<%= transaction.amount.toFixed(2) %>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <% if (transaction.orderId) { %>
+                                                    <a href="/orders/<%= transaction.orderId %>" class="text-indigo-600 hover:underline flex items-center">
+                                                        <span class="truncate max-w-xs"><%= transaction.orderId %></span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                        </svg>
+                                                    </a>
+                                                <% } else { %>
+                                                    <span class="text-gray-400">-</span>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div class="mt-6 flex flex-col sm:flex-row justify-between items-center" id="paginationControls">
+                            <div class="text-sm text-gray-600 mb-4 sm:mb-0">
+                                Showing <%= (page - 1) * limit + 1 %> to <%= Math.min(page * limit, totalTransactions) %> of <%= totalTransactions %> transactions
+                            </div>
+                            <div class="flex space-x-2">
+                                <button 
+                                    onclick="changePage(<%= page > 1 ? page - 1 : 1 %>)" 
+                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition <%= page === 1 ? 'cursor-not-allowed opacity-50' : '' %>"
+                                    <%= page === 1 ? 'disabled' : '' %>
+                                >
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Previous
+                                    </span>
+                                </button>
+                                
+                                <% 
+                                let startPage = Math.max(1, page - 2);
+                                let endPage = Math.min(totalPages, page + 2);
+                                
+                                if (endPage - startPage < 4 && totalPages > 5) {
+                                    if (startPage === 1) {
+                                        endPage = Math.min(startPage + 4, totalPages);
+                                    } else if (endPage === totalPages) {
+                                        startPage = Math.max(endPage - 4, 1);
+                                    }
+                                }
+                                %>
+                                
+                                <% if (startPage > 1) { %>
+                                    <button onclick="changePage(1)" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition">1</button>
+                                    <% if (startPage > 2) { %>
+                                        <span class="px-2 py-2 text-gray-500">...</span>
                                     <% } %>
-                                </td>
-                            </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
-            <% } else { %>
-                <p class="text-gray-600">No transactions found.</p>
-            <% } %>
+                                <% } %>
+                                
+                                <% for (let i = startPage; i <= endPage; i++) { %>
+                                    <button 
+                                        onclick="changePage(<%= i %>)" 
+                                        class="px-4 py-2 rounded-md <%= page === i ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 transition' %>"
+                                    >
+                                        <%= i %>
+                                    </button>
+                                <% } %>
+                                
+                                <% if (endPage < totalPages) { %>
+                                    <% if (endPage < totalPages - 1) { %>
+                                        <span class="px-2 py-2 text-gray-500">...</span>
+                                    <% } %>
+                                    <button onclick="changePage(<%= totalPages %>)" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition"><%= totalPages %></button>
+                                <% } %>
+                                
+                                <button 
+                                    onclick="changePage(<%= page < totalPages ? page + 1 : totalPages %>)" 
+                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition <%= page === totalPages ? 'cursor-not-allowed opacity-50' : '' %>"
+                                    <%= page === totalPages ? 'disabled' : '' %>
+                                >
+                                    <span class="flex items-center">
+                                        Next
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    <% } else { %>
+                        <div class="text-center py-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <p class="text-gray-500 text-lg">No transactions found.</p>
+                            <p class="text-gray-400 mt-2">Your transaction history will appear here once you start using your wallet.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-</div>
 
+<script>
+function quickAddAmount(value) {
+    const amountInput = document.getElementById('amount');
+    const currentValue = parseInt(amountInput.value) || 0;
+    amountInput.value = currentValue + value;
+}
 
-<br>
-<br>
+async function changePage(page) {
+    try {
+        const response = await fetch(`/wallet?page=${page}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        
+        // Update transaction table
+        const transactionContainer = document.getElementById('transactionContainer');
+        transactionContainer.innerHTML = data.transactionHTML;
+
+        // Update browser history without reloading
+        window.history.pushState({ page }, '', `/wallet?page=${page}`);
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load transactions',
+        });
+    }
+}
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', (event) => {
+    if (event.state && event.state.page) {
+        changePage(event.state.page);
+    }
+});
+
+document.getElementById('addMoneyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const amountInput = document.getElementById('amount');
+    const amountError = document.getElementById('amountError');
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const amount = parseFloat(amountInput.value);
+
+    amountError.classList.add('hidden');
+    amountError.textContent = '';
+
+    if (!amountInput.value) {
+        amountError.textContent = 'Please enter an amount';
+        amountError.classList.remove('hidden');
+        amountInput.focus();
+        return;
+    }
+    if (isNaN(amount) || amount <= 0) {
+        amountError.textContent = 'Please enter a valid amount greater than 0';
+        amountError.classList.remove('hidden');
+        amountInput.focus();
+        return;
+    }
+    if (!Number.isInteger(amount)) {
+        amountError.textContent = 'Please enter a whole number';
+        amountError.classList.remove('hidden');
+        amountInput.focus();
+        return;
+    }
+
+    submitButton.disabled = true;
+    submitButton.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Processing...
+    `;
+
+    try {
+        const response = await fetch('/wallet/add-money', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: `₹${amount} added to your wallet successfully!`,
+                timer: 2000,
+                showConfirmButton: false,
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: result.message || 'Failed to add money to wallet',
+            });
+            
+            submitButton.disabled = false;
+            submitButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Money
+            `;
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An error occurred while adding money',
+        });
+        
+        submitButton.disabled = false;
+        submitButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Money
+        `;
+    }
+});
+</script>
 
 <%- include('../partials/user/footer') %>

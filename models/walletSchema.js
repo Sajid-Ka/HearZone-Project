@@ -30,16 +30,19 @@ const walletSchema = new Schema({
     orderId: {
         type: String,
         required: false,
-        index: true
+        index: true,
+        sparse: true
+    },
+    transactionId: {
+        type: String,
+        required: true,
+        unique: true
     },
     date: {
         type: Date,
         default: Date.now
     }
 }, { timestamps: true });
-
-// Prevent duplicate transactions for the same order and action
-walletSchema.index({ userId: 1, orderId: 1, type: 1 }, { unique: true, sparse: true });
 
 const Wallet = mongoose.model('Wallet', walletSchema);
 
