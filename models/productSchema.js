@@ -1,4 +1,3 @@
-// productSchema.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
@@ -27,7 +26,7 @@ const productSchema = new Schema({
     },
     salePrice: { 
         type: Number, 
-        required: true
+        default:0
     },
     quantity: { 
         type: Number, 
@@ -39,7 +38,8 @@ const productSchema = new Schema({
     },
     productImage: { 
         type: [String], 
-        required: true
+        required: false,
+        default:[]
     }, 
     isBlocked: { 
         type: Boolean, 
@@ -56,7 +56,7 @@ const productSchema = new Schema({
         default: []
     },
     specifications: {
-        type: [String],  // Changed to array of strings like highlights
+        type: [String], 
         default: []
     }
 }, { timestamps: true });

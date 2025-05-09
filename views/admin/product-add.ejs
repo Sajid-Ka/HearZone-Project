@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Product - Admin Panel</title>
     
-    <!-- Required CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
     
-    <!-- Custom Styles -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -90,10 +88,9 @@
             transition: all 0.2s ease;
         }
         
-        /* Image input container */
         .image-input-container {
             position: relative;
-            height: 220px; /* Increased height to accommodate the crop button */
+            height: 220px;
             border: 1px dashed #ddd;
             padding: 10px;
             margin-bottom: 15px;
@@ -103,7 +100,6 @@
             justify-content: center;
         }
 
-        /* Better positioning for the crop button */
         #cropBtn1, #cropBtn2, #cropBtn3, #cropBtn4 {
             position: absolute;
             bottom: 50px;
@@ -112,7 +108,6 @@
             z-index: 10;
         }
         
-        /* Input file customize */
         .custom-file-input {
             position: relative;
             z-index: 2;
@@ -139,7 +134,6 @@
             cursor: pointer;
         }
 
-        /* Image preview and file input positioning */
         .image-preview {
             max-width: 150px;
             max-height: 150px;
@@ -156,7 +150,6 @@
             z-index: 5;
         }
         
-        /* Cropper modal styles */
         #cropperModal .modal-dialog {
             max-width: 800px;
         }
@@ -168,7 +161,7 @@
         .img-container {
             height: 400px;
             width: 100%;
-            padding: 20px;  /* Add padding */
+            padding: 20px;
             background: #f8f9fa;
         }
         
@@ -210,7 +203,6 @@
             font-weight: bold;
         }
         
-        /* Prevent modal from shifting content */
         body.modal-open {
             overflow: hidden;
             padding-right: 0 !important;
@@ -224,11 +216,10 @@
 <body>
     <%- include("../../views/partials/admin/header") %>
     
-    <!-- Main Content -->
     <section class="content-main">
         <div class="row">
             <div class="col-9">
-                <div class="content-header">
+            <div class="content-header">
                     <h2 class="content-title">Add New Product</h2>
                 </div>
             </div>
@@ -245,7 +236,6 @@
                             <div class="mb-4">
                                 <label class="form-label">Brand</label>
                                 <select class="form-select border" name="brand">
-                                    <!-- Assuming brands come from server -->
                                     <% for(let i=0; i < (brand || []).length; i++) { %>
                                         <option value="<%= brand[i].brandName %>"><%= brand[i].brandName %></option>
                                     <% } %>
@@ -259,20 +249,12 @@
                                 <div id="description-error" class="error-message"></div>
                             </div>
 
-
                             <div class="row">
                                 <div class="col-lg-4">
                                     <div class="mb-4">
                                         <label class="form-label">Regular price</label>
                                         <input placeholder="$" name="regularPrice" type="text" class="form-control border">
                                         <div id="regularPrice-error" class="error-message"></div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="mb-4">
-                                        <label class="form-label">Sale price</label>
-                                        <input placeholder="$" name="salePrice" type="text" class="form-control border">
-                                        <div id="salePrice-error" class="error-message"></div>
                                     </div>
                                 </div>
                                 <div class="col-lg-4">
@@ -297,7 +279,6 @@
                             <div class="mb-4">
                                 <label class="form-label">Category</label>
                                 <select class="form-select border" name="category">
-                                    <!-- Assuming categories come from server -->
                                     <% for(let i=0; i < (cat || []).length; i++) { %>
                                         <option value="<%= cat[i].name %>"><%= cat[i].name %></option>
                                     <% } %>
@@ -305,11 +286,10 @@
                                 <div id="category-error" class="error-message"></div>
                             </div>
 
-
                             <div class="mb-4">
                                 <label class="form-label">Product Specifications (One per line)</label>
                                 <textarea placeholder="Enter each specification on a new line" name="specifications" class="form-control border" rows="4"></textarea>
-                                <div id="specifications-error" class="-error-message"></div>
+                                <div id="specifications-error" class="error-message"></div>
                             </div>
 
                             <div class="mb-4">
@@ -317,7 +297,6 @@
                                 <textarea placeholder="Enter each highlight on a new line" name="highlights" class="form-control border" rows="4"></textarea>
                                 <div id="highlights-error" class="error-message"></div>
                             </div>
-
 
                             <div class="card mb-4">
                                 <div class="card-header">
@@ -339,7 +318,6 @@
                                                         onchange="handleImageSelect(this, <%= i %>)">
                                                     <label class="custom-file-label" for="imageFile<%= i %>">Choose image</label>
                                                 </div>
-                                                <!-- Add crop button -->
                                                 <button type="button" id="cropBtn<%= i %>" class="btn btn-sm btn-outline-primary mt-2" style="display:none;" onclick="openCropModal(<%= i %>)">
                                                     Crop Image
                                                 </button>
@@ -359,42 +337,36 @@
         </div>
     </section>
 
-    
-   <!-- Cropper Modal -->
-   <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body p-0">
-                <div class="img-container">
-                    <img id="cropperImage" src="" alt="Image to crop">
+    <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="cropBtn">Crop & Save</button>
+                <div class="modal-body p-0">
+                    <div class="img-container">
+                        <img id="cropperImage" src="" alt="Image to crop">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="cropBtn">Crop & Save</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <%- include("../../views/partials/admin/footer") %>
 
-    <!-- Required Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.js" integrity="sha512-lR8d1BXfYQuiqoM/LeGFVtxFyspzWFTZNyYIiE5O2CcAGtTCRRUMLloxATRuLz8EmR2fYqdXYlrGh+D6TVGp3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-
-    <!-- Custom Script -->
     <script>
 class ImageManager {
     constructor() {
@@ -405,38 +377,32 @@ class ImageManager {
     }
 
     init() {
-        // Initialize cropper modal handlers
         document.getElementById('cropBtn').addEventListener('click', () => this.cropImage());
         
-        // Clear cropper instance when modal is hidden
         $('#cropperModal').on('hidden.bs.modal', () => {
-                    if (this.cropper) {
-                        this.cropper.destroy();
-                        this.cropper = null;
-                    }
-                });
+            if (this.cropper) {
+                this.cropper.destroy();
+                this.cropper = null;
+            }
+        });
 
-                // Initialize cropper when modal is shown
-                $('#cropperModal').on('shown.bs.modal', () => {
+        $('#cropperModal').on('shown.bs.modal', () => {
             const image = document.getElementById('cropperImage');
             
-            // Ensure we destroy any existing cropper before creating a new one
             if (this.cropper) {
                 this.cropper.destroy();
             }
             
-            // Wait a brief moment for the image to fully render
             setTimeout(() => {
-                // Initialize new cropper
                 this.cropper = new Cropper(image, {
                     aspectRatio: 1,
-                    viewMode: 1,  // Changed to viewMode 1
+                    viewMode: 1,
                     zoomable: true,
                     scalable: true,
                     rotatable: true,
                     movable: true,
                     dragMode: 'move',
-                    autoCropArea: 0.9,  // Increased auto crop area
+                    autoCropArea: 0.9,
                     responsive: true,
                     cropBoxMovable: true,
                     cropBoxResizable: true,
@@ -447,7 +413,6 @@ class ImageManager {
             }, 300);
         });
 
-        // Ensure modal close buttons work
         $('.close, .btn-secondary').on('click', () => {
             $('#cropperModal').modal('hide');
         });
@@ -483,7 +448,6 @@ class ImageManager {
 
             this.addThumbnail(file, index, e.target.result);
 
-            // Ensure name attribute is set
             input.name = 'images';
             console.log(`File selected for input ${index}:`, {
                 name: file.name,
@@ -499,16 +463,13 @@ class ImageManager {
         const imagePreview = document.getElementById(`imgView${index}`);
         const cropperImage = document.getElementById('cropperImage');
         
-        // Reset cropper if it exists
         if (this.cropper) {
             this.cropper.destroy();
             this.cropper = null;
         }
         
-        // Set source and show modal
         cropperImage.src = imagePreview.src;
         
-        // Show modal after a short delay to ensure image is loaded
         setTimeout(() => {
             $('#cropperModal').modal('show');
         }, 100);
@@ -564,20 +525,17 @@ class ImageManager {
         }
     }
 
-
     updateFileInput(index, file) {
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
 
         const fileInput = document.getElementById(`imageFile${index}`);
         fileInput.files = dataTransfer.files;
-        fileInput.name = 'images'; // Explicitly set name to "images"
+        fileInput.name = 'images';
 
-        // Update the label
         const label = fileInput.nextElementSibling;
         label.textContent = file.name;
 
-        // Log for debugging
         console.log(`Updated file input ${index}:`, {
             name: file.name,
             size: file.size,
@@ -587,7 +545,6 @@ class ImageManager {
     }
 
     updateThumbnail(index, blobUrl) {
-        // Find existing thumbnail for this index
         const existingThumbnail = document.querySelector(`.thumbnail[data-index="${index}"]`);
         if (existingThumbnail) {
             const img = existingThumbnail.querySelector('img');
@@ -612,10 +569,8 @@ class ImageManager {
     addThumbnail(file, index, blobUrl) {
         const container = document.getElementById('addedImagesContainer');
         
-        // First remove existing thumbnail for this index if it exists
         this.removeExistingThumbnail(index);
         
-        // Create new thumbnail element
         const thumbnail = document.createElement('div');
         thumbnail.classList.add('thumbnail');
         thumbnail.setAttribute('data-index', index);
@@ -627,7 +582,7 @@ class ImageManager {
         removeIcon.classList.add('remove-icon');
         removeIcon.innerHTML = '×';
         removeIcon.onclick = (e) => {
-            e.stopPropagation(); // Prevent event bubbling
+            e.stopPropagation();
             this.removeThumbnail(index);
         };
         
@@ -635,7 +590,6 @@ class ImageManager {
         thumbnail.appendChild(removeIcon);
         container.appendChild(thumbnail);
         
-        // Update the stored images array
         const imageInfo = { file, index, blobUrl };
         const existingIndex = this.selectedImages.findIndex(img => img.index === index);
         
@@ -647,13 +601,8 @@ class ImageManager {
     }
 
     removeThumbnail(index) {
-        // Remove the thumbnail element
         this.removeExistingThumbnail(index);
-        
-        // Clear the file input
         this.clearInput(index);
-        
-        // Remove from selected images array
         this.selectedImages = this.selectedImages.filter(img => img.index !== index);
     }
 
@@ -669,7 +618,6 @@ class ImageManager {
     }
 }
 
-
 class FormValidator {
     static async validate() {
         this.clearErrors();
@@ -677,13 +625,11 @@ class FormValidator {
         const imageManager = window.imageManager;
         let isValid = true;
 
-        // Define validations for all form fields
         const validations = [
             { field: 'productName', errorId: 'productName-error', message: 'Please enter a product name', check: v => v.trim() === '' },
             { field: 'brand', errorId: 'brand-error', message: 'Please select a brand', check: v => v.trim() === '' || v === 'undefined' },
             { field: 'description', errorId: 'description-error', message: 'Please enter a product description', check: v => v.trim() === '' },
             { field: 'regularPrice', errorId: 'regularPrice-error', message: 'Please enter a valid price', check: v => !v || isNaN(v) || Number(v) <= 0 },
-            { field: 'salePrice', errorId: 'salePrice-error', message: 'Please enter a valid sale price (or leave blank)', check: v => v && (isNaN(v) || Number(v) < 0), optional: true },
             { field: 'quantity', errorId: 'quantity-error', message: 'Please enter a valid quantity', check: v => !v || isNaN(v) || Number(v) < 0 },
             { field: 'color', errorId: 'color-error', message: 'Please enter a color', check: v => v.trim() === '' },
             { field: 'category', errorId: 'category-error', message: 'Please select a category', check: v => v.trim() === '' || v === 'undefined' },
@@ -691,7 +637,6 @@ class FormValidator {
             { field: 'highlights', errorId: 'highlights-error', message: 'Please add at least one highlight', check: v => v.trim() === '' }
         ];
 
-        // Validate all fields
         for (const val of validations) {
             const value = form.elements[val.field].value;
             if (!val.optional && val.check(value)) {
@@ -700,7 +645,6 @@ class FormValidator {
             }
         }
 
-        // Check product name uniqueness
         if (isValid) {
             const productName = form.elements['productName'].value;
             try {
@@ -724,26 +668,11 @@ class FormValidator {
             }
         }
 
-        // Validate price relationship
-        const regularPrice = Number(form.elements['regularPrice'].value);
-        const salePrice = form.elements['salePrice'].value;
-        if (salePrice) {
-            if (isNaN(salePrice) || Number(salePrice) < 0) {
-                this.displayError('salePrice-error', 'Please enter a valid sale price');
-                isValid = false;
-            } else if (Number(salePrice) >= regularPrice) {
-                this.displayError('salePrice-error', 'Sale price must be less than regular price');
-                isValid = false;
-            }
-        }
-
-        // Validate images
         if (imageManager.getImageCount() < 3) {
-            this.displayError('images-error', 'Please upload at least Three image');
+            this.displayError('images-error', 'Please upload at least three images');
             isValid = false;
         }
 
-        // Validate highlights (ensure at least one non-empty line)
         const highlights = form.elements['highlights'].value.trim();
         if (!highlights) {
             this.displayError('highlights-error', 'Please add at least one highlight');
@@ -756,7 +685,6 @@ class FormValidator {
             }
         }
 
-        // Validate specifications (ensure at least one non-empty line)
         const specifications = form.elements['specifications'].value.trim();
         if (!specifications) {
             this.displayError('specifications-error', 'Please add at least one specification');
@@ -768,7 +696,6 @@ class FormValidator {
                 isValid = false;
             }
         }
-
 
         return isValid;
     }
@@ -783,7 +710,6 @@ class FormValidator {
         const form = document.getElementById('productForm');
         const formData = new FormData(form);
 
-        // Log FormData contents
         console.log('FormData contents:');
         for (let [key, value] of formData.entries()) {
             if (value instanceof File) {
@@ -820,13 +746,13 @@ class FormValidator {
         }
     }
 
-        static displayError(id, message) {
-            document.getElementById(id).textContent = message;
-        }
+    static displayError(id, message) {
+        document.getElementById(id).textContent = message;
+    }
 
-        static clearErrors() {
-            document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-        }
+    static clearErrors() {
+        document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+    }
 }
 
 function addSpecification() {
@@ -845,37 +771,31 @@ function removeSpecification(button) {
     button.closest('.specification-entry').remove();
 }
 
-    
-   
-  
 document.addEventListener('DOMContentLoaded', () => {
-    
     window.imageManager = new ImageManager();
     
-    
     $(document).on('click', '.modal', function(e) {
-            if ($(e.target).hasClass('modal')) {
-                $(this).modal('hide');
-            }
-        });
-        
-        
-        $('.close, .btn-secondary').on('click', function() {
-            $('#cropperModal').modal('hide');
-        });
+        if ($(e.target).hasClass('modal')) {
+            $(this).modal('hide');
+        }
     });
+        
+    $('.close, .btn-secondary').on('click', function() {
+        $('#cropperModal').modal('hide');
+    });
+});
 
-    
-    function handleImageSelect(input, index) {
-        window.imageManager.handleImageSelect(input, index);
-    }
+function handleImageSelect(input, index) {
+    window.imageManager.handleImageSelect(input, index);
+}
 
-    function openCropModal(index) {
-        window.imageManager.openCropModal(index);
-    }
+function openCropModal(index) {
+    window.imageManager.openCropModal(index);
+}
 
-    function validateAndSubmit() {
-        FormValidator.submit();
-    }
-
+function validateAndSubmit() {
+    FormValidator.submit();
+}
 </script>
+</body>
+</html>
