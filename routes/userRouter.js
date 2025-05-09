@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user/userController');
+const shopController = require('../controllers/user/shopController');
 const productController = require('../controllers/user/productController');
 const forgotPasswordController = require('../controllers/user/forgotPasswordController');
 const profileController = require('../controllers/user/profileController');
@@ -19,10 +20,10 @@ const multer = require('../helpers/multer');
 
 // Public routes (no authentication required)
 router.get('/', userController.loadHomepage);
-router.get('/shop', userController.loadShoppingPage);
-router.post('/search', userController.searchProducts);
-router.get('/filter', userController.filterProduct);
-router.get('/filter-price', userController.filterByPrice);
+router.get('/shop', shopController.loadShoppingPage);
+router.post('/search', shopController.searchProducts);
+router.get('/filter', shopController.filterProduct);
+router.get('/filter-price', shopController.filterByPrice);
 router.get('/product-details', productController.productDetails);
 router.get('/login', isLogin, userController.loadLogin);
 router.post('/login', isLogin, userController.login);
@@ -149,7 +150,7 @@ router.post('/place-order', checkoutController.placeOrder);
 router.post('/verify-payment', checkoutController.verifyRazorpayPayment);
 router.get('/order-success', checkoutController.getOrderSuccessPage);
 router.get('/order-failure', checkoutController.getOrderFailurePage);
-router.post('/clear-session',checkoutController.clearSession);
+router.post('/clear-session', checkoutController.clearSession);
 
 //order routes
 router.get('/orders', orderController.getOrderList);
