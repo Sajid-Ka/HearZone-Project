@@ -25,8 +25,13 @@ const productSchema = new Schema({
         required: true
     },
     salePrice: { 
-        type: Number, 
-        default:0
+        type: Number,
+        default: 0
+    },
+    offer: {
+        type: Schema.Types.ObjectId,
+        ref: 'Offer',
+        default: null
     },
     quantity: { 
         type: Number, 
@@ -39,7 +44,7 @@ const productSchema = new Schema({
     productImage: { 
         type: [String], 
         required: false,
-        default:[]
+        default: []
     }, 
     isBlocked: { 
         type: Boolean, 
@@ -61,5 +66,4 @@ const productSchema = new Schema({
     }
 }, { timestamps: true });
 
-const Product = mongoose.model("Product", productSchema);
-module.exports = Product;
+module.exports = mongoose.model("Product", productSchema);

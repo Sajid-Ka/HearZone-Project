@@ -1,7 +1,7 @@
 const Product = require('../../models/productSchema');
 const Category = require('../../models/categorySchema');
 const Brand = require('../../models/brandSchema');
-const User = require('../../models/userSchema');
+const Offer = require('../../models/offerSchema');
 const fs = require('fs').promises; 
 const path = require('path');
 const sharp = require('sharp');
@@ -141,38 +141,55 @@ const getAllProducts = async (req, res) => {
             ]
         };
 
-        const [productData, count, category, brand] = await Promise.all([
+        const [productData, count, category, brand, offers] = await Promise.all([
             Product.find(searchQuery)
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .skip((page - 1) * limit)
                 .populate("category")
                 .populate("brand")
+                .populate("offer")
                 .lean(),
             Product.countDocuments(searchQuery),
             Category.find({ isListed: true }),
-            Brand.find({ isBlocked: false })
+            Brand.find({ isBlocked: false }),
+            Offer.find({ isActive: true, endDate: { $gte: new Date() } })
         ]);
+
+        // Update salePrice for expired offers
+        const updatedProducts = await Promise.all(productData.map(async (product) => {
+            if (product.offer && new Date(product.offer.endDate) < new Date()) {
+                await Product.findByIdAndUpdate(product._id, {
+                    offer: null,
+                    salePrice: 0
+                });
+                product.offer = null;
+                product.salePrice = 0;
+            }
+            return product;
+        }));
 
         if (format === 'json' || req.headers.accept.includes('application/json')) {
             return res.json({
                 success: true,
-                data: productData,
+                data: updatedProducts,
                 currentPage: page,
                 totalPages: Math.ceil(count / limit),
                 search,
-                isBlocked
+                isBlocked,
+                offers
             });
         }
 
         res.render("products", {
-            data: productData,
+            data: updatedProducts,
             currentPage: page,
             totalPages: Math.ceil(count / limit),
             cat: category,
             brand: brand,
             search: search,
-            isBlocked: isBlocked
+            isBlocked: isBlocked,
+            offers
         });
     } catch (error) {
         console.error("Error fetching products:", error);
@@ -227,7 +244,7 @@ const getEditProduct = async (req, res) => {
     try {
         const id = req.query.id;
         const [product, category, brand] = await Promise.all([
-            Product.findOne({ _id: id }),
+            Product.findOne({ _id: id }).populate('offer'),
             Category.find({}),
             Brand.find({})
         ]);

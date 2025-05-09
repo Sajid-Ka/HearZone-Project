@@ -4,12 +4,13 @@ const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
 const { isAdminAuth, isAdminLogin } = require('../middlewares/auth');
 const customerController = require('../controllers/admin/customerController');
-const orderController = require('../controllers/admin/orderController')
+const orderController = require('../controllers/admin/orderController');
 const categoryController = require('../controllers/admin/categoryController');
 const brandController = require('../controllers/admin/brandController');
 const productController = require('../controllers/admin/productController');
 const couponController = require('../controllers/admin/couponController');
 const walletController = require('../controllers/admin/walletController');
+const offerController = require('../controllers/admin/offerController');
 const multer = require('../helpers/multer');
 
 router.get('/pageError', adminController.pageError);
@@ -22,6 +23,12 @@ router.get('/logout', isAdminAuth, adminController.logout);
 
 // Apply adminAuth middleware to all routes
 router.use(isAdminAuth);
+
+// Offer routes
+router.get('/offers', offerController.getOfferPage);
+router.post('/offers/create', offerController.createOffer);
+router.post('/offers/assign', offerController.assignOfferToProduct);
+router.post('/offers/remove', offerController.removeOfferFromProduct);
 
 // customers
 router.get('/users', customerController.customerInfo);
@@ -122,6 +129,5 @@ router.post('/coupons/toggle/:id', couponController.toggleCouponStatus);
 router.get('/wallets', walletController.getAllWallets);
 router.get('/wallets/:userId', walletController.getWalletDetails);
 router.post('/orders/:orderId/wallet-payment', orderController.processWalletPayment);
-
 
 module.exports = router;
