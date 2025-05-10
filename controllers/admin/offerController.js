@@ -13,14 +13,10 @@ const getOfferPage = async (req, res) => {
 
 const createOffer = async (req, res) => {
     try {
-        const { name, discountType, discountValue, startDate, endDate, productId, regularPrice } = req.body;
+        const { name, discountType, discountValue, endDate, productId, regularPrice } = req.body;
 
         if (!productId || !regularPrice) {
             return res.status(400).json({ success: false, message: 'Product ID and regular price are required' });
-        }
-
-        if (new Date(endDate) <= new Date(startDate)) {
-            return res.status(400).json({ success: false, message: 'End date must be after start date' });
         }
 
         if (discountType === 'percentage' && (discountValue < 0 || discountValue > 100)) {
@@ -31,7 +27,6 @@ const createOffer = async (req, res) => {
             name,
             discountType,
             discountValue,
-            startDate,
             endDate,
             products: [productId]
         });
@@ -65,7 +60,7 @@ const createOffer = async (req, res) => {
 
 const assignOfferToProduct = async (req, res) => {
     try {
-        const { productId, offerId, discountValue, startDate, endDate, regularPrice } = req.body;
+        const { productId, offerId, discountValue, endDate, regularPrice } = req.body;
 
         if (!productId || !regularPrice) {
             return res.status(400).json({ success: false, message: 'Product ID and regular price are required' });
@@ -81,12 +76,7 @@ const assignOfferToProduct = async (req, res) => {
 
             // Update offer details
             offer.discountValue = discountValue || offer.discountValue;
-            offer.startDate = startDate || offer.startDate;
             offer.endDate = endDate || offer.endDate;
-
-            if (new Date(offer.endDate) <= new Date(offer.startDate)) {
-                return res.status(400).json({ success: false, message: 'End date must be after start date' });
-            }
 
             if (offer.discountType === 'percentage' && (offer.discountValue < 0 || offer.discountValue > 100)) {
                 return res.status(400).json({ success: false, message: 'Percentage discount must be between 0 and 100' });

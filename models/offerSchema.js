@@ -17,10 +17,6 @@ const offerSchema = new Schema({
         required: true,
         min: 0
     },
-    startDate: {
-        type: Date,
-        required: true
-    },
     endDate: {
         type: Date,
         required: true

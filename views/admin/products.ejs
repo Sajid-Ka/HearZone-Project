@@ -200,6 +200,8 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            min-width: 120px;
+            white-space: nowrap;
         }
         
         .action-btn:hover {
@@ -210,6 +212,8 @@
         .offer-btn {
             background: var(--info);
             color: white;
+            width: 100%;
+            min-width: 120px;
         }
         
         .offer-btn:hover {
@@ -516,15 +520,14 @@
                         <span class="quantity-badge <%= quantityClass %>"><%= data[i].quantity %></span>
                     </td>
                     <td>
-                        <button class="action-btn offer-btn w-100" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#addOfferModal"
+                        <button class="action-btn <%= data[i].offer && new Date(data[i].offer.endDate) >= new Date() ? 'cancel-offer-btn' : 'offer-btn' %> w-100" 
                                 data-product-id="<%= data[i]._id %>"
                                 data-product-name="<%= data[i].productName %>"
                                 data-regular-price="<%= data[i].regularPrice %>"
-                                data-current-offer="<%= data[i].offer ? JSON.stringify(data[i].offer) : '' %>">
-                            <i class="fas fa-tag fa-sm"></i> 
-                            <%= data[i].offer && new Date(data[i].offer.endDate) >= new Date() ? 'Edit Offer' : 'Add Offer' %>
+                                data-current-offer="<%= data[i].offer ? JSON.stringify(data[i].offer) : '' %>"
+                                <%= data[i].offer && new Date(data[i].offer.endDate) >= new Date() ? '' : 'data-bs-toggle="modal" data-bs-target="#addOfferModal"' %>>
+                            <i class="fas <%= data[i].offer && new Date(data[i].offer.endDate) >= new Date() ? 'fa-times-circle' : 'fa-tag' %> fa-sm"></i> 
+                            <%= data[i].offer && new Date(data[i].offer.endDate) >= new Date() ? 'Cancel Offer' : 'Add Offer' %>
                         </button>
                     </td>
                     <td>
@@ -600,11 +603,6 @@
                             <label for="discountValue" class="form-label">Discount Percentage (%)</label>
                             <input type="number" class="form-control" id="discountValue" name="discountValue" min="0" max="100" step="1">
                             <div class="error-message" id="discountValueError"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="startDate" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="startDate" name="startDate">
-                            <div class="error-message" id="startDateError"></div>
                         </div>
                         <div class="mb-3">
                             <label for="endDate" class="form-label">End Date</label>
@@ -701,14 +699,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="quantity-badge ${quantityClass}">${product.quantity}</span>
                             </td>
                             <td>
-                                <button class="action-btn offer-btn w-100" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#addOfferModal"
+                                <button class="action-btn ${isOfferActive ? 'cancel-offer-btn' : 'offer-btn'} w-100" 
                                         data-product-id="${product._id}"
                                         data-product-name="${product.productName}"
                                         data-regular-price="${product.regularPrice}"
-                                        data-current-offer='${product.offer ? JSON.stringify(product.offer) : ''}'>
-                                    <i class="fas fa-tag fa-sm"></i> ${isOfferActive ? 'Edit Offer' : 'Add Offer'}
+                                        data-current-offer='${product.offer ? JSON.stringify(product.offer) : ''}'
+                                        ${isOfferActive ? '' : 'data-bs-toggle="modal" data-bs-target="#addOfferModal"'}>
+                                    <i class="fas ${isOfferActive ? 'fa-times-circle' : 'fa-tag'} fa-sm"></i> 
+                                    ${isOfferActive ? 'Cancel Offer' : 'Add Offer'}
                                 </button>
                             </td>
                             <td>
@@ -994,11 +992,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateOfferForm() {
         let isValid = true;
         const discountValue = document.getElementById('discountValue');
-        const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         
         // Reset error states
-        [discountValue, startDate, endDate].forEach(input => {
+        [discountValue, endDate].forEach(input => {
             input.classList.remove('is-invalid');
             document.getElementById(`${input.id}Error`).textContent = '';
         });
@@ -1015,29 +1012,11 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
 
-        // Validate start date
-        const start = new Date(startDate.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (!startDate.value) {
-            startDate.classList.add('is-invalid');
-            document.getElementById('startDateError').textContent = 'Start date is required';
-            isValid = false;
-        } else if (start < today) {
-            startDate.classList.add('is-invalid');
-            document.getElementById('startDateError').textContent = 'Start date cannot be in the past';
-            isValid = false;
-        }
-
         // Validate end date
         const end = new Date(endDate.value);
         if (!endDate.value) {
             endDate.classList.add('is-invalid');
             document.getElementById('endDateError').textContent = 'End date is required';
-            isValid = false;
-        } else if (end <= start) {
-            endDate.classList.add('is-invalid');
-            document.getElementById('endDateError').textContent = 'End date must be after start date';
             isValid = false;
         }
 
@@ -1046,13 +1025,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to attach offer modal event listeners
     function attachOfferModalListeners() {
-        const offerButtons = document.querySelectorAll('.offer-btn');
+        const offerButtons = document.querySelectorAll('.offer-btn, .cancel-offer-btn');
         const offerModal = document.getElementById('addOfferModal');
         const productNameSpan = document.getElementById('productName');
         const productNameInput = document.getElementById('productNameInput');
         const regularPriceInput = document.getElementById('regularPrice');
         const discountValue = document.getElementById('discountValue');
-        const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         const productIdInput = document.getElementById('productId');
         const offerIdInput = document.getElementById('offerId');
@@ -1065,14 +1043,89 @@ document.addEventListener('DOMContentLoaded', function() {
             button.addEventListener('click', handleOfferButtonClick);
         });
 
-        function handleOfferButtonClick() {
+        async function handleOfferButtonClick(e) {
             const productId = this.getAttribute('data-product-id');
             const productName = this.getAttribute('data-product-name');
             const regularPrice = this.getAttribute('data-regular-price');
             const currentOffer = this.getAttribute('data-current-offer');
 
+            // If it's a cancel offer button
+            if (this.classList.contains('cancel-offer-btn')) {
+                e.preventDefault();
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: "Do you want to cancel this offer?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e63946',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, cancel it!',
+                    cancelButtonText: 'No'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        this.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cancelling...';
+                        this.disabled = true;
+
+                        const response = await fetch('/admin/offers/remove', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ productId })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update button to Add Offer
+                            this.classList.remove('cancel-offer-btn');
+                            this.classList.add('offer-btn');
+                            this.setAttribute('data-bs-toggle', 'modal');
+                            this.setAttribute('data-bs-target', '#addOfferModal');
+                            this.innerHTML = '<i class="fas fa-tag fa-sm"></i> Add Offer';
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Offer cancelled successfully',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                            // Reload page to update prices
+                            const search = document.querySelector('#searchInput').value;
+                            const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
+                            loadPage(1, search, isBlocked);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.message || 'Failed to cancel offer',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error cancelling offer:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Failed to cancel offer. Please try again.',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    } finally {
+                        this.disabled = false;
+                    }
+                }
+                return;
+            }
+
+            // For Add Offer button, open modal
             // Reset form
-            [discountValue, startDate, endDate].forEach(input => {
+            [discountValue, endDate].forEach(input => {
                 input.value = '';
                 input.classList.remove('is-invalid');
                 document.getElementById(`${input.id}Error`).textContent = '';
@@ -1083,24 +1136,8 @@ document.addEventListener('DOMContentLoaded', function() {
             regularPriceInput.value = `₹${regularPrice}`;
             productIdInput.value = productId;
             offerIdInput.value = '';
-
-            if (currentOffer) {
-                const offer = JSON.parse(currentOffer);
-                if (new Date(offer.endDate) >= new Date()) {
-                    offerAction.textContent = 'Edit';
-                    discountValue.value = offer.discountValue;
-                    startDate.value = new Date(offer.startDate).toISOString().split('T')[0];
-                    endDate.value = new Date(offer.endDate).toISOString().split('T')[0];
-                    offerIdInput.value = offer._id;
-                    cancelOfferBtn.style.display = 'inline-block'; // Show Cancel Offer button
-                } else {
-                    offerAction.textContent = 'Add';
-                    cancelOfferBtn.style.display = 'none'; // Hide Cancel Offer button
-                }
-            } else {
-                offerAction.textContent = 'Add';
-                cancelOfferBtn.style.display = 'none'; // Hide Cancel Offer button
-            }
+            offerAction.textContent = 'Add';
+            cancelOfferBtn.style.display = 'none';
         }
 
         // Remove existing listener for save button
@@ -1114,7 +1151,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const productId = productIdInput.value;
             const discountValue = parseFloat(document.getElementById('discountValue').value);
-            const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const offerId = offerIdInput.value;
             const regularPrice = parseFloat(regularPriceInput.value.replace('₹', ''));
@@ -1131,7 +1167,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         productId,
                         offerId,
                         discountValue,
-                        startDate,
                         endDate,
                         regularPrice
                     };
@@ -1143,7 +1178,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         name: `Offer for ${productNameInput.value}`,
                         discountType: 'percentage',
                         discountValue,
-                        startDate,
                         endDate,
                         regularPrice
                     };
@@ -1201,85 +1235,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } finally {
                 saveOfferBtn.innerHTML = 'Save Offer';
                 saveOfferBtn.disabled = false;
-            }
-        }
-
-        // Add event listener for Cancel Offer button
-        cancelOfferBtn.removeEventListener('click', handleCancelOfferClick);
-        cancelOfferBtn.addEventListener('click', handleCancelOfferClick);
-
-        async function handleCancelOfferClick() {
-            const productId = productIdInput.value;
-
-            const result = await Swal.fire({
-                title: 'Are you sure?',
-                text: "Do you want to cancel this offer for the product?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e63946',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, cancel it!',
-                cancelButtonText: 'No'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    cancelOfferBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cancelling...';
-                    cancelOfferBtn.disabled = true;
-
-                    const response = await fetch('/admin/offers/remove', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ productId })
-                    });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'Offer cancelled successfully',
-                            timer: 2000,
-                            showConfirmButton: false
-                        }).then(() => {
-                            // Force close modal and remove backdrop
-                            const modal = bootstrap.Modal.getInstance(offerModal);
-                            if (modal) {
-                                modal.hide();
-                                document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-                                document.body.classList.remove('modal-open');
-                                document.body.style = '';
-                            }
-                            // Reload page
-                            const search = document.querySelector('#searchInput').value;
-                            const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
-                            loadPage(1, search, isBlocked);
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: data.message || 'Failed to cancel offer',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error cancelling offer:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: 'Failed to cancel offer. Please try again.',
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
-                } finally {
-                    cancelOfferBtn.innerHTML = 'Cancel Offer';
-                    cancelOfferBtn.disabled = false;
-                }
             }
         }
     }

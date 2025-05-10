@@ -123,6 +123,8 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            min-width: 120px;
+            white-space: nowrap;
         }
 
         .action-btn:hover {
@@ -133,6 +135,7 @@
         .add-btn {
             background: var(--success);
             color: white;
+            min-width: 120px;
         }
 
         .add-btn:hover {
@@ -209,7 +212,6 @@
                     <th scope="col">OFFER NAME</th>
                     <th scope="col">DISCOUNT TYPE</th>
                     <th scope="col">DISCOUNT VALUE</th>
-                    <th scope="col">START DATE</th>
                     <th scope="col">END DATE</th>
                     <th scope="col">STATUS</th>
                     <th scope="col">PRODUCTS</th>
@@ -232,7 +234,6 @@
                     <td><strong><%= offer.name %></strong></td>
                     <td><%= offer.discountType.charAt(0).toUpperCase() + offer.discountType.slice(1) %></td>
                     <td><%= offer.discountType === 'percentage' ? offer.discountValue + '%' : '₹' + offer.discountValue %></td>
-                    <td><%= new Date(offer.startDate).toLocaleDateString() %></td>
                     <td><%= new Date(offer.endDate).toLocaleDateString() %></td>
                     <td>
                         <span class="status-badge <%= offer.isActive && new Date(offer.endDate) >= new Date() ? 'status-active' : 'status-expired' %>">
@@ -273,10 +274,6 @@
                             <input type="number" class="form-control" id="discountValue" name="discountValue" min="0" required>
                         </div>
                         <div class="mb-3">
-                            <label for="startDate" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="startDate" name="startDate" required>
-                        </div>
-                        <div class="mb-3">
                             <label for="endDate" class="form-label">End Date</label>
                             <input type="date" class="form-control" id="endDate" name="endDate" required>
                         </div>
@@ -306,18 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const formData = new FormData(createOfferForm);
         const offerData = Object.fromEntries(formData);
-
-        // Validate dates
-        if (new Date(offerData.endDate) <= new Date(offerData.startDate)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Invalid Dates',
-                text: 'End date must be after start date',
-                timer: 3000,
-                showConfirmButton: false
-            });
-            return;
-        }
 
         try {
             saveNewOfferBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Creating...';
@@ -372,9 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Set minimum date for startDate and endDate
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('startDate').setAttribute('min', today);
-    document.getElementById('endDate').setAttribute('min', today);
+    document.getElementById('endDate').setAttribute('min', new Date().toISOString().split('T')[0]);
 });
 </script>
 
