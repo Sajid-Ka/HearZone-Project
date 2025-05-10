@@ -18,6 +18,9 @@ const reviewController = require('../controllers/user/reviewController');
 const walletController = require('../controllers/user/walletController');
 const multer = require('../helpers/multer');
 
+
+router.get('/pageNotFound',userController.pageNotFound);
+
 // Public routes (no authentication required)
 router.get('/', userController.loadHomepage);
 router.get('/shop', shopController.loadShoppingPage);

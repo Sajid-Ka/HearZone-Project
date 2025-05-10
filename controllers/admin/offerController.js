@@ -13,8 +13,12 @@ const getOfferPage = async (req, res) => {
 
 const createOffer = async (req, res) => {
     try {
-        const { name, discountType, discountValue, startDate, endDate } = req.body;
-        
+        const { name, discountType, discountValue, startDate, endDate, productId, regularPrice } = req.body;
+
+        if (!productId || !regularPrice) {
+            return res.status(400).json({ success: false, message: 'Product ID and regular price are required' });
+        }
+
         if (new Date(endDate) <= new Date(startDate)) {
             return res.status(400).json({ success: false, message: 'End date must be after start date' });
         }
@@ -28,11 +32,31 @@ const createOffer = async (req, res) => {
             discountType,
             discountValue,
             startDate,
-            endDate
+            endDate,
+            products: [productId]
         });
 
         await offer.save();
-        res.status(200).json({ success: true, message: 'Offer created successfully', offer });
+
+        // Calculate sale price
+        let salePrice = parseFloat(regularPrice);
+        if (offer.discountType === 'percentage') {
+            salePrice = salePrice * (1 - offer.discountValue / 100);
+        } else {
+            salePrice = salePrice - offer.discountValue;
+        }
+
+        // Update product
+        await Product.findByIdAndUpdate(productId, {
+            offer: offer._id,
+            salePrice: Math.max(0, Math.round(salePrice))
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Offer created and assigned successfully', 
+            offer 
+        });
     } catch (error) {
         console.error('Error creating offer:', error);
         res.status(500).json({ success: false, message: 'Error creating offer' });
@@ -41,15 +65,41 @@ const createOffer = async (req, res) => {
 
 const assignOfferToProduct = async (req, res) => {
     try {
-        const { productId, offerId } = req.body;
-        
-        const [product, offer] = await Promise.all([
-            Product.findById(productId),
-            Offer.findById(offerId)
-        ]);
+        const { productId, offerId, discountValue, startDate, endDate, regularPrice } = req.body;
 
-        if (!product || !offer) {
-            return res.status(404).json({ success: false, message: 'Product or offer not found' });
+        if (!productId || !regularPrice) {
+            return res.status(400).json({ success: false, message: 'Product ID and regular price are required' });
+        }
+
+        let offer;
+        if (offerId) {
+            // Update existing offer
+            offer = await Offer.findById(offerId);
+            if (!offer) {
+                return res.status(404).json({ success: false, message: 'Offer not found' });
+            }
+
+            // Update offer details
+            offer.discountValue = discountValue || offer.discountValue;
+            offer.startDate = startDate || offer.startDate;
+            offer.endDate = endDate || offer.endDate;
+
+            if (new Date(offer.endDate) <= new Date(offer.startDate)) {
+                return res.status(400).json({ success: false, message: 'End date must be after start date' });
+            }
+
+            if (offer.discountType === 'percentage' && (offer.discountValue < 0 || offer.discountValue > 100)) {
+                return res.status(400).json({ success: false, message: 'Percentage discount must be between 0 and 100' });
+            }
+
+            await offer.save();
+        } else {
+            return res.status(400).json({ success: false, message: 'Offer ID is required for assignment' });
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
         if (new Date() > new Date(offer.endDate)) {
@@ -57,20 +107,20 @@ const assignOfferToProduct = async (req, res) => {
         }
 
         // Calculate sale price
-        let salePrice = product.regularPrice;
+        let salePrice = parseFloat(regularPrice);
         if (offer.discountType === 'percentage') {
-            salePrice = product.regularPrice * (1 - offer.discountValue / 100);
+            salePrice = salePrice * (1 - offer.discountValue / 100);
         } else {
-            salePrice = product.regularPrice - offer.discountValue;
+            salePrice = salePrice - offer.discountValue;
         }
 
         // Update product
         await Product.findByIdAndUpdate(productId, {
-            offer: offerId,
+            offer: offer._id,
             salePrice: Math.max(0, Math.round(salePrice))
         });
 
-        // Add product to offer
+        // Add product to offer if not already included
         if (!offer.products.includes(productId)) {
             offer.products.push(productId);
             await offer.save();
@@ -78,7 +128,7 @@ const assignOfferToProduct = async (req, res) => {
 
         res.status(200).json({ 
             success: true, 
-            message: 'Offer assigned successfully',
+            message: offerId ? 'Offer updated and assigned successfully' : 'Offer assigned successfully',
             salePrice: Math.max(0, Math.round(salePrice))
         });
     } catch (error) {

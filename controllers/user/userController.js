@@ -50,7 +50,6 @@ const sendVerificationEmail = async (email, otp) => {
 
 const pageNotFound = async (req, res) => {
     try {
-      console.log('Rendering 404 page'); 
       res.status(404).render('page-404');
     } catch (err) {
       console.error('Page not found error:', err);
@@ -71,17 +70,42 @@ const loadHomepage = async (req, res) => {
             isBlocked: false,
             category: { $in: categoryIds },
             brand: { $nin: blockedBrandIds } 
-        }).populate('brand');
+        })
+        .populate('brand')
+        .populate('offer')
+        .populate('category');
 
-        productData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        productData = productData.slice(0, 4);
+        // Process products with correct pricing
+        const processedProducts = productData.map(product => {
+            let salePrice = product.regularPrice;
+            let totalOffer = 0;
+            
+            if (product.offer) {
+                // Calculate sale price based on offer type
+                if (product.offer.discountType === 'percentage') {
+                    salePrice = product.regularPrice * (1 - product.offer.discountValue / 100);
+                    totalOffer = product.offer.discountValue;
+                } else {
+                    salePrice = product.regularPrice - product.offer.discountValue;
+                    totalOffer = Math.round((product.offer.discountValue / product.regularPrice) * 100);
+                }
+                salePrice = Math.round(salePrice);
+            }
 
-        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        
+            return {
+                ...product.toObject(),
+                totalOffer,
+                salePrice,
+                displayPrice: salePrice.toLocaleString('en-IN')
+            };
+        });
+
+        processedProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const latestProducts = processedProducts.slice(0, 4);
+
         res.render('home', {  
             user: userData, 
-            products: productData,
-            admin: req.session.admin 
+            products: latestProducts
         });
     } catch (err) {
         console.error('Homepage load error:', err);

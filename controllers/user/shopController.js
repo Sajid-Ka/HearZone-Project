@@ -81,6 +81,7 @@ const loadShoppingPage = async (req, res) => {
 
         let productQuery = Product.find(query)
             .populate('brand')
+            .populate('offer') // Add this to populate the offer
             .sort(sortQuery)
             .skip(skip)
             .limit(limit);
@@ -93,10 +94,40 @@ const loadShoppingPage = async (req, res) => {
 
         const productsWithRatings = await Promise.all(products.map(async (product) => {
             const reviews = await Review.find({ productId: product._id });
-            const rating = reviews.length > 0 
+            
+            // Calculate average rating
+            const avgRating = reviews.length > 0 
                 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
                 : '0.0';
-            return { ...product.toObject(), rating };
+
+            // Calculate sale price if there's an offer
+            let salePrice = product.regularPrice;
+            let displayPrice = product.regularPrice.toLocaleString('en-IN');
+            let hasDiscount = false;
+            let discountBadge = '';
+
+            if (product.offer) {
+                if (product.offer.discountType === 'percentage') {
+                    salePrice = product.regularPrice * (1 - product.offer.discountValue / 100);
+                } else {
+                    salePrice = product.regularPrice - product.offer.discountValue;
+                }
+                salePrice = Math.round(salePrice);
+                displayPrice = salePrice.toLocaleString('en-IN');
+                hasDiscount = true;
+                discountBadge = product.offer.discountType === 'percentage' 
+                    ? `${Math.round(product.offer.discountValue)}% OFF` 
+                    : `₹${Math.round(product.offer.discountValue)} OFF`;
+            }
+
+            return { 
+                ...product.toObject(), 
+                rating: avgRating,
+                salePrice,
+                displayPrice,
+                hasDiscount,
+                discountBadge
+            };
         }));
 
         const categoriesWithIds = categories.map(category => ({

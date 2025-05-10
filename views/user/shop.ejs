@@ -529,8 +529,6 @@
 <br>
 <br>
 
-
-
 <div class="main-container">
   <section class="shop-page">
     <div class="shop-topbar">
@@ -613,9 +611,9 @@
         <div class="price-filter">
           <div class="filter-title">Price Range</div>
           <div class="price-options">
-            <a href="/filter-price?gt=0&lt=500" class="price-button">Under ₹500</a>
-            <a href="/filter-price?gt=1000&lt=1500" class="price-button">₹1000 - ₹1500</a>
-            <a href="/filter-price?gt=1500&lt=100000" class="price-button">Above ₹1500</a>
+            <a href="/filter-price?gt=0<=500" class="price-button">Under ₹500</a>
+            <a href="/filter-price?gt=1000<=1500" class="price-button">₹1000 - ₹1500</a>
+            <a href="/filter-price?gt=1500<=100000" class="price-button">Above ₹1500</a>
           </div>
         </div>
       </aside>
@@ -643,7 +641,7 @@
               </button>
               <a href="/product-details?id=<%=products[i]._id%>">
                 <img 
-                  src="/uploads/re-image/<%=products[i].productImage[0]%>" 
+                  src="/Uploads/re-image/<%=products[i].productImage[0]%>" 
                   alt="<%=products[i].productName%>"
                   style="<%= products[i].quantity === 0 ? 'opacity: 0.5;' : '' %>" 
                 />
@@ -657,8 +655,17 @@
                   </div>
                   <p class="product-brand"><%=products[i].brand.brandName%></p>
                   <div class="product-price">
-                    ₹<%=products[i].salePrice.toLocaleString('en-IN')%>
-                    <span class="original-price">₹<%=products[i].regularPrice.toLocaleString('en-IN')%></span>
+                    <% if (products[i].offer) { %>
+                      ₹<%= products[i].salePrice.toLocaleString('en-IN') %>
+                      <span class="original-price">₹<%= products[i].regularPrice.toLocaleString('en-IN') %></span>
+                    <% } else { %>
+                      ₹<%= products[i].regularPrice.toLocaleString('en-IN') %>
+                    <% } %>
+                    <% if (products[i].offer) { %>
+                      <span class="discount-badge" style="background: #ff4757; color: white; padding: 0.25rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-left: 0.5rem;">
+                        <%= Math.round(products[i].offer.discountValue) %><%= products[i].offer.discountType === 'percentage' ? '%' : '' %> Off
+                      </span>
+                    <% } %>
                   </div>
                 </div>
               </a>
@@ -678,18 +685,18 @@
 
     <div class="pagination">
       <% if (currentPage > 1) { %>
-        <a href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">Prev</a>
+        <a href="?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '>=' + gt : '' %><%= lt ? '<=' + lt : '' %>">Prev</a>
       <% } %>
     
       <% for (let i = 1; i <= totalPages; i++) { %>
         <a class="<%= currentPage === i ? 'active' : '' %>" 
-           href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">
+           href="?page=<%= i %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '>=' + gt : '' %><%= lt ? '<=' + lt : '' %>">
           <%= i %>
         </a>
       <% } %>
     
       <% if (currentPage < totalPages) { %>
-        <a href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '&gt=' + gt : '' %><%= lt ? '&lt=' + lt : '' %>">Next</a>
+        <a href="?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedBrand ? '&brand=' + selectedBrand : '' %><%= selectedSort ? '&sort=' + selectedSort : '' %><%= searchQuery ? '&query=' + encodeURIComponent(searchQuery) : '' %><%= gt ? '>=' + gt : '' %><%= lt ? '<=' + lt : '' %>">Next</a>
       <% } %>
     </div>
   </section>

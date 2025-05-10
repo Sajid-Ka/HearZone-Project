@@ -3,12 +3,11 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 <style>
-
   body, html {
       margin: 0;
       padding: 0;
       width: 100%;
-      overflow-x: hidden; /* Prevent horizontal scrolling on the body */
+      overflow-x: hidden;
   }
   
   .swiper-pagination {
@@ -28,10 +27,6 @@
   #yearly-sale{
     margin-top: -350px;
   }
-
-  
-
-
 </style>
 
 <br>
@@ -93,7 +88,6 @@
         </div>
       </div>
     </div>
-    <!-- Add pagination dots -->
     <div class="swiper-pagination"></div>
   </div>
 </section>
@@ -157,7 +151,6 @@
   </div>
 </section>
 
-<!-- Mobile Products Section -->
 <section id="mobile-products" class="product-store position-relative padding-large no-padding-top">
   <div class="container">
     <div class="row">
@@ -174,7 +167,7 @@
               <div class="product-card position-relative">
                 <div class="image-holder">
                   <a href="/product-details?id=<%=products[i]._id%>">
-                    <img src="/uploads/re-image/<%=products[i].productImage[0]%>" 
+                    <img src="/Uploads/re-image/<%=products[i].productImage[0]%>" 
                          alt="<%=products[i].productName%>" 
                          class="img-fluid"
                          onerror="this.onerror=null; this.src='/images/default-product.jpg';"
@@ -182,7 +175,6 @@
                   </a>
                 </div>
                 
-                <!-- Wishlist Button -->
                 <div class="wishlist-btn position-absolute top-0 end-0 m-2">
                   <button class="btn btn-sm btn-outline-secondary" 
                           onclick="handleWishlist('<%=products[i]._id%>', this)">
@@ -207,7 +199,9 @@
                   <h3 class="card-title text-uppercase">
                     <a href="#"><%=products[i].productName%></a>
                   </h3>
-                  <span class="item-price text-primary"><%=products[i].salePrice%></span>
+                  <span class="item-price text-primary">
+                    ₹<%= products[i].totalOffer > 0 ? products[i].displayPrice : products[i].regularPrice.toLocaleString('en-IN') %>
+                  </span>
                 </div>
               </div>
             </div>
@@ -219,7 +213,6 @@
   <div class="swiper-pagination position-absolute text-center"></div>
 </section>
 
-<!-- Yearly Sale Section -->
 <section id="yearly-sale" class="bg-light-blue overflow-hidden padding-xlarge" 
   style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('images/single-image1.png'); 
          background-position: center;
@@ -249,9 +242,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.all.min.js"></script>
-
-
-
 
 <script>
   var mainSwiper = new Swiper('.main-swiper', {
@@ -430,7 +420,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Swiper
     const swiper = new Swiper('.main-swiper', {
       slidesPerView: 1,
       spaceBetween: 30,
@@ -454,10 +443,9 @@
       },
     });
 
-    // Check wishlist status for each product
     <% if (user) { %>
       document.querySelectorAll('.wishlist-btn').forEach(btnDiv => {
-        const button = btnDiv.querySelector('button'); // select the real <button> inside
+        const button = btnDiv.querySelector('button');
         const productCard = btnDiv.closest('.product-card');
         if (productCard && button) {
           const productId = productCard.querySelector('button[onclick^="handleAddToCart"]')
@@ -482,7 +470,5 @@
     <% } %>
   });
 </script>
-
-
 
 <%-include("../../views/partials/user/footer")%>
