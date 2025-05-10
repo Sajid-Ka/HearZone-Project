@@ -222,6 +222,58 @@
         .form-control.is-invalid {
             border-color: #dc3545;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .badge {
+            padding: 0.5em 0.75em;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.25rem;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
     </style>
 </head>
 <body>
@@ -262,6 +314,7 @@
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Status</th>
+                                <th>Offer</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -276,6 +329,15 @@
                                     </span>
                                 </td>
                                 <td>
+                                    <% if (category.offer && category.offer.isActive) { %>
+                                        <span class="badge badge-info">
+                                            <%= category.offer.percentage %>%
+                                        </span>
+                                    <% } else { %>
+                                        No active offer
+                                    <% } %>
+                                </td>
+                                <td>
                                     <button class="btn <%= category.isListed ? 'btn-danger' : 'btn-success' %>" 
                                             onclick="handleListUnlist('<%= category._id %>', <%= category.isListed %>)">
                                         <%= category.isListed ? 'Unlist' : 'List' %>
@@ -288,6 +350,17 @@
                                             onclick="handleDelete('<%= category._id %>')">
                                         Delete
                                     </button>
+                                    <% if (category.offer && category.offer.isActive) { %>
+                                        <button class="btn btn-warning" 
+                                                onclick="handleCancelOffer('<%= category._id %>')">
+                                            Cancel Offer
+                                        </button>
+                                    <% } else { %>
+                                        <button class="btn btn-success" 
+                                                onclick="openOfferModal('<%= category._id %>', '<%= category.name.replace(/'/g, "\\'") %>')">
+                                            Add Offer
+                                        </button>
+                                    <% } %>
                                 </td>
                             </tr>
                             <% }) %>
@@ -341,6 +414,34 @@
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Update Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Offer Modal -->
+        <div id="offerModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeOfferModal()">×</span>
+                <h2>Add Category Offer</h2>
+                <form id="offerForm" onsubmit="return handleOfferSubmit(event)">
+                    <input type="hidden" id="offerCategoryId">
+                    <div class="mb-4">
+                        <label for="categoryName" class="form-label">Category Name</label>
+                        <input type="text" id="categoryName" class="form-control" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label for="offerPercentage" class="form-label">Offer Percentage</label>
+                        <input type="number" id="offerPercentage" name="percentage" class="form-control" min="0" max="100" required>
+                        <div id="percentage-error" class="error-message"></div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="offerEndDate" class="form-label">End Date</label>
+                        <input type="datetime-local" id="offerEndDate" name="endDate" class="form-control" required>
+                        <div id="endDate-error" class="error-message"></div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Offer</button>
                     </div>
                 </form>
             </div>
@@ -410,11 +511,26 @@
             tbody.innerHTML = '';
 
             if (categories.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories available</td></tr>';
                 return;
             }
 
             categories.forEach(category => {
+                const hasActiveOffer = category.offer && category.offer.isActive;
+                const offerHtml = hasActiveOffer ? 
+                    `<span class="badge badge-info">
+                        ${category.offer.percentage}%
+                    </span>` : 
+                    'No active offer';
+                
+                const offerButtonHtml = hasActiveOffer ? 
+                    `<button class="btn btn-warning" onclick="handleCancelOffer('${category._id}')">
+                        Cancel Offer
+                    </button>` :
+                    `<button class="btn btn-success" onclick="openOfferModal('${category._id}', '${category.name.replace(/'/g, "\\'")}')">
+                        Add Offer
+                    </button>`;
+
                 const row = 
                     `<tr data-category-id="${category._id}">
                         <td>${category.name}</td>
@@ -424,6 +540,7 @@
                                 ${category.isListed ? 'Listed' : 'Unlisted'}
                             </span>
                         </td>
+                        <td>${offerHtml}</td>
                         <td>
                             <button class="btn ${category.isListed ? 'btn-danger' : 'btn-success'}" 
                                     onclick="handleListUnlist('${category._id}', ${category.isListed})">
@@ -437,6 +554,7 @@
                                     onclick="handleDelete('${category._id}')">
                                 Delete
                             </button>
+                            ${offerButtonHtml}
                         </td>
                     </tr>`;
                 tbody.innerHTML += row;
@@ -561,26 +679,52 @@
         function updateCategoryRow(categoryId, category) {
             const row = document.querySelector(`tr[data-category-id="${categoryId}"]`);
             if (row) {
+                // Update basic info
                 row.cells[0].textContent = category.name;
                 row.cells[1].textContent = category.description;
 
+                // Update status badge
                 const statusCell = row.cells[2];
                 const statusBadge = statusCell.querySelector('.badge');
                 statusBadge.className = `badge ${category.isListed ? 'badge-success' : 'badge-danger'}`;
                 statusBadge.textContent = category.isListed ? 'Listed' : 'Unlisted';
 
-                const actionCell = row.cells[3];
-                const listButton = actionCell.querySelector('.btn-danger, .btn-success');
-                if (listButton) {
-                    listButton.className = `btn ${category.isListed ? 'btn-danger' : 'btn-success'}`;
-                    listButton.textContent = category.isListed ? 'Unlist' : 'List';
-                    listButton.onclick = () => handleListUnlist(categoryId, category.isListed);
+                // Update offer info
+                const offerCell = row.cells[3];
+                if (category.offer && category.offer.isActive) {
+                    offerCell.innerHTML = `<span class="badge badge-info">
+                        ${category.offer.percentage}%
+                    </span>`;
+                } else {
+                    offerCell.textContent = 'No active offer';
                 }
 
-                const editButton = actionCell.querySelector('.btn-info');
-                if (editButton) {
-                    editButton.onclick = () => openEditModal(categoryId, category.name, category.description);
-                }
+                // Update action buttons
+                const actionCell = row.cells[4];
+                actionCell.innerHTML = `
+                    <button class="btn ${category.isListed ? 'btn-danger' : 'btn-success'}" 
+                            onclick="handleListUnlist('${category._id}', ${category.isListed})">
+                        ${category.isListed ? 'Unlist' : 'List'}
+                    </button>
+                    <button class="btn btn-info" 
+                            onclick="openEditModal('${category._id}', '${category.name.replace(/'/g, "\\'")}', '${category.description.replace(/'/g, "\\'")}')">
+                        Edit
+                    </button>
+                    <button class="btn btn-outline-danger" 
+                            onclick="handleDelete('${category._id}')">
+                        Delete
+                    </button>
+                    ${category.offer && category.offer.isActive ? 
+                        `<button class="btn btn-warning" 
+                                onclick="handleCancelOffer('${category._id}')">
+                            Cancel Offer
+                        </button>` :
+                        `<button class="btn btn-success" 
+                                onclick="openOfferModal('${category._id}', '${category.name.replace(/'/g, "\\'")}')">
+                            Add Offer
+                        </button>`
+                    }
+                `;
             }
         }
 
@@ -614,10 +758,14 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     toggleLoading(true);
-                    fetch(`/admin/editCategory/${categoryId}`, {
+                    fetch('/admin/editCategory', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ categoryName, description })
+                        body: JSON.stringify({ 
+                            categoryId,
+                            categoryName, 
+                            description 
+                        })
                     })
                     .then(response => response.json())
                     .then(data => {
@@ -627,11 +775,12 @@
                                 closeEditModal();
                             });
                         } else {
-                            Swal.fire('Error!', data.error, 'error');
+                            Swal.fire('Error!', data.error || data.message, 'error');
                         }
                     })
                     .catch(error => {
-                        Swal.fire('Error!', 'Something went wrong', 'error');
+                        console.error('Edit error:', error);
+                        Swal.fire('Error!', 'Something went wrong while updating the category', 'error');
                     })
                     .finally(() => toggleLoading(false));
                 }
@@ -752,5 +901,108 @@
                 document.getElementById("description-error").style.display = "none";
             }
         });
+
+        // Open Offer Modal
+        function openOfferModal(categoryId, categoryName) {
+            document.getElementById('offerCategoryId').value = categoryId;
+            document.getElementById('categoryName').value = categoryName;
+            document.getElementById('offerModal').style.display = 'block';
+        }
+
+        // Close Offer Modal
+        function closeOfferModal() {
+            document.getElementById('offerModal').style.display = 'none';
+            document.getElementById('offerForm').reset();
+        }
+
+        // Handle Offer Submission
+        function handleOfferSubmit(event) {
+            event.preventDefault();
+            
+            const categoryId = document.getElementById('offerCategoryId').value;
+            const percentage = document.getElementById('offerPercentage').value;
+            const endDate = document.getElementById('offerEndDate').value;
+
+            // Validate percentage
+            if (percentage < 0 || percentage > 100) {
+                Swal.fire('Error!', 'Percentage must be between 0 and 100', 'error');
+                return false;
+            }
+
+            // Validate end date
+            const endDateObj = new Date(endDate);
+            if (endDateObj <= new Date()) {
+                Swal.fire('Error!', 'End date must be in the future', 'error');
+                return false;
+            }
+
+            toggleLoading(true);
+            fetch('/admin/addCategoryOffer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    categoryId,
+                    percentage: parseInt(percentage),
+                    endDate
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success!', data.message, 'success').then(() => {
+                        closeOfferModal();
+                        loadPage(getCurrentPage());
+                    });
+                } else {
+                    Swal.fire('Error!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error!', 'An error occurred while adding the offer', 'error');
+            })
+            .finally(() => toggleLoading(false));
+
+            return false;
+        }
+
+        // Handle Cancel Offer
+        function handleCancelOffer(categoryId) {
+            Swal.fire({
+                title: 'Cancel Offer',
+                text: 'Are you sure you want to cancel this offer?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, cancel it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toggleLoading(true);
+                    fetch('/admin/cancelCategoryOffer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ categoryId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Success!', data.message, 'success').then(() => {
+                                loadPage(getCurrentPage());
+                            });
+                        } else {
+                            Swal.fire('Error!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error!', 'An error occurred while canceling the offer', 'error');
+                    })
+                    .finally(() => toggleLoading(false));
+                }
+            });
+        }
     </script>
 <%- include("../../views/partials/admin/footer") %>

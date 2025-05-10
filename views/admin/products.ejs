@@ -625,6 +625,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Debounce function
@@ -721,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </td>
                             <td>
                                 <button class="action-btn edit-btn w-100">
-                                    <a href="/admin/editProduct?id=${product._id}" class="text-white" style="text-decoration: none;">
+                                    <a href="/admin/editProduct?id=${product._id}" class="text-white edit-link" style="text-decoration: none;">
                                         <i class="fas fa-edit fa-sm"></i> Edit
                                     </a>
                                 </button>
@@ -772,12 +773,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Update clear button visibility
             updateClearButtonVisibility();
-
-            // Re-attach event listeners
-            attachPaginationListeners();
-            attachBlockUnblockListeners();
-            attachOfferModalListeners();
-
         } catch (error) {
             console.error('Error loading page:', error);
             Swal.fire({
@@ -787,6 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 timer: 3000,
                 showConfirmButton: false
             });
+            const tbody = document.querySelector('#productTableBody');
             tbody.innerHTML = `
                 <tr>
                     <td colspan="9">
@@ -801,44 +797,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to attach pagination event listeners
-    function attachPaginationListeners() {
-        const links = document.querySelectorAll('.pagination .page-link');
-        links.forEach(link => {
-            link.removeEventListener('click', handlePaginationClick); // Remove existing listeners
-            link.addEventListener('click', handlePaginationClick);
-        });
-    }
-
+    // Function to handle pagination clicks
     function handlePaginationClick(e) {
+        const button = e.target.closest('.page-link');
+        if (!button) return;
         e.preventDefault();
-        const page = this.getAttribute('data-page');
+        const page = button.getAttribute('data-page');
         const search = document.querySelector('#searchInput').value;
         const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
         loadPage(page, search, isBlocked);
     }
 
-    // Function to attach block/unblock event listeners
-    function attachBlockUnblockListeners() {
-        const blockButtons = document.querySelectorAll('.block-btn');
-        const unblockButtons = document.querySelectorAll('.unblock-btn');
-
-        blockButtons.forEach(button => {
-            button.removeEventListener('click', handleBlockClick); // Remove existing listeners
-            button.addEventListener('click', handleBlockClick);
-        });
-
-        unblockButtons.forEach(button => {
-            button.removeEventListener('click', handleUnblockClick); // Remove existing listeners
-            button.addEventListener('click', handleUnblockClick);
-        });
-    }
-
+    // Function to handle block clicks
     async function handleBlockClick(e) {
+        const button = e.target.closest('.block-btn');
+        if (!button) return;
         e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const row = this.closest('tr');
-        const button = this;
+        const productId = button.getAttribute('data-product-id');
+        const row = button.closest('tr');
 
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -873,7 +849,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-check-circle fa-sm"></i> Unblock
                         </button>
                     `;
-                    attachBlockUnblockListeners();
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
@@ -911,11 +886,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Function to handle unblock clicks
     async function handleUnblockClick(e) {
+        const button = e.target.closest('.unblock-btn');
+        if (!button) return;
         e.preventDefault();
-        const productId = this.getAttribute('data-product-id');
-        const row = this.closest('tr');
-        const button = this;
+        const productId = button.getAttribute('data-product-id');
+        const row = button.closest('tr');
 
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -950,7 +927,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-ban fa-sm"></i> Block
                         </button>
                     `;
-                    attachBlockUnblockListeners();
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
@@ -985,6 +961,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.innerHTML = '<i class="fas fa-check-circle fa-sm"></i> Unblock';
                 button.disabled = false;
             }
+        }
+    }
+
+    // Function to handle edit button clicks
+    function handleEditClick(e) {
+        const link = e.target.closest('.edit-link');
+        if (!link) return;
+        // Allow default navigation behavior
+        const href = link.getAttribute('href');
+        if (href) {
+            window.location.href = href;
         }
     }
 
@@ -1023,9 +1010,95 @@ document.addEventListener('DOMContentLoaded', function() {
         return isValid;
     }
 
-    // Function to attach offer modal event listeners
-    function attachOfferModalListeners() {
-        const offerButtons = document.querySelectorAll('.offer-btn, .cancel-offer-btn');
+    // Function to handle offer button clicks
+    async function handleOfferButtonClick(e) {
+        const button = e.target.closest('.offer-btn, .cancel-offer-btn');
+        if (!button) return;
+
+        // Prevent default only for offer buttons to avoid affecting other links
+        if (button.classList.contains('offer-btn') || button.classList.contains('cancel-offer-btn')) {
+            e.preventDefault();
+        }
+
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.getAttribute('data-product-name');
+        const regularPrice = button.getAttribute('data-regular-price');
+        const currentOffer = button.getAttribute('data-current-offer');
+
+        // If it's a cancel offer button
+        if (button.classList.contains('cancel-offer-btn')) {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you want to cancel this offer?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e63946',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, cancel it!',
+                cancelButtonText: 'No'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cancelling...';
+                    button.disabled = true;
+
+                    const response = await fetch('/admin/offers/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ productId })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update button to Add Offer
+                        button.classList.remove('cancel-offer-btn');
+                        button.classList.add('offer-btn');
+                        button.setAttribute('data-bs-toggle', 'modal');
+                        button.setAttribute('data-bs-target', '#addOfferModal');
+                        button.innerHTML = '<i class="fas fa-tag fa-sm"></i> Add Offer';
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Offer cancelled successfully',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        // Reload page to update prices
+                        const search = document.querySelector('#searchInput').value;
+                        const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
+                        loadPage(1, search, isBlocked);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: data.message || 'Failed to cancel offer',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error cancelling offer:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: 'Failed to cancel offer. Please try again.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                } finally {
+                    button.disabled = false;
+                }
+            }
+            return;
+        }
+
+        // For Add Offer button, open modal
         const offerModal = document.getElementById('addOfferModal');
         const productNameSpan = document.getElementById('productName');
         const productNameInput = document.getElementById('productNameInput');
@@ -1034,113 +1107,40 @@ document.addEventListener('DOMContentLoaded', function() {
         const endDate = document.getElementById('endDate');
         const productIdInput = document.getElementById('productId');
         const offerIdInput = document.getElementById('offerId');
-        const saveOfferBtn = document.getElementById('saveOfferBtn');
         const cancelOfferBtn = document.getElementById('cancelOfferBtn');
         const offerAction = document.getElementById('offerAction');
 
-        offerButtons.forEach(button => {
-            button.removeEventListener('click', handleOfferButtonClick); // Remove existing listeners
-            button.addEventListener('click', handleOfferButtonClick);
+        // Reset form
+        [discountValue, endDate].forEach(input => {
+            input.value = '';
+            input.classList.remove('is-invalid');
+            document.getElementById(`${input.id}Error`).textContent = '';
         });
 
-        async function handleOfferButtonClick(e) {
-            const productId = this.getAttribute('data-product-id');
-            const productName = this.getAttribute('data-product-name');
-            const regularPrice = this.getAttribute('data-regular-price');
-            const currentOffer = this.getAttribute('data-current-offer');
+        productNameSpan.textContent = productName;
+        productNameInput.value = productName;
+        regularPriceInput.value = `₹${regularPrice}`;
+        productIdInput.value = productId;
+        offerIdInput.value = '';
+        offerAction.textContent = 'Add';
+        cancelOfferBtn.style.display = 'none';
 
-            // If it's a cancel offer button
-            if (this.classList.contains('cancel-offer-btn')) {
-                e.preventDefault();
-                const result = await Swal.fire({
-                    title: 'Are you sure?',
-                    text: "Do you want to cancel this offer?",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#e63946',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, cancel it!',
-                    cancelButtonText: 'No'
-                });
+        // Manually trigger modal open
+        const modalInstance = new bootstrap.Modal(offerModal);
+        modalInstance.show();
+    }
 
-                if (result.isConfirmed) {
-                    try {
-                        this.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cancelling...';
-                        this.disabled = true;
+    // Function to attach offer modal save button listener
+    function attachOfferModalSaveListener() {
+        const saveOfferBtn = document.getElementById('saveOfferBtn');
+        const offerModal = document.getElementById('addOfferModal');
+        const productNameInput = document.getElementById('productNameInput');
+        const regularPriceInput = document.getElementById('regularPrice');
+        const discountValue = document.getElementById('discountValue');
+        const endDate = document.getElementById('endDate');
+        const productIdInput = document.getElementById('productId');
+        const offerIdInput = document.getElementById('offerId');
 
-                        const response = await fetch('/admin/offers/remove', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({ productId })
-                        });
-
-                        const data = await response.json();
-                        if (data.success) {
-                            // Update button to Add Offer
-                            this.classList.remove('cancel-offer-btn');
-                            this.classList.add('offer-btn');
-                            this.setAttribute('data-bs-toggle', 'modal');
-                            this.setAttribute('data-bs-target', '#addOfferModal');
-                            this.innerHTML = '<i class="fas fa-tag fa-sm"></i> Add Offer';
-                            
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: 'Offer cancelled successfully',
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-
-                            // Reload page to update prices
-                            const search = document.querySelector('#searchInput').value;
-                            const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
-                            loadPage(1, search, isBlocked);
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error!',
-                                text: data.message || 'Failed to cancel offer',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error cancelling offer:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: 'Failed to cancel offer. Please try again.',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    } finally {
-                        this.disabled = false;
-                    }
-                }
-                return;
-            }
-
-            // For Add Offer button, open modal
-            // Reset form
-            [discountValue, endDate].forEach(input => {
-                input.value = '';
-                input.classList.remove('is-invalid');
-                document.getElementById(`${input.id}Error`).textContent = '';
-            });
-
-            productNameSpan.textContent = productName;
-            productNameInput.value = productName;
-            regularPriceInput.value = `₹${regularPrice}`;
-            productIdInput.value = productId;
-            offerIdInput.value = '';
-            offerAction.textContent = 'Add';
-            cancelOfferBtn.style.display = 'none';
-        }
-
-        // Remove existing listener for save button
         saveOfferBtn.removeEventListener('click', handleSaveOfferClick);
         saveOfferBtn.addEventListener('click', handleSaveOfferClick);
 
@@ -1244,21 +1244,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.querySelector('#searchInput');
         const clearButton = document.querySelector('#clearSearchBtn');
         
-        if (searchInput.value.trim() !== '') {
-            clearButton.style.display = 'block';
-        } else {
-            clearButton.style.display = 'none';
+        if (searchInput && clearButton) {
+            if (searchInput.value.trim() !== '') {
+                clearButton.style.display = 'block';
+            } else {
+                clearButton.style.display = 'none';
+            }
         }
     }
 
     // Function to clear search and reset results
     function clearSearch() {
         const searchInput = document.querySelector('#searchInput');
-        searchInput.value = '';
-        updateClearButtonVisibility();
-        
-        const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
-        loadPage(1, '', isBlocked);
+        if (searchInput) {
+            searchInput.value = '';
+            updateClearButtonVisibility();
+            const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
+            loadPage(1, '', isBlocked);
+        }
     }
 
     // Add loading animation to buttons
@@ -1288,8 +1291,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateClearButtonVisibility();
             debouncedSearch(this.value);
         });
-        
-        // Initial visibility check
         updateClearButtonVisibility();
     }
 
@@ -1299,25 +1300,21 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation();
             clearSearch();
-            searchInput.focus();
+            if (searchInput) searchInput.focus();
         });
     }
 
     // Handle Available/Blocked Products buttons
     document.querySelector('#availableProductsBtn').addEventListener('click', function() {
         if (this.classList.contains('active')) return;
-        
         const resetBlockedBtn = addLoadingToButton(this, 'Loading...');
-        
         const search = searchInput ? searchInput.value : '';
         loadPage(1, search, false).then(resetBlockedBtn);
     });
 
     document.querySelector('#blockedProductsBtn').addEventListener('click', function() {
         if (this.classList.contains('active')) return;
-        
         const resetBlockedBtn = addLoadingToButton(this, 'Loading...');
-        
         const search = searchInput ? searchInput.value : '';
         loadPage(1, search, true).then(resetBlockedBtn);
     });
@@ -1326,20 +1323,26 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             setTimeout(() => {
-                searchInput.focus();
+                if (searchInput) searchInput.focus();
             }, 100);
         }
-        
         if (e.key === 'Escape' && document.activeElement === searchInput && searchInput.value !== '') {
             clearSearch();
             e.preventDefault();
         }
     });
 
-    // Initialize event listeners
-    attachPaginationListeners();
-    attachBlockUnblockListeners();
-    attachOfferModalListeners();
+    // Event delegation for interactive buttons
+    document.body.addEventListener('click', function(e) {
+        handlePaginationClick(e);
+        handleBlockClick(e);
+        handleUnblockClick(e);
+        handleOfferButtonClick(e);
+        handleEditClick(e);
+    });
+
+    // Initialize save button listener
+    attachOfferModalSaveListener();
 
     // Handle popstate for browser back/forward
     window.addEventListener('popstate', function(event) {
@@ -1350,7 +1353,18 @@ document.addEventListener('DOMContentLoaded', function() {
             loadPage(state.page, state.search || '', state.isBlocked || false);
         }
     });
+
+    // Ensure Bootstrap is loaded before initializing modals
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Bootstrap JavaScript is not loaded. Please check your script includes.',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    }
 });
 </script>
-
 <%- include("../../views/partials/admin/footer") %>

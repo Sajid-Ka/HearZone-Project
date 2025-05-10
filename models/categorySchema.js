@@ -13,6 +13,22 @@ const categorySchema = new Schema({
     isListed: {
         type: Boolean,
         default: true,
+    },
+    offer: {
+        percentage: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0
+        },
+        endDate: {
+            type: Date,
+            default: null
+        },
+        isActive: {
+            type: Boolean,
+            default: false
+        }
     }
 },{
     timestamps:true

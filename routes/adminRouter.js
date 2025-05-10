@@ -61,8 +61,11 @@ router.get('/category', categoryController.categoryInfo);
 router.post('/category', categoryController.addCategory);
 router.get('/listCategory', categoryController.getListCategory);
 router.get('/unlistCategory', categoryController.getUnlistCategory);
-router.post('/editCategory/:id', categoryController.editCategory);
-router.get('/deleteCategory', categoryController.deleteCategory); 
+router.get('/editCategory', categoryController.getEditCategory);
+router.post('/editCategory', categoryController.editCategory);
+router.get('/deleteCategory', categoryController.deleteCategory);
+router.post('/addCategoryOffer', categoryController.addCategoryOffer);
+router.post('/cancelCategoryOffer', categoryController.cancelCategoryOffer);
 
 //brand
 router.get('/brands', brandController.getAllBrands);
