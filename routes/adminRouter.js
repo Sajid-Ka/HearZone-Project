@@ -30,6 +30,8 @@ router.get('/offers', offerController.getOfferPage);
 router.post('/offers/create', offerController.createOffer);
 router.post('/offers/assign', offerController.assignOfferToProduct);
 router.post('/offers/remove', offerController.removeOfferFromProduct);
+router.post('/addCategoryOffer', offerController.addCategoryOffer);
+router.post('/cancelCategoryOffer', offerController.cancelCategoryOffer);
 
 // customers
 router.get('/users', customerController.customerInfo);
@@ -65,8 +67,6 @@ router.get('/unlistCategory', categoryController.getUnlistCategory);
 router.get('/editCategory', categoryController.getEditCategory);
 router.post('/editCategory', categoryController.editCategory);
 router.get('/deleteCategory', categoryController.deleteCategory);
-router.post('/addCategoryOffer', categoryController.addCategoryOffer);
-router.post('/cancelCategoryOffer', categoryController.cancelCategoryOffer);
 
 //brand
 router.get('/brands', brandController.getAllBrands);

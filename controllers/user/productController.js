@@ -11,14 +11,43 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Find product and handle case where isListed might be undefined
+        // Find product with populated category and offer
         const product = await Product.findById(productId)
             .populate('category')
+            .populate('offer')
             .populate('brand');
 
         if (!product) {
             return res.status(404).render('user/page-404');
         }
+
+        // Calculate offers
+        let productOffer = 0;
+        let categoryOffer = 0;
+        let totalOffer = 0;
+        
+        if (product.offer && new Date(product.offer.endDate) > new Date()) {
+            productOffer = product.offer.discountValue;
+        }
+        
+        if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+            categoryOffer = product.category.offer.percentage;
+        }
+        
+        // Determine which offer to show (the bigger one)
+        if (productOffer > 0 || categoryOffer > 0) {
+            totalOffer = Math.max(productOffer, categoryOffer);
+        }
+        
+        // Calculate sale price
+        let salePrice = product.regularPrice;
+        if (totalOffer > 0) {
+            salePrice = product.regularPrice * (1 - totalOffer / 100);
+        }
+
+        // Update product with calculated values
+        product.salePrice = Math.round(salePrice);
+        product.totalOffer = totalOffer
 
         // Treat undefined isListed as true to avoid false negatives
         const isProductListed = product.isListed !== false;
@@ -90,13 +119,6 @@ const productDetails = async (req, res) => {
         const averageRating = reviews.length > 0 
             ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
             : '0.0';
-
-        // Calculate total offer with safe division
-        const regularPrice = product.regularPrice || 0;
-        const salePrice = product.salePrice || regularPrice;
-        const totalOffer = regularPrice > 0 
-            ? Math.round(((regularPrice - salePrice) / regularPrice) * 100)
-            : 0;
 
         // Render the page with all the data
         res.render('product-details', {

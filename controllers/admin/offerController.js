@@ -1,5 +1,6 @@
 const Offer = require('../../models/offerSchema');
 const Product = require('../../models/productSchema');
+const Category = require('../../models/categorySchema');
 
 const getOfferPage = async (req, res) => {
     try {
@@ -155,9 +156,110 @@ const removeOfferFromProduct = async (req, res) => {
     }
 };
 
+const addCategoryOffer = async (req, res) => {
+    try {
+        const { categoryId, percentage, endDate } = req.body;
+        
+        if (!categoryId || !percentage || !endDate) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        // Validate percentage
+        if (percentage < 0 || percentage > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Percentage must be between 0 and 100'
+            });
+        }
+
+        // Validate end date
+        const endDateObj = new Date(endDate);
+        if (endDateObj <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'End date must be in the future'
+            });
+        }
+
+        category.offer = {
+            percentage,
+            endDate: endDateObj,
+            isActive: true
+        };
+
+        await category.save();
+
+        res.json({
+            success: true,
+            message: 'Offer added successfully',
+            category
+        });
+    } catch (error) {
+        console.error("Add Category Offer Error:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+const cancelCategoryOffer = async (req, res) => {
+    try {
+        const { categoryId } = req.body;
+
+        if (!categoryId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category ID is required'
+            });
+        }
+
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        category.offer = {
+            percentage: 0,
+            endDate: null,
+            isActive: false
+        };
+
+        await category.save();
+
+        res.json({
+            success: true,
+            message: 'Offer cancelled successfully',
+            category
+        });
+    } catch (error) {
+        console.error("Cancel Category Offer Error:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
 module.exports = {
     getOfferPage,
     createOffer,
     assignOfferToProduct,
-    removeOfferFromProduct
+    removeOfferFromProduct,
+    addCategoryOffer,
+    cancelCategoryOffer
 };

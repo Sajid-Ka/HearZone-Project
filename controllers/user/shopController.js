@@ -81,7 +81,11 @@ const loadShoppingPage = async (req, res) => {
 
         let productQuery = Product.find(query)
             .populate('brand')
-            .populate('offer') // Add this to populate the offer
+            .populate('offer')
+            .populate({
+                path: 'category',
+                populate: { path: 'offer' }
+            })
             .sort(sortQuery)
             .skip(skip)
             .limit(limit);
@@ -100,33 +104,57 @@ const loadShoppingPage = async (req, res) => {
                 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
                 : '0.0';
 
-            // Calculate sale price if there's an offer
-            let salePrice = product.regularPrice;
-            let displayPrice = product.regularPrice.toLocaleString('en-IN');
-            let hasDiscount = false;
+           // Initialize offer variables
+            let productOfferValue = 0;
+            let categoryOfferValue = 0;
+            let finalOfferValue = 0;
+            let offerType = null;
             let discountBadge = '';
-
-            if (product.offer) {
-                if (product.offer.discountType === 'percentage') {
-                    salePrice = product.regularPrice * (1 - product.offer.discountValue / 100);
+            
+            // Check product offer
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOfferValue = product.offer.discountType === 'percentage' 
+                    ? product.offer.discountValue 
+                    : (product.offer.discountValue / product.regularPrice) * 100;
+            }
+            
+            // Check category offer
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOfferValue = product.category.offer.percentage;
+            }
+            
+            // Determine which offer to apply (the bigger one)
+            if (productOfferValue > 0 || categoryOfferValue > 0) {
+                if (productOfferValue >= categoryOfferValue) {
+                    finalOfferValue = productOfferValue;
+                    offerType = 'product';
                 } else {
-                    salePrice = product.regularPrice - product.offer.discountValue;
+                    finalOfferValue = categoryOfferValue;
+                    offerType = 'category';
                 }
-                salePrice = Math.round(salePrice);
-                displayPrice = salePrice.toLocaleString('en-IN');
+                
+                discountBadge = `${Math.round(finalOfferValue)}% OFF`;
+            }
+            
+            // Calculate sale price
+            let salePrice = product.regularPrice;
+            let hasDiscount = false;
+            
+            if (finalOfferValue > 0) {
+                salePrice = product.regularPrice * (1 - finalOfferValue / 100);
                 hasDiscount = true;
-                discountBadge = product.offer.discountType === 'percentage' 
-                    ? `${Math.round(product.offer.discountValue)}% OFF` 
-                    : `₹${Math.round(product.offer.discountValue)} OFF`;
             }
 
             return { 
                 ...product.toObject(), 
                 rating: avgRating,
-                salePrice,
-                displayPrice,
+                salePrice: Math.round(salePrice),
+                displayPrice: Math.round(salePrice).toLocaleString('en-IN'),
+                regularPrice: product.regularPrice,
                 hasDiscount,
-                discountBadge
+                discountBadge,
+                offerType,
+                totalOffer: finalOfferValue
             };
         }));
 

@@ -75,30 +75,47 @@ const loadHomepage = async (req, res) => {
         })
         .populate('brand')
         .populate('offer')
-        .populate('category');
+        .populate({
+            path: 'category',
+            populate: { path: 'offer' }
+        });
 
         // Process products with correct pricing
         const processedProducts = productData.map(product => {
-            let salePrice = product.regularPrice;
-            let totalOffer = 0;
+            let productOffer = 0;
+            let categoryOffer = 0;
+            let finalOffer = 0;
+            let offerType = 'product';
             
-            if (product.offer) {
-                // Calculate sale price based on offer type
-                if (product.offer.discountType === 'percentage') {
-                    salePrice = product.regularPrice * (1 - product.offer.discountValue / 100);
-                    totalOffer = product.offer.discountValue;
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOffer = product.offer.discountValue;
+            }
+            
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOffer = product.category.offer.percentage;
+            }
+            
+            if (productOffer > 0 || categoryOffer > 0) {
+                if (productOffer >= categoryOffer) {
+                    finalOffer = productOffer;
+                    offerType = 'product';
                 } else {
-                    salePrice = product.regularPrice - product.offer.discountValue;
-                    totalOffer = Math.round((product.offer.discountValue / product.regularPrice) * 100);
+                    finalOffer = categoryOffer;
+                    offerType = 'category';
                 }
-                salePrice = Math.round(salePrice);
+            }
+            
+            let salePrice = product.regularPrice;
+            if (finalOffer > 0) {
+                salePrice = product.regularPrice * (1 - finalOffer / 100);
             }
 
             return {
                 ...product.toObject(),
-                totalOffer,
-                salePrice,
-                displayPrice: salePrice.toLocaleString('en-IN')
+                totalOffer: finalOffer,
+                salePrice: Math.round(salePrice),
+                displayPrice: Math.round(salePrice).toLocaleString('en-IN'),
+                offerType
             };
         });
 

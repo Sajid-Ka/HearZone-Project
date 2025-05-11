@@ -655,17 +655,18 @@
                   </div>
                   <p class="product-brand"><%=products[i].brand.brandName%></p>
                   <div class="product-price">
-                    <% if (products[i].offer) { %>
-                      ₹<%= products[i].salePrice.toLocaleString('en-IN') %>
-                      <span class="original-price">₹<%= products[i].regularPrice.toLocaleString('en-IN') %></span>
-                    <% } else { %>
-                      ₹<%= products[i].regularPrice.toLocaleString('en-IN') %>
-                    <% } %>
-                    <% if (products[i].offer) { %>
-                      <span class="discount-badge" style="background: #ff4757; color: white; padding: 0.25rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-left: 0.5rem;">
-                        <%= Math.round(products[i].offer.discountValue) %><%= products[i].offer.discountType === 'percentage' ? '%' : '' %> Off
-                      </span>
-                    <% } %>
+                      <% if (products[i].hasDiscount) { %>
+                          ₹<%= products[i].displayPrice %>
+                          <span class="original-price">₹<%= products[i].regularPrice.toLocaleString('en-IN') %></span>
+                          <span class="discount-badge" style="background: <%= products[i].offerType === 'category' ? '#4f46e5' : '#ff4757' %>; color: white; padding: 0.25rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-left: 0.5rem;">
+                              <%= products[i].discountBadge %>
+                              <% if (products[i].offerType === 'category') { %>
+                                  (Category)
+                              <% } %>
+                          </span>
+                      <% } else { %>
+                          ₹<%= products[i].regularPrice.toLocaleString('en-IN') %>
+                      <% } %>
                   </div>
                 </div>
               </a>
