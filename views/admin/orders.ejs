@@ -269,22 +269,25 @@
 </style>
 
 <div class="order-management-container">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Order Management</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <a href="/admin/pending-requests" class="btn btn-sm btn-warning position-relative">
-                    <i class="fas fa-exclamation-circle"></i> Pending Requests
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="pendingRequestCount">
-                        0
-                    </span>
-                </a>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-        </div>
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Order Management</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <div class="btn-group me-2">
+        <a href="/admin/pending-requests" class="btn btn-sm btn-warning position-relative">
+          <i class="fas fa-exclamation-circle"></i> Pending Requests
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="pendingRequestCount">
+            0
+          </span>
+        </a>
+        <a href="/admin/sales-report" class="btn btn-sm btn-primary">
+          <i class="fas fa-chart-line"></i> Sales Report
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
     </div>
+  </div>
     
     <div class="filter-section">
         <form id="filterForm" class="row g-3">

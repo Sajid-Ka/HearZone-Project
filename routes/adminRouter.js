@@ -11,6 +11,7 @@ const productController = require('../controllers/admin/productController');
 const couponController = require('../controllers/admin/couponController');
 const walletController = require('../controllers/admin/walletController');
 const offerController = require('../controllers/admin/offerController');
+const salesReportController = require('../controllers/admin/salesReportController');
 const multer = require('../helpers/multer');
 
 router.get('/pageError', adminController.pageError);
@@ -132,5 +133,11 @@ router.post('/coupons/toggle/:id', couponController.toggleCouponStatus);
 router.get('/wallets', walletController.getAllWallets);
 router.get('/wallets/:userId', walletController.getWalletDetails);
 router.post('/orders/:orderId/wallet-payment', orderController.processWalletPayment);
+
+// Sales Report Routes
+router.get('/sales-report', salesReportController.loadSalesReportPage);
+router.post('/sales-report/generate', salesReportController.generateSalesReport);
+router.get('/sales-report/download/pdf', salesReportController.downloadSalesReportPDF);
+router.get('/sales-report/download/excel', salesReportController.downloadSalesReportExcel);
 
 module.exports = router;
