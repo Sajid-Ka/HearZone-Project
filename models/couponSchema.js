@@ -50,14 +50,22 @@ const couponSchema = new Schema({
         type: Boolean,
         default: true
     },
+    userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
     usersUsed: [{
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'User'
-    }]
+    }],
+    isReferral: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
 
 couponSchema.index({ code: 1, isActive: 1, expiryDate: 1 });
 
 const Coupon = mongoose.model('Coupon', couponSchema);
-
 module.exports = Coupon;

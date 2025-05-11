@@ -68,7 +68,8 @@ const getProfilePage = async (req, res) => {
             id: user._id,
             name: user.name,
             email: user.email,
-            profileImage: user.profileImage
+            profileImage: user.profileImage,
+            referralCode: user.referralCode
         };
 
         const addressDoc = await Address.findOne({ userId });
@@ -343,6 +344,25 @@ const updateProfileImage = async (req, res) => {
             throw new Error('User not found in database');
         }
 
+        // Check if a file was uploaded
+        const file = req.file;
+        if (!file) {
+            // Handle Multer's file filter error or no file uploaded
+            const errorMessage = req.fileValidationError || 'No file uploaded';
+            return res.status(400).render('profile', {
+                user,
+                addresses: (await Address.findOne({ userId }))?.addresses || [],
+                message: {
+                    type: 'error',
+                    text: errorMessage === 'Only image files are allowed!' 
+                        ? 'Please upload a valid image file (e.g., PNG, JPEG, JPG).'
+                        : errorMessage
+                },
+                currentRoute: '/profile'
+            });
+        }
+
+        // Delete old profile image if it exists
         if (user.profileImage) {
             const oldImagePath = path.join(__dirname, '../../public/uploads/profile-images', user.profileImage);
             try {
@@ -356,11 +376,7 @@ const updateProfileImage = async (req, res) => {
             }
         }
 
-        const file = req.file;
-        if (!file) {
-            throw new Error('No file uploaded');
-        }
-
+        // Resize and process the uploaded image
         const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
         const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
 
@@ -370,6 +386,7 @@ const updateProfileImage = async (req, res) => {
 
         await fs.rename(tempFilePath, inputFilePath);
 
+        // Update user with new profile image
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { profileImage: file.filename },
@@ -382,7 +399,7 @@ const updateProfileImage = async (req, res) => {
         req.session.user.profileImage = file.filename;
 
         const addressDoc = await Address.findOne({ userId });
-        res.render('user/profile', {
+        res.render('profile', {
             user: updatedUser,
             addresses: addressDoc ? addressDoc.addresses : [],
             message: {
@@ -402,7 +419,20 @@ const updateProfileImage = async (req, res) => {
                 console.error(`Failed to clean up: ${req.file.path}`, unlinkError);
             }
         }
-        res.status(500).render('page-404');
+
+        const user = await User.findById(req.session.user.id);
+        const addressDoc = await Address.findOne({ userId: req.session.user.id });
+        res.status(500).render('profile', {
+            user: user || { name: 'Unknown', email: '', phone: '' },
+            addresses: addressDoc ? addressDoc.addresses : [],
+            message: {
+                type: 'error',
+                text: error.message === 'Only image files are allowed!'
+                    ? 'Please upload a valid image file (e.g., PNG, JPEG, JPG).'
+                    : 'An error occurred while updating the profile image.'
+            },
+            currentRoute: '/profile'
+        });
     }
 };
 

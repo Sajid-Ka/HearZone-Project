@@ -221,6 +221,26 @@
     .footer #footer-bottom {
         background-color: #111;
     }
+
+    .referral-section {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    .referral-code {
+        font-family: monospace;
+        font-size: 1.2em;
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        display: inline-block;
+    }
+    .copy-btn {
+        margin-left: 10px;
+        padding: 5px 10px;
+        font-size: 0.9em;
+    }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -248,8 +268,8 @@
                                 <%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %>
                             </div>
                         <% } %>
-                        <form action="/update-profile-image" method="POST" enctype="multipart/form-data">
-                            <input type="file" name="profileImage" id="profileImage" accept="image/*" class="d-none" onchange="this.form.submit()">
+                        <form action="/update-profile-image" method="POST" enctype="multipart/form-data" id="profileImageForm">
+                            <input type="file" name="profileImage" id="profileImage" accept="image/jpeg,image/jpg,image/png,image/gif" class="d-none">
                             <label for="profileImage" class="btn btn-primary upload-btn">Change</label>
                         </form>
                     </div>
@@ -265,6 +285,21 @@
                     <p><strong>Email:</strong> <%= user.email || 'Not provided' %></p>
                     <p><strong>Phone:</strong> <%= user.phone || 'Not provided' %></p>
                     <p><strong>Account Status:</strong> <%= user.isBlocked ? 'Blocked' : 'Active' %></p>
+                </div>
+
+                <!-- Referral Section -->
+                <div class="referral-section">
+                    <h4>Refer & Earn</h4>
+                    <p>Invite your friends and earn a 10% discount coupon for each successful referral!</p>
+                    <div>
+                        <% if (user.referralCode && typeof user.referralCode === 'string' && user.referralCode.length === 8) { %>
+                            <span class="referral-code"><%= user.referralCode %></span>
+                            <button class="btn btn-primary copy-btn" onclick="copyReferralCode()">Copy</button>
+                        <% } else { %>
+                            <span class="text-danger">Referral code not available</span>
+                            <button class="btn btn-primary copy-btn" disabled>Copy</button>
+                        <% } %>
+                    </div>
                 </div>
 
                 <div class="d-flex justify-content-end">
@@ -403,6 +438,154 @@
             theme: 'bootstrap-v4'
         }).show();
     <% } %>
+
+
+    document.getElementById('profileImage').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const form = document.getElementById('profileImageForm');
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+
+            if (file && !allowedTypes.includes(file.type)) {
+                e.target.value = ''; // Clear the input
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File Type',
+                    text: 'Please select a valid image file (PNG, JPEG, JPG, or GIF).',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Submit the form programmatically
+            if (file) {
+                form.submit();
+            }
+        });
+
+        // Handle form submission response (optional, if you want to handle redirects or errors via AJAX)
+        document.getElementById('profileImageForm').addEventListener('submit', async function (e) {
+            e.preventDefault(); // Prevent default form submission for AJAX handling (optional)
+
+            const formData = new FormData(this);
+            try {
+                const response = await fetch('/update-profile-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Since the server renders the page, we expect a redirect
+                if (response.ok) {
+                    window.location.href = '/profile'; // Redirect to profile page
+                } else {
+                    const result = await response.json(); // If server sends JSON error
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.message || 'Failed to upload profile image.',
+                        confirmButtonColor: '#222',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            } catch (error) {
+                console.error('Error uploading profile image:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred while uploading the image.',
+                    confirmButtonColor: '#222',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+
+    async function copyReferralCode() {
+        try {
+            // Get the referral code element
+            const referralCodeElement = document.querySelector('.referral-code');
+            if (!referralCodeElement) {
+                throw new Error('Referral code element not found in DOM');
+            }
+
+            // Extract and validate the referral code
+            let referralCode = referralCodeElement.textContent.trim();
+            if (!referralCode) {
+                throw new Error('Referral code is empty or not rendered');
+            }
+            if (typeof referralCode !== 'string') {
+                referralCode = String(referralCode);
+            }
+            const codePattern = /^[A-Z0-9]{8}$/;
+            if (!codePattern.test(referralCode)) {
+                throw new Error('Invalid referral code format');
+            }
+
+            // Attempt to copy using the Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(referralCode);
+                    showSuccessNotification('Referral code copied to clipboard!');
+                } catch (clipError) {
+                    console.warn('Clipboard API failed, falling back to execCommand:', clipError);
+                    // Fallback to execCommand
+                    await fallbackCopy(referralCode);
+                }
+            } else {
+                // Fallback for non-secure contexts or unsupported browsers
+                await fallbackCopy(referralCode);
+            }
+        } catch (err) {
+            console.error('Failed to copy referral code:', err);
+            showErrorNotification(`Failed to copy referral code: ${err.message}`);
+        }
+    }
+
+    // Fallback function using execCommand
+    function fallbackCopy(text) {
+        return new Promise((resolve, reject) => {
+            try {
+                const tempInput = document.createElement('input');
+                tempInput.style.position = 'absolute';
+                tempInput.style.left = '-9999px';
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.focus();
+                tempInput.select();
+                tempInput.setSelectionRange(0, 99999); // For mobile devices
+                const success = document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                if (!success) {
+                    throw new Error('Fallback copy method failed');
+                }
+                showSuccessNotification('Referral code copied to clipboard!');
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    // Helper function to show success notification
+    function showSuccessNotification(message) {
+        new Noty({
+            type: 'success',
+            layout: 'topRight',
+            text: message,
+            timeout: 2000,
+            theme: 'bootstrap-v4'
+        }).show();
+    }
+
+    // Helper function to show error notification
+    function showErrorNotification(message) {
+        new Noty({
+            type: 'error',
+            layout: 'topRight',
+            text: message,
+            timeout: 3000,
+            theme: 'bootstrap-v4'
+        }).show();
+    }
 
     // Edit Address Forms
     document.querySelectorAll('.editAddressForm').forEach(form => {

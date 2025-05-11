@@ -1,9 +1,11 @@
 const User = require('../../models/userSchema');
+const Coupon = require('../../models/couponSchema');
 const Category = require('../../models/categorySchema');
 const Product = require('../../models/productSchema');
 const Brand = require('../../models/brandSchema');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
+const { generateReferralCode } = require('../../utils/referralUtils');
 require('dotenv').config();
 
 const securePassword = async (password) => {
@@ -132,7 +134,7 @@ const loadSignup = async (req, res) => {
 
 const signup = async (req, res) => {
     try {
-        const { name, phone, email, password, cPassword } = req.body;
+        const { name, phone, email, password, cPassword, referralCode } = req.body;
         if (password !== cPassword) {
             return res.render('signup', { message: 'Passwords do not match' });
         }
@@ -148,16 +150,38 @@ const signup = async (req, res) => {
         if (!/^[0-9]{10}$/.test(phone)) {
             return res.render('signup', { message: 'Phone number must be exactly 10 digits' });
         }
+
+       // Validate referral code if provided
+        let referredByUser = null;
+        if (referralCode) {
+            referredByUser = await User.findOne({ referralCode });
+            if (!referredByUser) {
+                return res.render('signup', { message: 'Invalid referral code' });
+            }
+        }
+
         const otp = generateOtp();
+
+        console.log(otp);
+
         const emailSent = await sendVerificationEmail(email, otp);
         if (!emailSent) {
             return res.render('signup', { message: 'Failed to send verification email' });
         }
         req.session.signupId = Date.now().toString();
         req.session.userOtp = otp;
-        req.session.userData = { name, phone, email, password };
-        console.log('Signup ID:', req.session.signupId, 'OTP:', otp);
-        res.render('verify-otp', { message: null, heading: 'Email Verification Page', action: 'verify-otp' });
+        req.session.userData = { 
+            name, 
+            phone, 
+            email, 
+            password,
+            referralCode: referredByUser ? referralCode : null
+        };
+        res.render('verify-otp', { 
+            message: null, 
+            heading: 'Email Verification Page', 
+            action: 'verify-otp' 
+        });
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).render('error', { message: 'Signup failed' });
@@ -167,6 +191,7 @@ const signup = async (req, res) => {
 const verifyOtp = async (req, res) => {
     try {
         const { otp: otpNum } = req.body;
+
         if (!req.session.signupId || !req.session.userOtp || !req.session.userData) {
             return res.status(400).json({ success: false, message: 'Session expired, please sign up again' });
         }
@@ -181,14 +206,55 @@ const verifyOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email already in use' });
         }
 
+        // Generate unique referral code
+        let newReferralCode;
+        let isUnique = false;
+        while (!isUnique) {
+            newReferralCode = generateReferralCode();
+            const existingCode = await User.findOne({ referralCode: newReferralCode });
+            if (!existingCode) isUnique = true;
+        }
+
         const newUser = new User({
             name: userData.name,
             email: userData.email,
             phone: userData.phone,
-            password: passwordHash
+            password: passwordHash,
+            referralCode: newReferralCode, // Required for new users
+            referredBy: userData.referralCode ? (await User.findOne({ referralCode: userData.referralCode }))._id : null
         });
 
         const savedUser = await newUser.save();
+
+        // Create coupon for referring user if applicable
+        if (userData.referralCode) {
+            const referringUser = await User.findOne({ referralCode: userData.referralCode });
+            if (referringUser) {
+                let couponCode;
+                isUnique = false;
+                while (!isUnique) {
+                    couponCode = `REF${generateReferralCode()}`;
+                    const existingCoupon = await Coupon.findOne({ code: couponCode });
+                    if (!existingCoupon) isUnique = true;
+                }
+
+                const coupon = new Coupon({
+                    code: couponCode,
+                    discountType: 'percentage',
+                    value: 10,
+                    minPurchase: 500,
+                    expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    usageLimit: 1,
+                    userId: referringUser._id,
+                    isReferral: true
+                });
+
+                await coupon.save();
+                referringUser.referralCoupons.push(coupon._id);
+                await referringUser.save();
+            }
+        }
+
         req.session.user = {
             id: savedUser._id.toString(),
             name: savedUser.name,
@@ -201,7 +267,7 @@ const verifyOtp = async (req, res) => {
     } catch (error) {
         console.error('OTP verification error:', error);
         if (error.code === 11000) {
-            return res.status(400).json({ success: false, message: 'Email or Google ID already in use' });
+            return res.status(400).json({ success: false, message: 'Email or referral code already in use' });
         }
         res.status(500).json({ success: false, message: 'Verification failed' });
     }

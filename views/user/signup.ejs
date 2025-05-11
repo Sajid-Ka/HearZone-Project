@@ -99,13 +99,15 @@
         <div style="position: relative;">
           <input type="password" name="password" id="password" placeholder="Password">
           <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
-      </div>
-      <div id="error4" class="error-message"></div>
-      <div style="position: relative; margin-top: 0px;">
+        </div>
+        <div id="error4" class="error-message"></div>
+        <div style="position: relative; margin-top: 0px;">
           <input type="password" name="cPassword" id="confirm-password" placeholder="Confirm Password">
           <i class="fas fa-eye" id="toggleConfirmPassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
-      </div>
-      <div id="error5" class="error-message"></div>
+        </div>
+        <div id="error5" class="error-message"></div>
+        <input type="text" name="referralCode" id="referralCode" placeholder="Referral Code (Optional)">
+        <div id="error6" class="error-message"></div>
         <% if(locals.message && message.length > 0) { %>
           <div class="alert alert-danger text-center">
               <%= message %>
@@ -129,17 +131,19 @@
     const phoneId = document.getElementById('phone');
     const passId = document.getElementById('password');
     const cPassId = document.getElementById('confirm-password');
+    const referralCodeId = document.getElementById('referralCode');
     const error1 = document.getElementById('error1');
     const error2 = document.getElementById('error2');
     const error3 = document.getElementById('error3');
     const error4 = document.getElementById('error4');
     const error5 = document.getElementById('error5');
+    const error6 = document.getElementById('error6');
     const signForm = document.getElementById("signForm");
 
     function nameValidateChecking() {
         const nameVal = nameId.value;
-        const namePattern = /^[A-Za-z\s]+$/; // Only alphabets and spaces
-        const hasNumbers = /\d/.test(nameVal); // Check for any digits
+        const namePattern = /^[A-Za-z\s]+$/;
+        const hasNumbers = /\d/.test(nameVal);
 
         if (nameVal.trim() === '') {
             error1.style.display = "block";
@@ -171,7 +175,7 @@
 
     function phoneValidateChecking() {
         const phoneVal = phoneId.value;
-        const hasNonDigits = /[^0-9]/.test(phoneVal); // Check for non-numeric characters
+        const hasNonDigits = /[^0-9]/.test(phoneVal);
 
         if (phoneVal.trim() === '') {
             error3.style.display = 'block';
@@ -196,7 +200,7 @@
       if(passVal.length===0){
         error4.style.display = 'block';
         error4.innerHTML = 'Please Enter Your Password';
-      }else if (passVal.length < 8) {
+      } else if (passVal.length < 8) {
         error4.style.display = 'block';
         error4.innerHTML = 'Password should contain at least 8 characters.';
       } else if (!/[A-Z]/.test(passVal)) {
@@ -225,7 +229,18 @@
       }
     }
 
-    // Toggle password visibility for both fields
+    function referralCodeValidateChecking() {
+        const referralVal = referralCodeId.value.trim();
+        if (referralVal.length > 0 && referralVal.length !== 8) {
+            error6.style.display = 'block';
+            error6.innerHTML = "Referral code must be 8 characters long";
+        } else {
+            error6.style.display = 'none';
+            error6.innerHTML = "";
+        }
+    }
+
+    // Toggle password visibility
     const togglePassword = document.getElementById('togglePassword');
     const password = document.getElementById('password');
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
@@ -246,28 +261,29 @@
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-      // Real-time validation
       nameId.addEventListener('input', nameValidateChecking);
       emailId.addEventListener('input', emailValidateChecking);
       phoneId.addEventListener('input', phoneValidateChecking);
       passId.addEventListener('input', passValidateChecking);
       cPassId.addEventListener('input', passValidateChecking);
+      referralCodeId.addEventListener('input', referralCodeValidateChecking);
 
-      // Form submission validation
       signForm.addEventListener('submit', function(e) {
         nameValidateChecking();
         emailValidateChecking();
         phoneValidateChecking();
         passValidateChecking();
+        referralCodeValidateChecking();
 
         if (
-          !nameId || !emailId || !phoneId || !passId || !cPassId ||
-          !error1 || !error2 || !error3 || !error4 || !error5 || !signForm
+          !nameId || !emailId || !phoneId || !passId || !cPassId || !referralCodeId ||
+          !error1 || !error2 || !error3 || !error4 || !error5 || !error6 || !signForm
         ) {
           console.error('One or more elements are missing');
         }
 
-        if (error1.innerHTML || error2.innerHTML || error3.innerHTML || error4.innerHTML || error5.innerHTML) {
+        if (error1.innerHTML || error2.innerHTML || error3.innerHTML || 
+            error4.innerHTML || error5.innerHTML || error6.innerHTML) {
           e.preventDefault();
         }
       });

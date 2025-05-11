@@ -68,15 +68,19 @@ const userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Order"
     }],
-    referalCode: {
+    referralCode: {
         type: String,
+        unique: true,
+        required: false
     },
-    redeemed: {
-        type: Boolean,
-    },
-    redeemedUsers: [{
+    referredBy: {
         type: Schema.Types.ObjectId,
         ref: "User",
+        default: null
+    },
+    referralCoupons: [{
+        type: Schema.Types.ObjectId,
+        ref: "Coupon"
     }],
     searchHistory: [{
         category: {

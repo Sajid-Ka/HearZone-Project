@@ -5,10 +5,23 @@ const getAvailableCoupons = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const coupons = await Coupon.find({ 
-            isActive: true,
-            expiryDate: { $gte: new Date() },
-            $expr: { $lt: ["$usedCount", "$usageLimit"] },
-            usersUsed: { $nin: [userId] }
+            $or: [
+                { 
+                    isActive: true,
+                    expiryDate: { $gte: new Date() },
+                    $expr: { $lt: ["$usedCount", "$usageLimit"] },
+                    usersUsed: { $nin: [userId] },
+                    isReferral: false // Regular coupons
+                },
+                { 
+                    isActive: true,
+                    expiryDate: { $gte: new Date() },
+                    $expr: { $lt: ["$usedCount", "$usageLimit"] },
+                    usersUsed: { $nin: [userId] },
+                    userId: userId, // Referral coupons for this user
+                    isReferral: true
+                }
+            ]
         });
         res.json(coupons);
     } catch (error) {
@@ -31,7 +44,11 @@ const applyCoupon = async (req, res) => {
             isActive: true,
             expiryDate: { $gte: new Date() },
             $expr: { $lt: ["$usedCount", "$usageLimit"] },
-            usersUsed: { $nin: [userId] }
+            usersUsed: { $nin: [userId] },
+            $or: [
+                { isReferral: false },
+                { userId: userId, isReferral: true }
+            ]
         });
 
         if (!coupon) {
@@ -60,17 +77,14 @@ const applyCoupon = async (req, res) => {
             discountAmount = coupon.value;
         }
 
-        // Ensure discount doesn't exceed subtotal
         discountAmount = Math.min(discountAmount, cart.subTotal);
 
-        // Update cart with coupon details
         cart.couponCode = coupon.code;
         cart.discountAmount = discountAmount;
         cart.finalAmount = cart.subTotal - discountAmount;
         
         await cart.save();
 
-        // Store in session
         req.session.appliedCoupon = {
             code: coupon.code,
             discountAmount,
