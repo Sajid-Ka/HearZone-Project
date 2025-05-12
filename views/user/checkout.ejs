@@ -703,6 +703,33 @@
         margin-top: 0.5rem;
     }
 
+    .payment-card.disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        background-color: #f8f9fa;
+    }
+
+    .payment-card.disabled:hover {
+        border-color: #eaeaea;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .payment-card.disabled .payment-label {
+        color: #999;
+    }
+
+    .payment-card.disabled .payment-icon {
+        background-color: #f0f0f0;
+        color: #999;
+    }
+
+    .wallet-balance {
+        font-weight: 600;
+        color: #2ecc71;
+        margin-left: auto;
+    }
+
 </style>
 
 <br>
@@ -933,6 +960,7 @@
                     </div>
                 </div>
 
+                
                 <div class="payment-method-section">
                     <div class="section-header">
                         <i class="fas fa-credit-card"></i>
@@ -940,6 +968,7 @@
                     </div>
                     <div class="payment-content">
                         <div class="payment-options">
+                            <!-- Existing payment options -->
                             <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Cash on Delivery') ? 'selected' : '' %>" for="cod">
                                 <div class="payment-radio">
                                     <input type="radio" name="paymentMethod" id="cod" value="Cash on Delivery" <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Cash on Delivery') ? 'checked' : '' %>>
@@ -950,6 +979,7 @@
                                 </div>
                                 <div class="payment-description">Pay when you receive the order</div>
                             </label>
+                            
                             <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Razorpay') ? 'selected' : '' %>" for="razorpay">
                                 <div class="payment-radio">
                                     <input type="radio" name="paymentMethod" id="razorpay" value="Razorpay" <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Razorpay') ? 'checked' : '' %>>
@@ -959,6 +989,29 @@
                                     </div>
                                 </div>
                                 <div class="payment-description">Secure online payment</div>
+                            </label>
+                            
+                            <!-- Add Wallet Payment Option -->
+                            <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'selected' : '' %>" for="wallet">
+                                <div class="payment-radio">
+                                    <input type="radio" name="paymentMethod" id="wallet" value="Wallet" 
+                                        <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'checked' : '' %>
+                                        <%= walletBalance >= finalAmount ? '' : 'disabled' %>>
+                                    <div class="payment-label">
+                                        <div class="payment-icon"><i class="fas fa-wallet"></i></div>
+                                        Wallet Payment
+                                        <span class="ms-auto">
+                                            Balance: ₹<%= walletBalance.toFixed(2) %>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="payment-description">
+                                    <% if (walletBalance >= finalAmount) { %>
+                                        Pay from your wallet balance
+                                    <% } else { %>
+                                        <span class="text-danger">Insufficient wallet balance (Need ₹<%= (finalAmount - walletBalance).toFixed(2) %> more)</span>
+                                    <% } %>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -1143,7 +1196,17 @@
                 return;
             }
 
-            if (paymentMethod === 'Razorpay') {
+            if (paymentMethod === 'Wallet') {
+                // Handle wallet payment success
+                Swal.fire({
+                    title: 'Order Placed!',
+                    text: `Your order #${data.orderId} has been placed successfully using your wallet`,
+                    icon: 'success',
+                    confirmButtonColor: '#3498db'
+                }).then(() => {
+                    window.location.href = `/order-success?orderId=${data.orderId}`;
+                });
+            } else if (paymentMethod === 'Razorpay') {
                 const options = {
                     key: '<%= razorpayKeyId %>',
                     amount: data.amount,

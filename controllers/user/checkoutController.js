@@ -5,6 +5,8 @@ const Product = require('../../models/productSchema');
 const Coupon = require('../../models/couponSchema');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const User = require('../../models/userSchema');
+const Wallet = require('../../models/walletSchema');
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -12,7 +14,6 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-// In your checkout controller (placeOrder function or getCheckoutPage)
 
 const getCheckoutPage = async (req, res) => {
     try {
@@ -34,6 +35,10 @@ const getCheckoutPage = async (req, res) => {
             $expr: { $lt: ["$usedCount", "$usageLimit"] },
             usersUsed: { $nin: [userId] }
         });
+
+        // Add wallet balance check
+        const user = await User.findById(userId).select('wallet');
+        const walletBalance = user?.wallet?.balance || 0;
 
         if (!cart || !cart.items.length) {
             return res.redirect('/cart');
@@ -120,7 +125,8 @@ const getCheckoutPage = async (req, res) => {
             user: req.session.user,
             razorpayKeyId: process.env.RAZORPAY_KEY_ID,
             appliedCoupon: req.session.appliedCoupon,
-            availableCoupons: coupons
+            availableCoupons: coupons,
+            walletBalance
         });
     } catch (error) {
         console.error('Error in getCheckoutPage:', error);
@@ -148,6 +154,7 @@ const createRazorpayOrder = async (amount, currency = 'INR') => {
     }
 };
 
+
 const verifyPayment = (orderId, paymentId, signature) => {
     const secret = process.env.RAZORPAY_KEY_SECRET;
     const body = orderId + '|' + paymentId;
@@ -158,6 +165,7 @@ const verifyPayment = (orderId, paymentId, signature) => {
     return expectedSignature === signature;
 };
 
+
 const placeOrder = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -165,6 +173,7 @@ const placeOrder = async (req, res) => {
         
         const cart = await Cart.findOne({ userId }).populate('items.productId');
         const addressDoc = await Address.findOne({ userId });
+        const user = await User.findById(userId); // Get user for wallet balance
         
         if (!cart) {
             return res.status(400).json({ success: false, message: 'Cart not found' });
@@ -214,6 +223,70 @@ const placeOrder = async (req, res) => {
             couponApplied: !!cart.couponCode,
             couponCode: cart.couponCode
         };
+
+        if (paymentMethod === 'Wallet') {
+            // Check if user has sufficient wallet balance
+            if (user.wallet.balance < cart.finalAmount) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Insufficient wallet balance' 
+                });
+            }
+
+            // Deduct from wallet and create transaction
+            user.wallet.balance -= cart.finalAmount;
+            await user.save();
+
+            function generateTransactionId(userId) {
+                return `WALLET-${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+            }
+
+            // Create wallet transaction
+            const walletTransaction = new Wallet({
+                userId,
+                amount: cart.finalAmount,
+                type: 'debit',
+                description: 'Order payment',
+                orderId: `ORDER-${Date.now()}`,
+                transactionId: generateTransactionId(user._id)
+            });
+            await walletTransaction.save();
+
+            // Update order data for wallet payment
+            orderData.paymentStatus = 'Paid';
+            orderData.paymentMethod = 'Wallet';
+
+            // Create the order
+            const order = new Order(orderData);
+            const savedOrder = await order.save();
+
+            // Update product stock
+            for (const item of cart.items) {
+                await Product.findByIdAndUpdate(item.productId._id, {
+                    $inc: { quantity: -item.quantity }
+                });
+            }
+
+            // Update coupon usage if applied
+            if (cart.couponCode) {
+                await Coupon.findOneAndUpdate(
+                    { code: cart.couponCode },
+                    { 
+                        $inc: { usedCount: 1 },
+                        $push: { usersUsed: userId }
+                    }
+                );
+            }
+
+            await Cart.findOneAndDelete({ userId });
+            delete req.session.appliedCoupon;
+
+            return res.status(200).json({ 
+                success: true, 
+                orderId: savedOrder.orderId,
+                message: 'Order placed successfully using wallet' 
+            });
+        } 
 
         if (paymentMethod === 'Razorpay') {
             try {
@@ -320,7 +393,6 @@ const placeOrder = async (req, res) => {
     } catch (error) {
         console.error('Error in placeOrder:', error);
 
-        // Create a minimal order with failed status
         try {
             const minimalFailedOrder = new Order({
                 userId: req.session.user.id,
