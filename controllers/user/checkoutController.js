@@ -12,12 +12,21 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
+// In your checkout controller (placeOrder function or getCheckoutPage)
+
 const getCheckoutPage = async (req, res) => {
     try {
         const userId = req.session.user.id;
         delete req.session.pendingOrder;
 
-        const cart = await Cart.findOne({ userId }).populate('items.productId');
+        const cart = await Cart.findOne({ userId }).populate({
+            path: 'items.productId',
+            populate: [
+                { path: 'category', select: 'name isListed offer' },
+                { path: 'offer' }
+            ]
+        });
+
         const addressDoc = await Address.findOne({ userId });
         const coupons = await Coupon.find({ 
             isActive: true,
@@ -30,25 +39,84 @@ const getCheckoutPage = async (req, res) => {
             return res.redirect('/cart');
         }
 
+        // Calculate regular total and discount amounts for each item
+        let regularSubTotal = 0;
+        let discountAmount = 0;
+        let itemsWithPrices = [];
+
         for (const item of cart.items) {
-            if (item.quantity > item.productId.quantity) {
-                if (req.headers.accept.includes('application/json')) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: `Insufficient stock for ${item.productId.productName}` 
-                    });
+            const product = item.productId;
+            
+            // Calculate regular price total for this item
+            const regularPriceTotal = product.regularPrice * item.quantity;
+            regularSubTotal += regularPriceTotal;
+
+            // Calculate best offer (product or category)
+            let productOfferValue = 0;
+            let categoryOfferValue = 0;
+            let finalOfferValue = 0;
+            let offerType = null;
+
+            // Check product offer
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOfferValue = product.offer.discountType === 'percentage' 
+                    ? product.offer.discountValue 
+                    : (product.offer.discountValue / product.regularPrice) * 100;
+            }
+
+            // Check category offer
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOfferValue = product.category.offer.percentage;
+            }
+
+            // Determine which offer to apply (the bigger one)
+            if (productOfferValue > 0 || categoryOfferValue > 0) {
+                if (productOfferValue >= categoryOfferValue) {
+                    finalOfferValue = productOfferValue;
+                    offerType = 'product';
                 } else {
-                    return res.redirect('/cart');
+                    finalOfferValue = categoryOfferValue;
+                    offerType = 'category';
                 }
             }
+
+            // Calculate sale price and discount amount
+            let salePrice = product.regularPrice;
+            let itemDiscountAmount = 0;
+
+            if (finalOfferValue > 0) {
+                salePrice = product.regularPrice * (1 - finalOfferValue / 100);
+                itemDiscountAmount = (product.regularPrice - salePrice) * item.quantity;
+            }
+
+            discountAmount += itemDiscountAmount;
+
+            itemsWithPrices.push({
+                ...item.toObject(),
+                regularPrice: product.regularPrice,
+                salePrice: Math.round(salePrice),
+                itemDiscountAmount: Math.round(itemDiscountAmount),
+                offerType,
+                offerPercentage: finalOfferValue
+            });
         }
 
+        // Calculate final amounts
+        const couponDiscount = cart.discountAmount || 0;
+        const shippingCost = 0; // You can change this if you add shipping later
+        const finalAmount = regularSubTotal - discountAmount - couponDiscount - shippingCost;
+
         res.render('user/checkout', {
-            cart,
+            cart: {
+                ...cart.toObject(),
+                items: itemsWithPrices
+            },
             addresses: addressDoc ? addressDoc.addresses : [],
-            subTotal: cart.subTotal,
-            discountAmount: cart.discountAmount || 0,
-            finalAmount: cart.finalAmount || cart.subTotal,
+            regularSubTotal,
+            discountAmount,
+            couponDiscount,
+            shippingCost,
+            finalAmount,
             user: req.session.user,
             razorpayKeyId: process.env.RAZORPAY_KEY_ID,
             appliedCoupon: req.session.appliedCoupon,
