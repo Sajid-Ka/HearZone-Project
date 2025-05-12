@@ -11,8 +11,9 @@ const getCartItems = async (req, res) => {
             .populate({
                 path: 'items.productId',
                 populate: [
-                    { path: 'category', select: 'name isListed' },
-                    { path: 'brand', select: 'brandName isBlocked' }
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'brand', select: 'brandName isBlocked' },
+                    { path: 'offer' }
                 ]
             });
 
@@ -25,7 +26,7 @@ const getCartItems = async (req, res) => {
             });
         }
 
-        // Process cart items
+        // Process cart items with offer calculations
         const updatedItems = [];
         let needsUpdate = false;
 
@@ -37,35 +38,60 @@ const getCartItems = async (req, res) => {
 
             const product = item.productId;
 
-            // Check various blocking conditions
-            if (product.isBlocked || 
-                !product.category || 
-                !product.category.isListed ||
-                !product.brand ||
-                product.brand.isBlocked) {
-                needsUpdate = true;
-                continue;
+            // Calculate the best offer (product or category)
+            let productOfferValue = 0;
+            let categoryOfferValue = 0;
+            let finalOfferValue = 0;
+            let offerType = null;
+
+            // Check product offer
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOfferValue = product.offer.discountType === 'percentage' 
+                    ? product.offer.discountValue 
+                    : (product.offer.discountValue / product.regularPrice) * 100;
             }
 
-            // Use salePrice or regularPrice as the item's price
-            const currentPrice = product.salePrice || product.regularPrice;
-            if (!item.price || item.price !== currentPrice) {
-                item.price = currentPrice;
-                item.totalPrice = currentPrice * item.quantity;
+            // Check category offer
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOfferValue = product.category.offer.percentage;
+            }
+
+            // Determine which offer to apply (the bigger one)
+            if (productOfferValue > 0 || categoryOfferValue > 0) {
+                if (productOfferValue >= categoryOfferValue) {
+                    finalOfferValue = productOfferValue;
+                    offerType = 'product';
+                } else {
+                    finalOfferValue = categoryOfferValue;
+                    offerType = 'category';
+                }
+            }
+
+            // Calculate sale price
+            let salePrice = product.regularPrice;
+            if (finalOfferValue > 0) {
+                salePrice = product.regularPrice * (1 - finalOfferValue / 100);
+            }
+
+            // Update item price if needed
+            if (!item.price || item.price !== salePrice) {
+                item.price = salePrice;
+                item.totalPrice = salePrice * item.quantity;
                 needsUpdate = true;
             }
 
-            // Adjust quantity if it exceeds stock
-            if (item.quantity > product.quantity) {
-                item.quantity = Math.max(1, product.quantity);
-                item.totalPrice = currentPrice * item.quantity;
-                needsUpdate = true;
-            }
+            // Add offer details to the product object
+            product.offerDetails = {
+                regularPrice: product.regularPrice,
+                salePrice: Math.round(salePrice),
+                offerPercentage: Math.round(finalOfferValue),
+                hasOffer: finalOfferValue > 0,
+                offerType
+            };
 
             updatedItems.push(item);
         }
 
-        // Update cart if necessary
         if (needsUpdate) {
             cart.items = updatedItems;
             cart.calculateTotals();

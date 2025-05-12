@@ -230,6 +230,23 @@ h1.mb-4 {
     }
 }
 
+.text-decoration-line-through {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.badge.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.ms-2 {
+    margin-left: 0.5rem;
+}
+
 </style>
 
 <br>
@@ -270,7 +287,20 @@ h1.mb-4 {
                                     <div class="row">
                                         <div class="col-md-6">
                                             <h5><%= product.productName %></h5>
-                                            <p class="text-muted mb-1">Price: ₹<span class="item-price"><%= item.price.toFixed(2) %></span></p>
+                                            <% if (product.offerDetails.hasOffer) { %>
+                                                <p class="text-muted mb-1">
+                                                    <span class="text-decoration-line-through">₹<%= product.offerDetails.regularPrice.toFixed(2) %></span>
+                                                    <span class="text-success ms-2">₹<%= product.offerDetails.salePrice.toFixed(2) %></span>
+                                                    <span class="badge bg-<%= product.offerDetails.offerType === 'category' ? 'info' : 'success' %> ms-2">
+                                                        <%= product.offerDetails.offerPercentage %>% OFF
+                                                        <% if (product.offerDetails.offerType === 'category') { %>
+                                                            (Category)
+                                                        <% } %>
+                                                    </span>
+                                                </p>
+                                            <% } else { %>
+                                                <p class="text-muted mb-1">Price: ₹<%= product.offerDetails.regularPrice.toFixed(2) %></p>
+                                            <% } %>
                                             
                                             <% if (product.quantity < 5) { %>
                                                 <small class="text-danger">Only <%= product.quantity %> left</small>
@@ -282,6 +312,7 @@ h1.mb-4 {
                                                 </div>
                                             <% } %>
                                         </div>
+
                                         
                                         <div class="col-md-3">
                                             <div class="quantity-control mt-2">
@@ -334,19 +365,26 @@ h1.mb-4 {
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal:</span>
+                            <span>Subtotal (<%= cart.items.reduce((total, item) => total + item.quantity, 0) %> items):</span>
                             <span class="fw-bold">₹<span id="subtotal"><%= subTotal.toFixed(2) %></span></span>
                         </div>
-                        
-                        <% if (discountAmount > 0) { %>
+
+                        <% if (cart.items.some(item => item.productId.offerDetails.hasOffer)) { %>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Discount:</span>
-                                <span class="fw-bold text-success">-₹<span id="discount"><%= discountAmount.toFixed(2) %></span></span>
+                                <span class="fw-bold text-success">-₹<span id="discount"><%= 
+                                    cart.items.reduce((total, item) => {
+                                        if (item.productId.offerDetails.hasOffer) {
+                                            return total + ((item.productId.offerDetails.regularPrice - item.productId.offerDetails.salePrice) * item.quantity);
+                                        }
+                                        return total;
+                                    }, 0).toFixed(2)
+                                %></span></span>
                             </div>
                         <% } %>
-                        
+
                         <hr>
-                        
+
                         <div class="d-flex justify-content-between mb-4">
                             <span class="fw-bold">Total:</span>
                             <span class="fw-bold fs-5">₹<span id="total"><%= finalAmount.toFixed(2) %></span></span>
