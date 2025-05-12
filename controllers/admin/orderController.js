@@ -399,8 +399,8 @@ const processReturnRequest = async (req, res) => {
                     userId: user._id,
                     amount: refundAmount,
                     type: 'credit',
-                    description: `Refund for returned order ${order.orderId}`,
-                    orderId: order.orderId
+                    description: `Refund for returned item in order ${order.orderId}`,
+                    orderId: order.orderId,
                 });
 
                 refundMessage = `Return approved. Amount ₹${refundAmount} refunded to wallet.`;
@@ -731,12 +731,18 @@ const processCancelItemRequest = async (req, res) => {
                     date: new Date()
                 });
 
+
+                function generateTransactionId(userId) {
+                    return `WALLET-${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                }
+
                 await Wallet.create({
                     userId: user._id,
                     amount: refundAmount,
                     type: 'credit',
                     description: `Refund for cancelled item in order ${order.orderId}`,
-                    orderId: order.orderId
+                    orderId: order.orderId,
+                    transactionId: generateTransactionId(user._id)
                 });
 
                 refundMessage = `Cancellation approved for item: ${item.product.productName}. Amount ₹${refundAmount.toFixed(2)} refunded to wallet.`;
@@ -863,12 +869,18 @@ const processReturnItemRequest = async (req, res) => {
                 });
 
                 
+                function generateTransactionId(userId) {
+                    return `WALLET-${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                }
+
+                // In your processReturnItemRequest:
                 await Wallet.create({
                     userId: user._id,
                     amount: refundAmount,
                     type: 'credit',
                     description: `Refund for returned item in order ${order.orderId}`,
-                    orderId: order.orderId
+                    orderId: order.orderId,
+                    transactionId: generateTransactionId(user._id)
                 });
 
                 refundMessage = `Return approved for item: ${item.product.productName}. Amount ₹${refundAmount} refunded to wallet.`;

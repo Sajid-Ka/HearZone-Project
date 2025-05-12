@@ -1,9 +1,9 @@
 const Cart = require('../../models/cartSchema');
 const Product = require('../../models/productSchema');
-const Wishlist = require('../../models/wishlistSchema'); // Assuming you have a wishlist model
+const Wishlist = require('../../models/wishlistSchema'); 
 
 
-// Get cart items
+
 const getCartItems = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -26,7 +26,7 @@ const getCartItems = async (req, res) => {
             });
         }
 
-        // Process cart items with offer calculations
+        
         const updatedItems = [];
         let needsUpdate = false;
 
@@ -110,14 +110,14 @@ const getCartItems = async (req, res) => {
     }
 };
     
-// Add to cart
+
 const addToCart = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const { productId, quantity = 1 } = req.body;
         const MAX_QUANTITY_PER_ITEM = 5;
 
-        // Check if product exists with populated category and brand
+        
         const product = await Product.findById(productId)
             .populate('category')
             .populate('brand');
@@ -129,7 +129,7 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if product itself is blocked
+        
         if (product.isBlocked) {
             return res.status(400).json({
                 success: false,
@@ -137,7 +137,7 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if category exists and is listed
+        
         if (!product.category || !product.category.isListed) {
             return res.status(400).json({
                 success: false,
@@ -145,7 +145,7 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if brand exists and is not blocked
+        
         if (!product.brand || product.brand.isBlocked) {
             return res.status(400).json({
                 success: false,
@@ -153,7 +153,7 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if product is in stock
+        
         if (product.quantity < 1) {
             return res.status(400).json({
                 success: false,
@@ -161,7 +161,7 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Check if requested quantity exceeds stock
+       
         const requestedQuantity = Number(quantity);
         if (isNaN(requestedQuantity) || requestedQuantity < 1) {
             return res.status(400).json({
@@ -177,22 +177,22 @@ const addToCart = async (req, res) => {
             });
         }
 
-        // Get or create cart
+        
         let cart = await Cart.findOne({ userId });
         if (!cart) {
             cart = new Cart({ userId, items: [] });
         }
 
-        // Check if product already in cart
+        
         const existingItemIndex = cart.items.findIndex(
             item => item.productId.toString() === productId
         );
 
         if (existingItemIndex > -1) {
-            // Calculate new quantity if we add this request
+            
             const newQuantity = cart.items[existingItemIndex].quantity + requestedQuantity;
             
-            // Check if new quantity exceeds max limit
+            
             if (newQuantity > MAX_QUANTITY_PER_ITEM) {
                 return res.status(400).json({
                     success: false,
@@ -200,7 +200,7 @@ const addToCart = async (req, res) => {
                 });
             }
             
-            // Check if new quantity exceeds stock
+            
             if (newQuantity > product.quantity) {
                 return res.status(400).json({
                     success: false,
@@ -208,11 +208,11 @@ const addToCart = async (req, res) => {
                 });
             }
 
-            // Update quantity and price
+            
             cart.items[existingItemIndex].quantity = newQuantity;
             cart.items[existingItemIndex].totalPrice = (product.salePrice || product.regularPrice) * newQuantity;
         } else {
-            // Check if requested quantity exceeds max limit for new item
+            
             if (requestedQuantity > MAX_QUANTITY_PER_ITEM) {
                 return res.status(400).json({
                     success: false,
@@ -220,7 +220,7 @@ const addToCart = async (req, res) => {
                 });
             }
 
-            // Add new product to cart
+            
             cart.items.push({
                 productId,
                 quantity: requestedQuantity,
@@ -228,14 +228,14 @@ const addToCart = async (req, res) => {
                 totalPrice: (product.salePrice || product.regularPrice) * requestedQuantity
             });
 
-            // Remove from wishlist if exists
+            
             await Wishlist.updateOne(
                 { userId },
                 { $pull: { products: { productId } } }
             );
         }
 
-        // Calculate totals and save
+       
         cart.calculateTotals();
         await cart.save();
 
@@ -256,7 +256,6 @@ const addToCart = async (req, res) => {
 };
 
     
-// Update cart item quantity
 const updateQuantity = async (req, res) => {
     try {
         const userId = req.session.user.id;

@@ -44,6 +44,20 @@ const walletSchema = new Schema({
     }
 }, { timestamps: true });
 
+
+
+walletSchema.pre('save', async function(next) {
+    if (!this.transactionId) {
+        let isUnique = false;
+        while (!isUnique) {
+            this.transactionId = `WALLET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const exists = await this.constructor.findOne({ transactionId: this.transactionId });
+            if (!exists) isUnique = true;
+        }
+    }
+    next();
+});
+
 const Wallet = mongoose.model('Wallet', walletSchema);
 
 module.exports = Wallet;
