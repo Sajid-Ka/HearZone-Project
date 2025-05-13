@@ -1,4 +1,5 @@
 const Cart = require('../models/cartSchema');
+const mongoose = require('mongoose');
 
 const checkSessionAndCoupon = async (req, res, next) => {
     try {

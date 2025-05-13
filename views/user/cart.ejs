@@ -469,13 +469,20 @@ h1.mb-4 {
         
         // Update order summary (unchanged)
         function updateOrderSummary(data) {
-            document.getElementById('subtotal').textContent = parseFloat(data.subTotal).toFixed(2);
-            const discountEl = document.getElementById('discount');
-            if (discountEl) {
-                discountEl.textContent = parseFloat(data.discountAmount).toFixed(2);
+    document.getElementById('subtotal').textContent = parseFloat(data.subTotal).toFixed(2);
+        const discountEl = document.getElementById('discount');
+        if (discountEl) {
+            discountEl.textContent = parseFloat(data.discountAmount).toFixed(2);
+            // Show or hide the discount section based on discountAmount
+            const discountSection = discountEl.closest('.d-flex');
+            if (data.discountAmount > 0) {
+                discountSection.style.display = 'flex';
+            } else {
+                discountSection.style.display = 'none';
             }
-            document.getElementById('total').textContent = parseFloat(data.finalAmount).toFixed(2);
         }
+        document.getElementById('total').textContent = parseFloat(data.finalAmount).toFixed(2);
+    }
 
 
         document.querySelectorAll('.product-image').forEach(image => {

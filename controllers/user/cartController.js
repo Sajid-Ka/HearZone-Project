@@ -1,6 +1,7 @@
 const Cart = require('../../models/cartSchema');
 const Product = require('../../models/productSchema');
 const Wishlist = require('../../models/wishlistSchema'); 
+const mongoose = require('mongoose');
 
 
 
@@ -286,44 +287,66 @@ const updateQuantity = async (req, res) => {
         const userId = req.session.user.id;
         const { productId, quantity, action } = req.body;
         const MAX_QUANTITY_PER_ITEM = 5;
-        
+
+        // Validate action
         if (!['increment', 'decrement', 'set'].includes(action)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid action' 
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid action'
             });
         }
-        
-        // Find cart
-        const cart = await Cart.findOne({ userId });
+
+        // Validate productId
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid product ID'
+            });
+        }
+
+        // Find cart with populated product details
+        const cart = await Cart.findOne({ userId })
+            .populate({
+                path: 'items.productId',
+                populate: [
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'brand', select: 'brandName isBlocked' },
+                    { path: 'offer' }
+                ]
+            });
+
         if (!cart) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Cart not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Cart not found'
             });
         }
-        
+
+
         // Find product in cart
         const itemIndex = cart.items.findIndex(
-            item => item.productId.toString() === productId
+            item => item.productId && item.productId._id.toString() === productId
         );
-        
+
         if (itemIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Product not found in cart' 
+            console.log('Product ID searched:', productId);
+            console.log('Cart items product IDs:', cart.items.map(item => item.productId ? item.productId._id.toString() : 'undefined'));
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found in cart'
             });
         }
-        
-        // Get product details for stock check
-        const product = await Product.findById(productId);
+
+        // Get product details
+        const product = cart.items[itemIndex].productId;
         if (!product) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Product not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Product details not found'
             });
         }
-        
+
+        // Calculate new quantity based on action
         let newQuantity;
         if (action === 'increment') {
             newQuantity = cart.items[itemIndex].quantity + 1;
@@ -333,47 +356,92 @@ const updateQuantity = async (req, res) => {
             newQuantity = Number(quantity);
         }
 
+        // Validate quantity
+        if (isNaN(newQuantity) || newQuantity < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Quantity cannot be less than 1'
+            });
+        }
+
         if (newQuantity > MAX_QUANTITY_PER_ITEM) {
-            return res.status(400).json({ 
-                success: false, 
+            return res.status(400).json({
+                success: false,
                 message: `Maximum limit is ${MAX_QUANTITY_PER_ITEM} units per product`
             });
         }
-        
-        // Calculate new quantity based on action
-        if (action === 'increment') {
-            newQuantity = cart.items[itemIndex].quantity + 1;
-        } else if (action === 'decrement') {
-            newQuantity = cart.items[itemIndex].quantity - 1;
-        } else {
-            newQuantity = Number(quantity);
-        }
-        
-        // Validate quantity
-        if (newQuantity < 1) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Quantity cannot be less than 1' 
+
+        if (newQuantity > product.quantity) {
+            return res.status(400).json({
+                success: false,
+                message: `Only ${product.quantity} units available in stock`
             });
         }
-        
-        if (newQuantity > product.stock) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Only ${product.stock} units available in stock` 
-            });
+
+        // Calculate the best offer (product or category)
+        let productOfferValue = 0;
+        let categoryOfferValue = 0;
+        let finalOfferValue = 0;
+        let offerType = null;
+
+        // Check product offer
+        if (product.offer && new Date(product.offer.endDate) > new Date()) {
+            productOfferValue = product.offer.discountType === 'percentage'
+                ? product.offer.discountValue
+                : (product.offer.discountValue / product.regularPrice) * 100;
         }
-        
-        // Update quantity and total price
+
+        // Check category offer
+        if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+            categoryOfferValue = product.category.offer.percentage;
+        }
+
+        // Determine which offer to apply (the bigger one)
+        if (productOfferValue > 0 || categoryOfferValue > 0) {
+            if (productOfferValue >= categoryOfferValue) {
+                finalOfferValue = productOfferValue;
+                offerType = 'product';
+            } else {
+                finalOfferValue = categoryOfferValue;
+                offerType = 'category';
+            }
+        }
+
+        // Calculate sale price
+        let salePrice = product.regularPrice;
+        if (finalOfferValue > 0) {
+            salePrice = product.regularPrice * (1 - finalOfferValue / 100);
+        }
+
+        // Update item details
         cart.items[itemIndex].quantity = newQuantity;
-        cart.items[itemIndex].totalPrice = product.price * newQuantity;
-        
-        // Calculate totals and save
-        cart.calculateTotals();
+        cart.items[itemIndex].price = salePrice;
+        cart.items[itemIndex].totalPrice = salePrice * newQuantity;
+
+        // Add offer details to the product object
+        product.offerDetails = {
+            regularPrice: product.regularPrice,
+            salePrice: Math.round(salePrice),
+            offerPercentage: Math.round(finalOfferValue),
+            hasOffer: finalOfferValue > 0,
+            offerType
+        };
+
+        // Recalculate cart totals
+        cart.subTotal = cart.items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
+        cart.discountAmount = cart.items.reduce((total, item) => {
+            if (item.productId.offerDetails && item.productId.offerDetails.hasOffer) {
+                return total + ((item.productId.offerDetails.regularPrice - item.productId.offerDetails.salePrice) * item.quantity);
+            }
+            return total;
+        }, 0);
+        cart.finalAmount = cart.subTotal - cart.discountAmount;
+
+        // Save the cart (this will trigger calculateTotals via pre-save hook)
         await cart.save();
-        
-        return res.status(200).json({ 
-            success: true, 
+
+        return res.status(200).json({
+            success: true,
             message: 'Cart updated successfully',
             item: cart.items[itemIndex],
             subTotal: cart.subTotal,
@@ -382,12 +450,12 @@ const updateQuantity = async (req, res) => {
         });
     } catch (error) {
         console.error('Error updating cart:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update cart' 
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update cart'
         });
     }
-}
+};
     
 
 // Remove item from cart
