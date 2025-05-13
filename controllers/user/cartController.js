@@ -322,15 +322,12 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-
         // Find product in cart
         const itemIndex = cart.items.findIndex(
             item => item.productId && item.productId._id.toString() === productId
         );
 
         if (itemIndex === -1) {
-            console.log('Product ID searched:', productId);
-            console.log('Cart items product IDs:', cart.items.map(item => item.productId ? item.productId._id.toString() : 'undefined'));
             return res.status(404).json({
                 success: false,
                 message: 'Product not found in cart'
@@ -378,75 +375,30 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Calculate the best offer (product or category)
-        let productOfferValue = 0;
-        let categoryOfferValue = 0;
-        let finalOfferValue = 0;
-        let offerType = null;
-
-        // Check product offer
-        if (product.offer && new Date(product.offer.endDate) > new Date()) {
-            productOfferValue = product.offer.discountType === 'percentage'
-                ? product.offer.discountValue
-                : (product.offer.discountValue / product.regularPrice) * 100;
-        }
-
-        // Check category offer
-        if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
-            categoryOfferValue = product.category.offer.percentage;
-        }
-
-        // Determine which offer to apply (the bigger one)
-        if (productOfferValue > 0 || categoryOfferValue > 0) {
-            if (productOfferValue >= categoryOfferValue) {
-                finalOfferValue = productOfferValue;
-                offerType = 'product';
-            } else {
-                finalOfferValue = categoryOfferValue;
-                offerType = 'category';
-            }
-        }
-
-        // Calculate sale price
-        let salePrice = product.regularPrice;
-        if (finalOfferValue > 0) {
-            salePrice = product.regularPrice * (1 - finalOfferValue / 100);
-        }
-
-        // Update item details
+        // Update item quantity
         cart.items[itemIndex].quantity = newQuantity;
-        cart.items[itemIndex].price = salePrice;
-        cart.items[itemIndex].totalPrice = salePrice * newQuantity;
 
-        // Add offer details to the product object
-        product.offerDetails = {
-            regularPrice: product.regularPrice,
-            salePrice: Math.round(salePrice),
-            offerPercentage: Math.round(finalOfferValue),
-            hasOffer: finalOfferValue > 0,
-            offerType
-        };
-
-        // Recalculate cart totals
-        cart.subTotal = cart.items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
-        cart.discountAmount = cart.items.reduce((total, item) => {
-            if (item.productId.offerDetails && item.productId.offerDetails.hasOffer) {
-                return total + ((item.productId.offerDetails.regularPrice - item.productId.offerDetails.salePrice) * item.quantity);
-            }
-            return total;
-        }, 0);
-        cart.finalAmount = cart.subTotal - cart.discountAmount;
-
-        // Save the cart (this will trigger calculateTotals via pre-save hook)
+        // Save the cart - this will trigger calculateTotals via pre-save hook
         await cart.save();
+
+        // Re-fetch the cart with updated totals
+        const updatedCart = await Cart.findOne({ userId })
+            .populate({
+                path: 'items.productId',
+                populate: [
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'brand', select: 'brandName isBlocked' },
+                    { path: 'offer' }
+                ]
+            });
 
         return res.status(200).json({
             success: true,
             message: 'Cart updated successfully',
-            item: cart.items[itemIndex],
-            subTotal: cart.subTotal,
-            discountAmount: cart.discountAmount,
-            finalAmount: cart.finalAmount
+            item: updatedCart.items[itemIndex],
+            subTotal: updatedCart.subTotal,
+            discountAmount: updatedCart.productDiscount + updatedCart.couponDiscount,
+            finalAmount: updatedCart.finalAmount
         });
     } catch (error) {
         console.error('Error updating cart:', error);
@@ -458,37 +410,52 @@ const updateQuantity = async (req, res) => {
 };
     
 
-// Remove item from cart
 const removeItem = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const { productId } = req.body;
         
-        // Update cart by removing the item
-        const result = await Cart.findOneAndUpdate(
-            { userId },
-            { $pull: { items: { productId } } },
-            { new: true }
-        );
-        
-        if (!result) {
+        // First find the cart to get current state
+        let cart = await Cart.findOne({ userId })
+            .populate({
+                path: 'items.productId',
+                populate: [
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'offer' }
+                ]
+            });
+
+        if (!cart) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'Cart not found or item not in cart' 
+                message: 'Cart not found' 
             });
         }
-        
+
+        // Remove the item from the cart items array
+        cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
+
         // Recalculate totals
-        result.calculateTotals();
-        await result.save();
-        
+        await cart.calculateTotals();
+        await cart.save();
+
+        // Get fresh cart data with populated products
+        const updatedCart = await Cart.findOne({ userId })
+            .populate({
+                path: 'items.productId',
+                populate: [
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'offer' }
+                ]
+            });
+
         return res.status(200).json({ 
             success: true, 
             message: 'Item removed from cart',
-            cartCount: result.items.length,
-            subTotal: result.subTotal,
-            discountAmount: result.discountAmount,
-            finalAmount: result.finalAmount
+            cartCount: updatedCart.items.length,
+            subTotal: updatedCart.subTotal || 0,
+            discountAmount: (updatedCart.productDiscount || 0) + (updatedCart.couponDiscount || 0),
+            finalAmount: updatedCart.finalAmount || 0
         });
     } catch (error) {
         console.error('Error removing item from cart:', error);

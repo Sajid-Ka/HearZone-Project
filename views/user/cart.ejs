@@ -535,8 +535,15 @@ h1.mb-4 {
                         
                         const totalPriceEl = itemContainer.querySelector('.item-total');
                         totalPriceEl.textContent = '₹' + parseFloat(data.item.totalPrice).toFixed(2);
-                        updateOrderSummary(data);
                         
+                        // Update order summary with the correct discount values
+                        updateOrderSummary({
+                            subTotal: data.subTotal,
+                            discountAmount: data.discountAmount,
+                            finalAmount: data.finalAmount
+                        });
+                        
+                        // Update button states
                         const incrementBtn = itemContainer.querySelector('[data-action="increment"]');
                         if (incrementBtn) {
                             incrementBtn.disabled = quantity >= MAX_QUANTITY_PER_ITEM || quantity >= parseInt(quantityInput.max);
@@ -657,7 +664,14 @@ h1.mb-4 {
                         if (data.success) {
                             itemContainer.remove();
                             updateCartCount(data.cartCount);
-                            updateOrderSummary(data);
+                            
+                            // Safely handle the discount amounts
+                            const discountAmount = data.discountAmount || 0;
+                            updateOrderSummary({
+                                subTotal: data.subTotal || 0,
+                                discountAmount: discountAmount,
+                                finalAmount: data.finalAmount || (data.subTotal || 0) - discountAmount
+                            });
                             
                             Swal.fire({
                                 title: 'Removed!',
