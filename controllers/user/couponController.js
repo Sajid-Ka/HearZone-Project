@@ -5,22 +5,13 @@ const getAvailableCoupons = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const coupons = await Coupon.find({ 
+            isActive: true,
+            expiryDate: { $gte: new Date() },
+            $expr: { $lt: ["$usedCount", "$usageLimit"] },
+            usersUsed: { $nin: [userId] },
             $or: [
-                { 
-                    isActive: true,
-                    expiryDate: { $gte: new Date() },
-                    $expr: { $lt: ["$usedCount", "$usageLimit"] },
-                    usersUsed: { $nin: [userId] },
-                    isReferral: false // Regular coupons
-                },
-                { 
-                    isActive: true,
-                    expiryDate: { $gte: new Date() },
-                    $expr: { $lt: ["$usedCount", "$usageLimit"] },
-                    usersUsed: { $nin: [userId] },
-                    userId: userId, // Referral coupons for this user
-                    isReferral: true
-                }
+                { isReferral: false }, // Regular coupons
+                { isReferral: true, userId: userId } // Referral coupons only for this user
             ]
         });
         res.json(coupons);

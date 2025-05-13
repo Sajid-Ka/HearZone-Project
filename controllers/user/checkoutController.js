@@ -28,7 +28,6 @@ const getCheckoutPage = async (req, res) => {
             ]
         });
 
-
         if (cart?.couponCode) {
             const coupon = await Coupon.findOne({
                 code: cart.couponCode,
@@ -57,7 +56,11 @@ const getCheckoutPage = async (req, res) => {
             isActive: true,
             expiryDate: { $gte: new Date() },
             $expr: { $lt: ["$usedCount", "$usageLimit"] },
-            usersUsed: { $nin: [userId] }
+            usersUsed: { $nin: [userId] },
+            $or: [
+                { isReferral: false }, // Regular coupons
+                { isReferral: true, userId: userId } // Referral coupons only for this user
+            ]
         });
 
         // Add wallet balance check

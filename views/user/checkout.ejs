@@ -26,6 +26,22 @@
         border-bottom: 2px solid #f0f0f0;
     }
 
+    .badge {
+        font-size: 0.7em;
+        padding: 0.25em 0.5em;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+
+    .bg-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .ms-2 {
+        margin-left: 0.5rem;
+    }
+
     .section-container {
         margin-bottom: 30px;
         border-radius: 16px;
@@ -943,7 +959,12 @@
                                 <div class="coupon-options">
                                     <% availableCoupons.forEach(coupon => { %>
                                         <div class="coupon-option" onclick="selectCoupon('<%= coupon.code %>')">
-                                            <div class="coupon-code"><%= coupon.code %></div>
+                                            <div class="coupon-code">
+                                                <%= coupon.code %>
+                                                <% if (coupon.isReferral) { %>
+                                                    <span class="badge bg-info ms-2">Referral</span>
+                                                <% } %>
+                                            </div>
                                             <div class="coupon-desc">
                                                 <%= coupon.discountType === 'percentage' ? 
                                                     `${coupon.value}% off` : 
