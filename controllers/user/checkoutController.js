@@ -28,6 +28,30 @@ const getCheckoutPage = async (req, res) => {
             ]
         });
 
+
+        if (cart?.couponCode) {
+            const coupon = await Coupon.findOne({
+                code: cart.couponCode,
+                isActive: true,
+                expiryDate: { $gte: new Date() },
+                $expr: { $lt: ["$usedCount", "$usageLimit"] },
+                usersUsed: { $nin: [userId] },
+                $or: [
+                    { isReferral: false },
+                    { userId: userId, isReferral: true }
+                ]
+            });
+
+            if (!coupon || (coupon.minPurchase && cart.subTotal < coupon.minPurchase)) {
+                // Remove invalid coupon
+                cart.couponCode = null;
+                cart.discountAmount = 0;
+                cart.finalAmount = cart.subTotal;
+                await cart.save();
+                delete req.session.appliedCoupon;
+            }
+        }
+
         const addressDoc = await Address.findOne({ userId });
         const coupons = await Coupon.find({ 
             isActive: true,

@@ -3,6 +3,7 @@ const Coupon = require('../../models/couponSchema');
 const Category = require('../../models/categorySchema');
 const Product = require('../../models/productSchema');
 const Brand = require('../../models/brandSchema');
+const Cart = require('../../models/cartSchema');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const { generateReferralCode } = require('../../utils/referralUtils');
@@ -405,7 +406,23 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
+        const userId = req.session.user?.id;
+        
+        if (userId) {
+            // Clear any applied coupon from the cart
+            const cart = await Cart.findOne({ userId });
+            if (cart && cart.couponCode) {
+                cart.couponCode = null;
+                cart.discountAmount = 0;
+                cart.finalAmount = cart.subTotal;
+                await cart.save();
+            }
+        }
+        
+        // Clear session
         delete req.session.user;
+        delete req.session.appliedCoupon;
+        
         res.redirect('/login');
     } catch (error) {
         console.error('Logout error:', error);

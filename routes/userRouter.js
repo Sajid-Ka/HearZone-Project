@@ -16,6 +16,7 @@ const passport = require('passport');
 const User = require('../models/userSchema'); 
 const reviewController = require('../controllers/user/reviewController');
 const walletController = require('../controllers/user/walletController');
+const checkSessionAndCoupon = require('../middlewares/sessionCheck');
 const multer = require('../helpers/multer');
 
 
@@ -106,6 +107,7 @@ router.get('/signup', isLogin, (req, res) => {
 
 // Protected routes (require authentication)
 router.use(userAuth);
+router.use(checkSessionAndCoupon);
 
 router.get('/logout', userController.logout);
 

@@ -39,6 +39,12 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Coupon code is required' });
         }
 
+        // First check if the user has a cart with items
+        const cart = await Cart.findOne({ userId });
+        if (!cart || !cart.items.length) {
+            return res.status(400).json({ success: false, message: 'Cart is empty' });
+        }
+
         const coupon = await Coupon.findOne({
             code: couponCode.toUpperCase(),
             isActive: true,
@@ -53,11 +59,6 @@ const applyCoupon = async (req, res) => {
 
         if (!coupon) {
             return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
-        }
-
-        const cart = await Cart.findOne({ userId });
-        if (!cart || !cart.items.length) {
-            return res.status(400).json({ success: false, message: 'Cart is empty' });
         }
 
         if (cart.subTotal < coupon.minPurchase) {

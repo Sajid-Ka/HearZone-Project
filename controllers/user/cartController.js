@@ -7,6 +7,7 @@ const Wishlist = require('../../models/wishlistSchema');
 const getCartItems = async (req, res) => {
     try {
         const userId = req.session.user.id;
+        
         const cart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
@@ -17,15 +18,27 @@ const getCartItems = async (req, res) => {
                 ]
             });
 
-        if (!cart || !cart.items.length) {
+        // Initialize default values
+        let cartData = {
+            items: [],
+            subTotal: 0,
+            discountAmount: 0,
+            finalAmount: 0
+        };
+
+        if (!cart || !cart.items || cart.items.length === 0) {
             return res.render('user/cart', {
-                cart: { items: [] },
-                subTotal: 0,
-                discountAmount: 0,
-                finalAmount: 0
+                cart: cartData,
+                subTotal: cartData.subTotal,
+                discountAmount: cartData.discountAmount,
+                finalAmount: cartData.finalAmount
             });
         }
 
+        // Ensure cart has required fields
+        if (!cart.subTotal) cart.subTotal = 0;
+        if (!cart.discountAmount) cart.discountAmount = 0;
+        if (!cart.finalAmount) cart.finalAmount = cart.subTotal - cart.discountAmount;
         
         const updatedItems = [];
         let needsUpdate = false;
@@ -94,19 +107,31 @@ const getCartItems = async (req, res) => {
 
         if (needsUpdate) {
             cart.items = updatedItems;
-            cart.calculateTotals();
+            cart.subTotal = updatedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+            cart.finalAmount = cart.subTotal - (cart.discountAmount || 0);
             await cart.save();
         }
 
+        // Ensure all amounts are numbers
+        const subTotal = Number(cart.subTotal || 0);
+        const discountAmount = Number(cart.discountAmount || 0);
+        const finalAmount = Number(cart.finalAmount || subTotal - discountAmount);
+
         return res.render('user/cart', {
             cart,
-            subTotal: cart.subTotal,
-            discountAmount: cart.discountAmount,
-            finalAmount: cart.finalAmount
+            subTotal,
+            discountAmount,
+            finalAmount
         });
     } catch (error) {
         console.error('Error fetching cart:', error);
-        return res.status(500).render('user/error', { message: 'Failed to load cart' });
+        return res.status(500).render('user/error', { 
+            message: 'Failed to load cart',
+            cart: { items: [] },
+            subTotal: 0,
+            discountAmount: 0,
+            finalAmount: 0
+        });
     }
 };
     
