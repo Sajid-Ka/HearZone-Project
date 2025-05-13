@@ -143,7 +143,12 @@ const loadSignup = async (req, res) => {
             return res.redirect('/'); 
         }
         
-        res.render('signup', { message: null });
+        const refCode = req.query.ref || '';
+
+        res.render('signup', { 
+            message: null,
+            refCode 
+        });
     } catch (err) {
         console.error('Signup page load error:', err);
         res.status(500).render('error', { message: 'Server Error' });
@@ -153,28 +158,34 @@ const loadSignup = async (req, res) => {
 const signup = async (req, res) => {
     try {
         const { name, phone, email, password, cPassword, referralCode } = req.body;
+        
+        const refCode = req.query.ref || referralCode;
+        
         if (password !== cPassword) {
-            return res.render('signup', { message: 'Passwords do not match' });
+            return res.render('signup', { message: 'Passwords do not match', refCode });
         }
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.render('signup', { message: 'Email already in use' });
+            return res.render('signup', { message: 'Email already in use', refCode });
         }
         
         if (/\d/.test(name)) {
-            return res.render('signup', { message: 'Name cannot contain numbers' });
+            return res.render('signup', { message: 'Name cannot contain numbers', refCode });
         }
         
         if (!/^[0-9]{10}$/.test(phone)) {
-            return res.render('signup', { message: 'Phone number must be exactly 10 digits' });
+            return res.render('signup', { message: 'Phone number must be exactly 10 digits', refCode });
         }
 
-       // Validate referral code if provided
+        // Validate referral code if provided
         let referredByUser = null;
-        if (referralCode) {
-            referredByUser = await User.findOne({ referralCode });
+        if (refCode) {
+            referredByUser = await User.findOne({ referralCode: refCode });
             if (!referredByUser) {
-                return res.render('signup', { message: 'Invalid referral code' });
+                return res.render('signup', { 
+                    message: 'Invalid referral code',
+                    refCode
+                });
             }
         }
 
@@ -184,7 +195,7 @@ const signup = async (req, res) => {
 
         const emailSent = await sendVerificationEmail(email, otp);
         if (!emailSent) {
-            return res.render('signup', { message: 'Failed to send verification email' });
+            return res.render('signup', { message: 'Failed to send verification email', refCode });
         }
         req.session.signupId = Date.now().toString();
         req.session.userOtp = otp;
@@ -193,7 +204,7 @@ const signup = async (req, res) => {
             phone, 
             email, 
             password,
-            referralCode: referredByUser ? referralCode : null
+            referralCode: referredByUser ? refCode : null
         };
         res.render('verify-otp', { 
             message: null, 
@@ -202,7 +213,10 @@ const signup = async (req, res) => {
         });
     } catch (error) {
         console.error('Signup error:', error);
-        res.status(500).render('error', { message: 'Signup failed' });
+        res.render('signup', { 
+            message: 'Signup failed',
+            refCode: req.query.ref || ''
+        });
     }
 };
 

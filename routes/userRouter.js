@@ -31,7 +31,30 @@ router.get('/filter-price', shopController.filterByPrice);
 router.get('/product-details', productController.productDetails);
 router.get('/login', isLogin, userController.loadLogin);
 router.post('/login', isLogin, userController.login);
-router.get('/signup', isLogin, userController.loadSignup);
+
+router.get('/signup', isLogin, async (req, res, next) => {
+    if (req.query.ref) {
+        try {
+            const referringUser = await User.findOne({ referralCode: req.query.ref });
+            if (referringUser) {
+                // Track the referral click (you'd need to add this to your user schema)
+                await User.findByIdAndUpdate(referringUser._id, {
+                    $push: {
+                        referralClicks: {
+                            date: new Date(),
+                            ip: req.ip,
+                            userAgent: req.headers['user-agent']
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Error tracking referral click:', err);
+        }
+    }
+    next();
+});
+
 router.post('/signup', isLogin, userController.signup);
 router.post('/verify-otp', isLogin, userController.verifyOtp);
 router.post('/resend-otp', isLogin, userController.resendOtp);

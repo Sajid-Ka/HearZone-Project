@@ -106,7 +106,10 @@
           <i class="fas fa-eye" id="toggleConfirmPassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
         </div>
         <div id="error5" class="error-message"></div>
-        <input type="text" name="referralCode" id="referralCode" placeholder="Referral Code (Optional)">
+        <input type="text" name="referralCode" id="referralCode" 
+            value="<%= refCode %>" 
+            placeholder="Referral Code (Optional)"
+            <%= refCode ? 'readonly' : '' %>>
         <div id="error6" class="error-message"></div>
         <% if(locals.message && message.length > 0) { %>
           <div class="alert alert-danger text-center">
@@ -267,6 +270,23 @@
       passId.addEventListener('input', passValidateChecking);
       cPassId.addEventListener('input', passValidateChecking);
       referralCodeId.addEventListener('input', referralCodeValidateChecking);
+
+
+      function referralCodeValidateChecking() {
+          const referralVal = referralCodeId.value.trim();
+          if (referralVal.length > 0 && referralVal.length !== 8) {
+              error6.style.display = 'block';
+              error6.innerHTML = "Referral code must be 8 characters long";
+          } else if (referralVal.length === 0 && new URLSearchParams(window.location.search).has('ref')) {
+              // If URL has ref parameter but field is empty, show message
+              error6.style.display = 'block';
+              error6.innerHTML = "Referral code from your link is pre-filled. Remove it if not needed.";
+          } else {
+              error6.style.display = 'none';
+              error6.innerHTML = "";
+          }
+      }
+
 
       signForm.addEventListener('submit', function(e) {
         nameValidateChecking();

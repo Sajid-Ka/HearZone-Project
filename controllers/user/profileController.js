@@ -73,11 +73,15 @@ const getProfilePage = async (req, res) => {
         };
 
         const addressDoc = await Address.findOne({ userId });
+
+        const referralLink = `${req.protocol}://${req.get('host')}/signup?ref=${user.referralCode || ''}`;
+
         res.render('profile', {
             user,
             addresses: addressDoc ? addressDoc.addresses : [],
             message: null,
-            currentRoute: req.path
+            currentRoute: req.path,
+            referralLink
         });
     } catch (error) {
         console.error("Profile Page Error:", error);
