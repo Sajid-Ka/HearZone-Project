@@ -66,6 +66,7 @@ const getCheckoutPage = async (req, res) => {
         // Add wallet balance check
         const user = await User.findById(userId).select('wallet');
         const walletBalance = user?.wallet?.balance || 0;
+        
 
         if (!cart || !cart.items.length) {
             return res.redirect('/cart');
@@ -137,6 +138,7 @@ const getCheckoutPage = async (req, res) => {
         const couponDiscount = cart.discountAmount || 0;
         const shippingCost = 0; // You can change this if you add shipping later
         const finalAmount = regularSubTotal - discountAmount - couponDiscount - shippingCost;
+        const canUseWallet = walletBalance >= finalAmount;
 
         res.render('user/checkout', {
             cart: {
@@ -153,7 +155,8 @@ const getCheckoutPage = async (req, res) => {
             razorpayKeyId: process.env.RAZORPAY_KEY_ID,
             appliedCoupon: req.session.appliedCoupon,
             availableCoupons: coupons,
-            walletBalance
+            walletBalance,
+            canUseWallet
         });
     } catch (error) {
         console.error('Error in getCheckoutPage:', error);
@@ -250,6 +253,14 @@ const placeOrder = async (req, res) => {
             couponApplied: !!cart.couponCode,
             couponCode: cart.couponCode
         };
+
+
+        if (paymentMethod === 'Cash on Delivery' && cart.finalAmount > 5000) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cash on Delivery not available for orders above ₹5000' 
+            });
+        }
 
         if (paymentMethod === 'Wallet') {
             // Check if user has sufficient wallet balance

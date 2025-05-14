@@ -740,6 +740,10 @@
         color: #999;
     }
 
+    .text-danger {
+        color: #e74c3c;
+    }
+
     .wallet-balance {
         font-weight: 600;
         color: #2ecc71;
@@ -1013,21 +1017,19 @@
                             </label>
                             
                             <!-- Add Wallet Payment Option -->
-                            <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'selected' : '' %>" for="wallet">
+                            <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'selected' : '' %> <%= canUseWallet ? '' : 'disabled' %>" for="wallet">
                                 <div class="payment-radio">
                                     <input type="radio" name="paymentMethod" id="wallet" value="Wallet" 
                                         <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'checked' : '' %>
-                                        <%= walletBalance >= finalAmount ? '' : 'disabled' %>>
+                                        <%= canUseWallet ? '' : 'disabled' %>>
                                     <div class="payment-label">
                                         <div class="payment-icon"><i class="fas fa-wallet"></i></div>
                                         Wallet Payment
-                                        <span class="ms-auto">
-                                            Balance: ₹<%= walletBalance.toFixed(2) %>
-                                        </span>
+                                        <span class="wallet-balance">Balance: ₹<%= walletBalance.toFixed(2) %></span>
                                     </div>
                                 </div>
                                 <div class="payment-description">
-                                    <% if (walletBalance >= finalAmount) { %>
+                                    <% if (canUseWallet) { %>
                                         Pay from your wallet balance
                                     <% } else { %>
                                         <span class="text-danger">Insufficient wallet balance (Need ₹<%= (finalAmount - walletBalance).toFixed(2) %> more)</span>
@@ -1196,6 +1198,22 @@
                 confirmButtonColor: '#3498db'
             });
             return;
+        }
+
+
+        if (paymentMethod === 'Wallet') {
+            const walletBalance = parseFloat('<%= walletBalance %>');
+            const finalAmount = parseFloat('<%= finalAmount %>');
+            
+            if (walletBalance < finalAmount) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Insufficient wallet balance',
+                    icon: 'error',
+                    confirmButtonColor: '#3498db'
+                });
+                return;
+            }
         }
 
         try {
@@ -1414,8 +1432,39 @@
         });
     });
 
+
+    function updatePaymentMethods() {
+            const finalAmount = <%= finalAmount %>;
+            const codOption = document.getElementById('cod');
+            const codLabel = codOption.closest('.payment-card');
+            
+            if (finalAmount > 5000) {
+                codOption.disabled = true;
+                codLabel.classList.add('disabled');
+                
+                // If COD was selected, switch to another payment method
+                if (codOption.checked) {
+                    codOption.checked = false;
+                    document.getElementById('razorpay').checked = true;
+                    document.querySelector('label[for="razorpay"]').classList.add('selected');
+                }
+                
+                // Add a tooltip or explanation
+                const tooltip = document.createElement('div');
+                tooltip.className = 'payment-description text-danger';
+                tooltip.textContent = 'Cash on Delivery not available for orders above ₹5000';
+                codLabel.appendChild(tooltip);
+            } else {
+                codOption.disabled = false;
+                codLabel.classList.remove('disabled');
+            }
+        }
+
     // Handle retry payment
     document.addEventListener('DOMContentLoaded', async function() {
+
+        updatePaymentMethods();
+
         const urlParams = new URLSearchParams(window.location.search);
         const isRetry = urlParams.get('retry') === 'true';
         const razorpayOrderId = urlParams.get('razorpayOrderId');
