@@ -7,7 +7,7 @@ const customerInfo = async (req, res) => {
         }
         let search = req.query.search || "";
         let page = parseInt(req.query.page) || 1;
-        const limit = 3;
+        const limit = 5;
         const isBlocked = req.query.blocked === 'true';
         const format = req.query.format || 'html';
 

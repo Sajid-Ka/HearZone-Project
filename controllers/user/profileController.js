@@ -380,12 +380,16 @@ const updateProfileImage = async (req, res) => {
             }
         }
 
-        // Resize and process the uploaded image
+        // Process the image with Sharp - including auto-rotation
         const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
         const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
 
         await sharp(inputFilePath)
-            .resize(200, 200, { fit: 'cover', withoutEnlargement: true })
+            .rotate()
+            .resize(200, 200, { 
+                fit: 'cover', 
+                withoutEnlargement: true 
+            })
             .toFile(tempFilePath);
 
         await fs.rename(tempFilePath, inputFilePath);
@@ -403,6 +407,9 @@ const updateProfileImage = async (req, res) => {
         req.session.user.profileImage = file.filename;
 
         const addressDoc = await Address.findOne({ userId });
+
+        const referralLink = `${req.protocol}://${req.get('host')}/signup?ref=${updatedUser.referralCode || ''}`;
+
         res.render('profile', {
             user: updatedUser,
             addresses: addressDoc ? addressDoc.addresses : [],
@@ -410,7 +417,8 @@ const updateProfileImage = async (req, res) => {
                 type: 'success',
                 text: 'Profile image updated successfully!'
             },
-            currentRoute: '/profile'
+            currentRoute: '/profile',
+            referralLink: referralLink
         });
 
     } catch (error) {
