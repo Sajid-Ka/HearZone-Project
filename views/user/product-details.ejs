@@ -287,6 +287,48 @@
         transform: translateY(-2px);
     }
 
+
+    .button-buy-now {
+        background-color: #19752f;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-left: 10px;
+    }
+
+    .button-buy-now:hover {
+        background-color: #218838;
+        transform: translateY(-2px);
+    }
+
+    .button-wishlist {
+        background-color: transparent;
+        color: #dc3545;
+        border: 1px solid #dc3545;
+        padding: 12px 15px;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+
+    .button-wishlist:hover {
+        background-color: #f8d7da;
+    }
+
+    .button-wishlist i {
+        font-size: 16px;
+    }
+
+    .button-wishlist.active {
+        background-color: #dc3545;
+        color: white;
+    }
+
     .out-of-stock-message {
         width: 100%;
         text-align: center;
@@ -1012,19 +1054,21 @@
                             <span class="qty-val" id="quantity">1</span>
                             <a href="#" class="qty-up" onclick="updateQuantity(1); return false;">+</a>
                         </div>
-                        <div class="product-extra-link2">
-                            <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">Add to cart</button>
-                            <a aria-label="Add To Wishlist" class="action-btn hover-up" href="/wishlist/add?productId=<%= product._id %>"><i class="fi-rs-heart"></i></a>
-                        </div>
+                        <button type="submit" class="button button-add-to-cart" onclick="addToCart('<%= product._id %>')">
+                            Add to cart
+                        </button>
+                        <button type="button" class="button button-buy-now" onclick="buyNow('<%= product._id %>')">
+                            Buy Now
+                        </button>
+                        <button type="button" class="button-wishlist" id="wishlistButton" onclick="toggleWishlist('<%= product._id %>')">
+                            <i class="<%= isInWishlist ? 'fas' : 'far' %> fa-heart"></i>
+                        </button>
                     <% } else { %>
                         <div class="out-of-stock-message">
                             <strong>Out of Stock</strong>
                             <p>This product is currently unavailable</p>
                         </div>
                     <% } %>
-                    <button type="button" class="button button-add-to-wishlist" onclick="addToWishlist('<%= product._id %>')">
-                        <i class="fas fa-heart"></i> Add to Wishlist
-                    </button>
                 </div>
 
                 <div class="product-meta">
@@ -1258,6 +1302,142 @@
             }
         });
     }
+
+
+    async function buyNow(productId) {
+        <% if (!user) { %>
+            showLoginSignupPrompt('checkout');
+            return;
+        <% } %>
+
+        const quantity = parseInt(document.getElementById('quantity').textContent);
+        const maxQty = <%= quantity %>;
+
+        if (quantity < 1 || quantity > maxQty) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Quantity',
+                text: 'Please select a valid quantity',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+
+        try {
+            const response = await fetch('/buy-now', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId, quantity })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                window.location.href = '/checkout?buyNow=true';
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to initiate buy now',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Something went wrong. Please try again.',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
+    async function toggleWishlist(productId) {
+        <% if (!user) { %>
+            showLoginSignupPrompt('wishlist');
+            return;
+        <% } %>
+
+        const wishlistButton = document.getElementById('wishlistButton');
+        const isCurrentlyInWishlist = wishlistButton.querySelector('i').classList.contains('fas');
+        
+        try {
+            if (isCurrentlyInWishlist) {
+                // Remove from wishlist
+                const response = await fetch('/wishlist/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    wishlistButton.querySelector('i').classList.replace('fas', 'far');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Removed',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    updateWishlistCount(data.wishlistCount);
+                } else {
+                    throw new Error(data.message || 'Failed to remove from wishlist');
+                }
+            } else {
+                // First check if product is in cart
+                const cartCheck = await fetch('/wishlist/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId })
+                });
+                
+                const cartData = await cartCheck.json();
+                
+                if (cartData.isInCart) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Already in Cart',
+                        text: 'This product is already in your cart and cannot be added to wishlist',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return;
+                }
+                
+                // Add to wishlist
+                const response = await fetch('/wishlist/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    wishlistButton.querySelector('i').classList.replace('far', 'fas');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    updateWishlistCount(data.wishlistCount);
+                } else {
+                    throw new Error(data.message || 'Failed to add to wishlist');
+                }
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+
 
     function changeImage(index) {
         const images = <%- JSON.stringify(product.productImage) %>;
@@ -1649,6 +1829,5 @@
     }
 </script>
 
-<div class="footer-container">
-    <%- include("../../views/partials/user/footer") %>  
-</div>
+
+<%- include("../../views/partials/user/footer") %>  

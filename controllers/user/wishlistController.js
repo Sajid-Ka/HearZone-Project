@@ -155,9 +155,15 @@ const checkWishlistStatus = async (req, res) => {
             item => item.productId.toString() === productId
         );
 
+        const cart = await Cart.findOne({ userId });
+        const isInCart = cart && cart.items.some(
+            item => item.productId.toString() === productId
+        );
+
         res.json({
             success: true,
-            isInWishlist: isInWishlist
+            isInWishlist: isInWishlist,
+            isInCart
         });
     } catch (error) {
         console.error('Error checking wishlist status:', error);

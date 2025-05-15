@@ -920,7 +920,7 @@
                 
                 <% if (couponDiscount > 0) { %>
                     <div class="totals-row discount">
-                        <span>Coupon Discount</span>
+                        <span>Coupon Discount (<%= appliedCoupon ? appliedCoupon.code : 'Applied' %>)</span>
                         <span>-₹<%= couponDiscount.toFixed(2) %></span>
                     </div>
                 <% } %>
@@ -935,6 +935,7 @@
                     <span>₹<%= finalAmount.toFixed(2) %></span>
                 </div>
             </div>
+        
 
                 <div class="coupon-section">
                     <div class="section-header">
@@ -942,7 +943,7 @@
                         <h4>Apply Coupon</h4>
                     </div>
                     <div class="section-content">
-                        <% if (appliedCoupon) { %>
+                        <% if (appliedCoupon && appliedCoupon.code) { %>
                             <div class="coupon-applied">
                                 <div class="coupon-tag">
                                     <i class="fas fa-tag"></i>
@@ -954,7 +955,7 @@
                             </div>
                         <% } else { %>
                             <form class="coupon-form" onsubmit="applyCoupon(event)">
-                                <input type="text" id="couponCode" placeholder="Enter coupon code">
+                                <input type="text" id="couponCode" placeholder="Enter coupon code" required>
                                 <button type="submit"><i class="fas fa-check"></i> Apply</button>
                                 <div class="coupon-error" id="couponError"></div>
                             </form>
@@ -1076,7 +1077,60 @@
         });
     });
 
-    // Coupon functions
+
+    function updateOrderSummary(discountAmount, couponDiscount, finalAmount, couponCode) {
+        const orderTotals = document.querySelector('.order-totals');
+
+        // Remove existing discount rows
+        const existingDiscountRows = orderTotals.querySelectorAll('.totals-row.discount');
+        existingDiscountRows.forEach(row => row.remove());
+
+        // Add product discount row if applicable
+        if (discountAmount > 0) {
+            const productDiscountRow = document.createElement('div');
+            productDiscountRow.className = 'totals-row discount';
+            productDiscountRow.innerHTML = `
+                <span>Product Discount</span>
+                <span>-₹${discountAmount.toFixed(2)}</span>
+            `;
+            orderTotals.insertBefore(productDiscountRow, orderTotals.querySelector('.totals-row.final'));
+        }
+
+        // Add coupon discount row if applicable
+        if (couponDiscount > 0 && couponCode) {
+            const couponRow = document.createElement('div');
+            couponRow.className = 'totals-row discount';
+            couponRow.innerHTML = `
+                <span>Coupon Discount (${couponCode})</span>
+                <span>-₹${couponDiscount.toFixed(2)}</span>
+            `;
+            orderTotals.insertBefore(couponRow, orderTotals.querySelector('.totals-row.final'));
+        }
+
+        // Update final amount
+        const finalAmountElement = orderTotals.querySelector('.totals-row.final span:last-child');
+        finalAmountElement.textContent = `₹${finalAmount.toFixed(2)}`;
+    }
+
+    function updateCouponSection(couponCode, discountAmount) {
+        const couponSection = document.querySelector('.coupon-section .section-content');
+        
+        couponSection.innerHTML = `
+            <div class="coupon-applied">
+                <div class="coupon-tag">
+                    <i class="fas fa-tag"></i>
+                    <span>Coupon Applied: ${couponCode} (-₹${discountAmount.toFixed(2)})</span>
+                </div>
+                <a href="#" class="coupon-remove" data-action="remove-coupon">
+                    <i class="fas fa-times"></i> Remove
+                </a>
+            </div>
+        `;
+
+        // Re-attach remove coupon event listener
+        document.querySelector('[data-action="remove-coupon"]').addEventListener('click', removeCoupon);
+    }
+
     async function applyCoupon(event) {
         event.preventDefault();
         const couponCode = document.getElementById('couponCode').value.trim();
@@ -1107,7 +1161,17 @@
                     icon: 'success',
                     confirmButtonColor: '#3498db'
                 }).then(() => {
-                    window.location.reload();
+                    // Update order summary with both discounts
+                    updateOrderSummary(<%= discountAmount %>, data.discountAmount, data.finalAmount, couponCode);
+                    
+                    // Update coupon section
+                    updateCouponSection(couponCode, data.discountAmount);
+                    
+                    // Clear session to avoid stale data
+                    fetch('/clear-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
                 });
             } else {
                 errorElement.textContent = data.message;
@@ -1132,17 +1196,21 @@
             const data = await response.json();
 
             if (data.success) {
-                // Show success message and reload the page
                 Swal.fire({
                     title: 'Success',
                     text: data.message,
                     icon: 'success',
                     confirmButtonColor: '#3498db'
                 }).then(() => {
-                    window.location.reload();
+                    // Clear session and reload to reset coupon section
+                    fetch('/clear-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).then(() => {
+                        window.location.reload(true);
+                    });
                 });
             } else {
-                // Show error message
                 Swal.fire({
                     title: 'Error',
                     text: data.message || 'Failed to remove coupon',
@@ -1162,10 +1230,29 @@
     }
 
     function selectCoupon(couponCode) {
-        document.getElementById('couponCode').value = couponCode;
-        document.getElementById('couponError').classList.remove('show');
-        document.querySelector('.coupon-form').dispatchEvent(new Event('submit'));
+        const couponInput = document.getElementById('couponCode');
+        const couponForm = document.querySelector('.coupon-form');
+        const errorElement = document.getElementById('couponError');
+
+        if (couponInput && couponForm) {
+            couponInput.value = couponCode;
+            errorElement.classList.remove('show');
+            couponForm.dispatchEvent(new Event('submit', { bubbles: true }));
+        } else {
+            console.error('Coupon input or form not found');
+        }
     }
+
+    // Add event listener for coupon clicks
+    document.addEventListener('click', function(event) {
+        const couponItem = event.target.closest('.coupon-item[data-coupon-code]');
+        if (couponItem) {
+            const couponCode = couponItem.getAttribute('data-coupon-code');
+            if (couponCode) {
+                selectCoupon(couponCode);
+            }
+        }
+    });
 
     // Attach remove coupon event listener
     document.addEventListener('click', function(event) {
@@ -1179,7 +1266,8 @@
     document.getElementById('placeOrderBtn').addEventListener('click', async () => {
         const addressId = document.querySelector('input[name="address"]:checked')?.value;
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-        
+        const isBuyNow = <%= isBuyNow %>;
+
         if (!addressId) {
             Swal.fire({
                 title: 'Error',
@@ -1189,7 +1277,7 @@
             });
             return;
         }
-        
+
         if (!paymentMethod) {
             Swal.fire({
                 title: 'Error',
@@ -1200,11 +1288,10 @@
             return;
         }
 
-
         if (paymentMethod === 'Wallet') {
             const walletBalance = parseFloat('<%= walletBalance %>');
             const finalAmount = parseFloat('<%= finalAmount %>');
-            
+
             if (walletBalance < finalAmount) {
                 Swal.fire({
                     title: 'Error',
@@ -1222,7 +1309,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ addressId, paymentMethod })
             });
-            
+
             const data = await response.json();
 
             if (!response.ok || !data.success) {
@@ -1236,7 +1323,6 @@
             }
 
             if (paymentMethod === 'Wallet') {
-                // Handle wallet payment success
                 Swal.fire({
                     title: 'Order Placed!',
                     text: `Your order #${data.orderId} has been placed successfully using your wallet`,
@@ -1432,37 +1518,35 @@
         });
     });
 
-
     function updatePaymentMethods() {
-            const finalAmount = <%= finalAmount %>;
-            const codOption = document.getElementById('cod');
-            const codLabel = codOption.closest('.payment-card');
+        const finalAmount = <%= finalAmount %>;
+        const codOption = document.getElementById('cod');
+        const codLabel = codOption.closest('.payment-card');
+        
+        if (finalAmount > 5000) {
+            codOption.disabled = true;
+            codLabel.classList.add('disabled');
             
-            if (finalAmount > 5000) {
-                codOption.disabled = true;
-                codLabel.classList.add('disabled');
-                
-                // If COD was selected, switch to another payment method
-                if (codOption.checked) {
-                    codOption.checked = false;
-                    document.getElementById('razorpay').checked = true;
-                    document.querySelector('label[for="razorpay"]').classList.add('selected');
-                }
-                
-                // Add a tooltip or explanation
-                const tooltip = document.createElement('div');
-                tooltip.className = 'payment-description text-danger';
-                tooltip.textContent = 'Cash on Delivery not available for orders above ₹5000';
-                codLabel.appendChild(tooltip);
-            } else {
-                codOption.disabled = false;
-                codLabel.classList.remove('disabled');
+            // If COD was selected, switch to another payment method
+            if (codOption.checked) {
+                codOption.checked = false;
+                document.getElementById('razorpay').checked = true;
+                document.querySelector('label[for="razorpay"]').classList.add('selected');
             }
+            
+            // Add a tooltip or explanation
+            const tooltip = document.createElement('div');
+            tooltip.className = 'payment-description text-danger';
+            tooltip.textContent = 'Cash on Delivery not available for orders above ₹5000';
+            codLabel.appendChild(tooltip);
+        } else {
+            codOption.disabled = false;
+            codLabel.classList.remove('disabled');
         }
+    }
 
     // Handle retry payment
     document.addEventListener('DOMContentLoaded', async function() {
-
         updatePaymentMethods();
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -1588,5 +1672,3 @@
         }
     });
 </script>
-
-<%- include('../partials/user/footer') %>

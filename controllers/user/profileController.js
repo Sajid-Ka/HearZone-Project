@@ -362,7 +362,8 @@ const updateProfileImage = async (req, res) => {
                         ? 'Please upload a valid image file (e.g., PNG, JPEG, JPG).'
                         : errorMessage
                 },
-                currentRoute: '/profile'
+                currentRoute: '/profile',
+                referralLink: `${req.protocol}://${req.get('host')}/signup?ref=${user.referralCode || ''}`
             });
         }
 

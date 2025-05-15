@@ -1,5 +1,6 @@
 const Coupon = require('../../models/couponSchema');
 const Cart = require('../../models/cartSchema');
+const Product = require('../../models/productSchema');
 
 const getAvailableCoupons = async (req, res) => {
     try {
@@ -17,7 +18,7 @@ const getAvailableCoupons = async (req, res) => {
         res.json(coupons);
     } catch (error) {
         console.error('Error in getAvailableCoupons:', error);
-        res.status(500).json({ error: 'Server Error' });
+        res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
@@ -25,15 +26,10 @@ const applyCoupon = async (req, res) => {
     try {
         const { couponCode } = req.body;
         const userId = req.session.user.id;
-        
+        const isBuyNow = !!req.session.buyNowOrder;
+
         if (!couponCode) {
             return res.status(400).json({ success: false, message: 'Coupon code is required' });
-        }
-
-        // First check if the user has a cart with items
-        const cart = await Cart.findOne({ userId });
-        if (!cart || !cart.items.length) {
-            return res.status(400).json({ success: false, message: 'Cart is empty' });
         }
 
         const coupon = await Coupon.findOne({
@@ -52,78 +48,208 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
         }
 
-        if (cart.subTotal < coupon.minPurchase) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Minimum purchase of ₹${coupon.minPurchase} required`
+        let subTotal = 0;
+        let finalAmount = 0;
+        let discountAmount = 0;
+
+        if (isBuyNow) {
+            const buyNowOrder = req.session.buyNowOrder;
+            if (!buyNowOrder || buyNowOrder.userId !== userId) {
+                return res.status(400).json({ success: false, message: 'Invalid Buy Now order' });
+            }
+
+            const product = await Product.findById(buyNowOrder.productId);
+            if (!product || product.quantity < buyNowOrder.quantity) {
+                delete req.session.buyNowOrder;
+                return res.status(400).json({ success: false, message: 'Product unavailable or insufficient stock' });
+            }
+
+            subTotal = buyNowOrder.subTotal;
+            finalAmount = buyNowOrder.finalAmount;
+
+            if (coupon.minPurchase && subTotal < coupon.minPurchase) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Minimum purchase of ₹${coupon.minPurchase} required`
+                });
+            }
+
+            if (coupon.discountType === 'percentage') {
+                discountAmount = (finalAmount * coupon.value) / 100;
+                if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+                    discountAmount = coupon.maxDiscount;
+                }
+            } else {
+                discountAmount = coupon.value;
+            }
+
+            discountAmount = Math.min(discountAmount, finalAmount);
+
+            req.session.buyNowOrder = {
+                ...buyNowOrder,
+                couponCode: coupon.code,
+                discountAmount,
+                finalAmount: finalAmount - discountAmount,
+                appliedCoupon: {
+                    code: coupon.code,
+                    discountAmount,
+                    couponId: coupon._id
+                }
+            };
+
+            req.session.appliedCoupon = {
+                code: coupon.code,
+                discountAmount,
+                couponId: coupon._id
+            };
+
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return reject(new Error('Failed to save session'));
+                    }
+                    resolve();
+                });
+            });
+        } else {
+            const cart = await Cart.findOne({ userId });
+            if (!cart || !cart.items.length) {
+                return res.status(400).json({ success: false, message: 'Cart is empty' });
+            }
+
+            subTotal = cart.subTotal;
+            finalAmount = cart.finalAmount || cart.subTotal;
+
+            if (coupon.minPurchase && subTotal < coupon.minPurchase) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Minimum purchase of ₹${coupon.minPurchase} required`
+                });
+            }
+
+            if (coupon.discountType === 'percentage') {
+                discountAmount = (finalAmount * coupon.value) / 100;
+                if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+                    discountAmount = coupon.maxDiscount;
+                }
+            } else {
+                discountAmount = coupon.value;
+            }
+
+            discountAmount = Math.min(discountAmount, finalAmount);
+
+            cart.couponCode = coupon.code;
+            cart.discountAmount = discountAmount;
+            cart.finalAmount = finalAmount - discountAmount;
+            
+            await cart.save();
+
+            req.session.appliedCoupon = {
+                code: coupon.code,
+                discountAmount,
+                couponId: coupon._id
+            };
+
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return reject(new Error('Failed to save session'));
+                    }
+                    resolve();
+                });
             });
         }
-
-        let discountAmount = 0;
-        if (coupon.discountType === 'percentage') {
-            discountAmount = (cart.subTotal * coupon.value) / 100;
-            if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-                discountAmount = coupon.maxDiscount;
-            }
-        } else {
-            discountAmount = coupon.value;
-        }
-
-        discountAmount = Math.min(discountAmount, cart.subTotal);
-
-        cart.couponCode = coupon.code;
-        cart.discountAmount = discountAmount;
-        cart.finalAmount = cart.subTotal - discountAmount;
-        
-        await cart.save();
-
-        req.session.appliedCoupon = {
-            code: coupon.code,
-            discountAmount,
-            couponId: coupon._id
-        };
 
         res.status(200).json({
             success: true,
             discountAmount,
-            finalAmount: cart.finalAmount,
+            finalAmount: finalAmount - discountAmount,
             message: 'Coupon applied successfully'
         });
     } catch (error) {
         console.error('Error in applyCoupon:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        res.status(500).json({ success: false, message: 'Shop is temporarily down. Please try again later.' });
     }
 };
 
 const removeCoupon = async (req, res) => {
     try {
         const userId = req.session.user.id;
-        const cart = await Cart.findOne({ userId });
+        const isBuyNow = !!req.session.buyNowOrder;
 
-        if (!cart) {
-            return res.status(400).json({ success: false, message: 'Cart not found' });
+        if (isBuyNow) {
+            const buyNowOrder = req.session.buyNowOrder;
+            if (!buyNowOrder || buyNowOrder.userId !== userId) {
+                return res.status(400).json({ success: false, message: 'Invalid Buy Now order' });
+            }
+
+            if (!buyNowOrder.couponCode) {
+                return res.status(400).json({ success: false, message: 'No coupon applied' });
+            }
+
+            req.session.buyNowOrder = {
+                ...buyNowOrder,
+                couponCode: null,
+                discountAmount: 0,
+                finalAmount: buyNowOrder.subTotal - (buyNowOrder.subTotal - buyNowOrder.finalAmount),
+                appliedCoupon: null
+            };
+
+            delete req.session.appliedCoupon;
+
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return reject(new Error('Failed to save session'));
+                    }
+                    resolve();
+                });
+            });
+
+            res.status(200).json({
+                success: true,
+                finalAmount: req.session.buyNowOrder.finalAmount,
+                discountAmount: 0,
+                message: 'Coupon removed successfully'
+            });
+        } else {
+            const cart = await Cart.findOne({ userId });
+            if (!cart) {
+                return res.status(400).json({ success: false, message: 'Cart not found' });
+            }
+
+            if (!cart.couponCode) {
+                return res.status(400).json({ success: false, message: 'No coupon applied' });
+            }
+
+            cart.couponCode = null;
+            cart.discountAmount = 0;
+            cart.finalAmount = cart.subTotal;
+            
+            await cart.save();
+
+            delete req.session.appliedCoupon;
+
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return reject(new Error('Failed to save session'));
+                    }
+                    resolve();
+                });
+            });
+
+            res.status(200).json({
+                success: true,
+                finalAmount: cart.finalAmount,
+                discountAmount: 0,
+                message: 'Coupon removed successfully'
+            });
         }
-
-        if (!cart.couponCode) {
-            return res.status(400).json({ success: false, message: 'No coupon applied' });
-        }
-
-        // Reset coupon-related fields
-        cart.couponCode = null;
-        cart.discountAmount = 0;
-        cart.finalAmount = cart.subTotal;
-        
-        await cart.save();
-
-        // Clear session
-        delete req.session.appliedCoupon;
-
-        res.status(200).json({
-            success: true,
-            finalAmount: cart.finalAmount,
-            discountAmount: 0,
-            message: 'Coupon removed successfully'
-        });
     } catch (error) {
         console.error('Error in removeCoupon:', error);
         res.status(500).json({ success: false, message: 'Server Error' });

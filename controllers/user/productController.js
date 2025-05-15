@@ -3,6 +3,7 @@ const Category = require('../../models/categorySchema');
 const User = require('../../models/userSchema');
 const Review = require('../../models/reviewSchema');
 const Brand = require('../../models/brandSchema'); 
+const Wishlist = require('../../models/wishlistSchema');
 
 const productDetails = async (req, res) => {
     try {
@@ -54,6 +55,15 @@ const productDetails = async (req, res) => {
 
         if (!isProductListed || product.isBlocked) {
             return res.status(404).render('user/page-404');
+        }
+
+
+        let isInWishlist = false;
+        if (req.session.user) {
+            const wishlist = await Wishlist.findOne({ userId: req.session.user.id });
+            isInWishlist = wishlist && wishlist.products.some(item =>
+                item.productId.toString() === product._id.toString()
+            );
         }
 
         // Fetch blocked brand IDs
@@ -131,7 +141,8 @@ const productDetails = async (req, res) => {
             relatedProducts: enhancedRelatedProducts,
             totalOffer,
             category: product.category || {},
-            quantity: product.quantity || 0
+            quantity: product.quantity || 0,
+            isInWishlist
         });
 
     } catch (error) {
@@ -140,6 +151,73 @@ const productDetails = async (req, res) => {
     }
 };
 
+
+
+const buyNow = async (req, res) => {
+    try {
+        const { productId, quantity } = req.body;
+        const userId = req.session.user.id;
+
+        const product = await Product.findById(productId)
+            .populate('category')
+            .populate('offer');
+
+        if (!product || product.quantity < quantity) {
+            return res.status(400).json({ success: false, message: 'Product unavailable or insufficient stock' });
+        }
+
+        let productOfferValue = 0;
+        let categoryOfferValue = 0;
+        let totalOffer = 0;
+        let salePrice = product.regularPrice;
+
+        if (product.offer && new Date(product.offer.endDate) > new Date()) {
+            productOfferValue = product.offer.discountType === 'percentage'
+                ? product.offer.discountValue
+                : (product.offer.discountValue / product.regularPrice) * 100;
+        }
+
+        if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+            categoryOfferValue = product.category.offer.percentage;
+        }
+
+        totalOffer = Math.max(productOfferValue, categoryOfferValue);
+        if (totalOffer > 0) {
+            salePrice = product.regularPrice * (1 - totalOffer / 100);
+        }
+
+        const subTotal = product.regularPrice * quantity;
+        const finalAmount = Math.round(salePrice * quantity);
+
+        req.session.buyNowOrder = {
+            userId,
+            productId,
+            productName: product.productName,
+            quantity,
+            regularPrice: product.regularPrice,
+            salePrice: Math.round(salePrice),
+            subTotal,
+            finalAmount,
+            totalOffer,
+            couponCode: null, 
+            discountAmount: 0,
+            appliedCoupon: null
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: 'Proceed to checkout',
+            redirectUrl: '/checkout?buyNow=true'
+        });
+    } catch (error) {
+        console.error('Error in buyNow:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+
 module.exports = {
     productDetails,
+    buyNow
 };
+
