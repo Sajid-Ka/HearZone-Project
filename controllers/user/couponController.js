@@ -189,11 +189,44 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
+            // Calculate the original final amount without coupon discount
+            const product = await Product.findById(buyNowOrder.productId);
+            if (!product) {
+                return res.status(400).json({ success: false, message: 'Product not found' });
+            }
+
+            // Recalculate pricing to ensure accuracy
+            let regularPrice = product.regularPrice;
+            let salePrice = regularPrice;
+            let productOfferValue = 0;
+            let categoryOfferValue = 0;
+
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOfferValue = product.offer.discountType === 'percentage'
+                    ? product.offer.discountValue
+                    : (product.offer.discountValue / product.regularPrice) * 100;
+            }
+
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOfferValue = product.category.offer.percentage;
+            }
+
+            const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
+            if (finalOfferValue > 0) {
+                salePrice = regularPrice * (1 - finalOfferValue / 100);
+            }
+
+            const subTotal = regularPrice * buyNowOrder.quantity;
+            const finalAmount = salePrice * buyNowOrder.quantity;
+
+            // Update buyNowOrder
             req.session.buyNowOrder = {
                 ...buyNowOrder,
                 couponCode: null,
                 discountAmount: 0,
-                finalAmount: buyNowOrder.subTotal - (buyNowOrder.subTotal - buyNowOrder.finalAmount),
+                finalAmount: finalAmount,
+                salePrice: Math.round(salePrice),
+                subTotal: subTotal,
                 appliedCoupon: null
             };
 
@@ -209,9 +242,9 @@ const removeCoupon = async (req, res) => {
                 });
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
-                finalAmount: req.session.buyNowOrder.finalAmount,
+                finalAmount: finalAmount,
                 discountAmount: 0,
                 message: 'Coupon removed successfully'
             });
@@ -243,7 +276,7 @@ const removeCoupon = async (req, res) => {
                 });
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 finalAmount: cart.finalAmount,
                 discountAmount: 0,

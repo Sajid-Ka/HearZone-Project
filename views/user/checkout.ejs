@@ -918,9 +918,9 @@
                     </div>
                 <% } %>
                 
-                <% if (couponDiscount > 0) { %>
+                <% if (couponDiscount > 0 && appliedCoupon) { %>
                     <div class="totals-row discount">
-                        <span>Coupon Discount (<%= appliedCoupon ? appliedCoupon.code : 'Applied' %>)</span>
+                        <span>Coupon Discount (<%= appliedCoupon.code %>)</span>
                         <span>-₹<%= couponDiscount.toFixed(2) %></span>
                     </div>
                 <% } %>
@@ -971,9 +971,7 @@
                                                 <% } %>
                                             </div>
                                             <div class="coupon-desc">
-                                                <%= coupon.discountType === 'percentage' ? 
-                                                    `${coupon.value}% off` : 
-                                                    `₹${coupon.value} off` %>
+                                                <%= coupon.discountType === 'percentage' ? coupon.value + '% off' : '₹' + coupon.value + ' off' %>
                                             </div>
                                             <% if (coupon.minPurchase) { %>
                                                 <div class="coupon-min">Min. ₹<%= coupon.minPurchase %></div>
@@ -1077,7 +1075,6 @@
         });
     });
 
-
     function updateOrderSummary(discountAmount, couponDiscount, finalAmount, couponCode) {
         const orderTotals = document.querySelector('.order-totals');
 
@@ -1155,24 +1152,18 @@
             const data = await response.json();
 
             if (data.success) {
-                Swal.fire({
+                await Swal.fire({
                     title: 'Success',
                     text: data.message,
                     icon: 'success',
                     confirmButtonColor: '#3498db'
-                }).then(() => {
-                    // Update order summary with both discounts
-                    updateOrderSummary(<%= discountAmount %>, data.discountAmount, data.finalAmount, couponCode);
-                    
-                    // Update coupon section
-                    updateCouponSection(couponCode, data.discountAmount);
-                    
-                    // Clear session to avoid stale data
-                    fetch('/clear-session', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
                 });
+
+                // Update order summary with both discounts
+                updateOrderSummary(<%= discountAmount %>, data.discountAmount, data.finalAmount, couponCode);
+                
+                // Update coupon section
+                updateCouponSection(couponCode, data.discountAmount);
             } else {
                 errorElement.textContent = data.message;
                 errorElement.classList.add('show');
@@ -1186,7 +1177,14 @@
 
     async function removeCoupon(event) {
         event.preventDefault();
-        
+
+        const removeBtn = event.target.closest('[data-action="remove-coupon"]');
+        if (!removeBtn) return;
+
+        const originalText = removeBtn.innerHTML;
+        removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
+        removeBtn.disabled = true;
+
         try {
             const response = await fetch('/coupon/remove', {
                 method: 'POST',
@@ -1196,22 +1194,51 @@
             const data = await response.json();
 
             if (data.success) {
-                Swal.fire({
+                await Swal.fire({
                     title: 'Success',
                     text: data.message,
                     icon: 'success',
-                    confirmButtonColor: '#3498db'
-                }).then(() => {
-                    // Clear session and reload to reset coupon section
-                    fetch('/clear-session', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    }).then(() => {
-                        window.location.reload(true);
-                    });
+                    confirmButtonColor: '#3498db',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: true
                 });
+
+                // Update order summary
+                updateOrderSummary(<%= discountAmount %>, 0, data.finalAmount, null);
+
+                // Reset coupon section
+                const couponSection = document.querySelector('.coupon-section .section-content');
+                couponSection.innerHTML = `
+                    <form class="coupon-form" onsubmit="applyCoupon(event)">
+                        <input type="text" id="couponCode" placeholder="Enter coupon code" required>
+                        <button type="submit"><i class="fas fa-check"></i> Apply</button>
+                        <div class="coupon-error" id="couponError"></div>
+                    </form>
+                    <% if (availableCoupons && availableCoupons.length) { %>
+                        <div class="coupon-heading">Available Coupons</div>
+                        <div class="coupon-options">
+                            <% availableCoupons.forEach(coupon => { %>
+                                <div class="coupon-option" onclick="selectCoupon('<%= coupon.code %>')">
+                                    <div class="coupon-code">
+                                        <%= coupon.code %>
+                                        <% if (coupon.isReferral) { %>
+                                            <span class="badge bg-info ms-2">Referral</span>
+                                        <% } %>
+                                    </div>
+                                    <div class="coupon-desc">
+                                        <%= coupon.discountType === 'percentage' ? coupon.value + '% off' : '₹' + coupon.value + ' off' %>
+                                    </div>
+                                    <% if (coupon.minPurchase) { %>
+                                        <div class="coupon-min">Min. ₹<%= coupon.minPurchase %></div>
+                                    <% } %>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } %>
+                `;
             } else {
-                Swal.fire({
+                await Swal.fire({
                     title: 'Error',
                     text: data.message || 'Failed to remove coupon',
                     icon: 'error',
@@ -1220,12 +1247,15 @@
             }
         } catch (error) {
             console.error('Error removing coupon:', error);
-            Swal.fire({
+            await Swal.fire({
                 title: 'Error',
                 text: 'An error occurred while removing the coupon. Please try again.',
                 icon: 'error',
                 confirmButtonColor: '#3498db'
             });
+        } finally {
+            removeBtn.innerHTML = originalText;
+            removeBtn.disabled = false;
         }
     }
 
@@ -1554,6 +1584,19 @@
         const razorpayOrderId = urlParams.get('razorpayOrderId');
 
         if (isRetry && razorpayOrderId) {
+            const addressId = document.querySelector('input[name="address"]:checked')?.value;
+            if (!addressId) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No delivery address selected. Please select an address and try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#3498db'
+                }).then(() => {
+                    window.location.href = '/cart';
+                });
+                return;
+            }
+
             document.getElementById('razorpay').checked = true;
             document.querySelector('label[for="razorpay"]').classList.add('selected');
             document.querySelector('label[for="cod"]').classList.remove('selected');
@@ -1568,7 +1611,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        addressId: document.querySelector('input[name="address"]:checked')?.value,
+                        addressId,
                         paymentMethod: 'Razorpay'
                     })
                 });
@@ -1672,3 +1715,5 @@
         }
     });
 </script>
+
+<%-include("../../views/partials/user/footer")%>

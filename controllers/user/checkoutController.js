@@ -32,7 +32,7 @@ const getCheckoutPage = async (req, res) => {
             const buyNowOrder = req.session.buyNowOrder;
 
             if (!buyNowOrder || buyNowOrder.userId !== userId) {
-                return res.redirect('/cart');
+                return res.status(400).render('user/page-404', { error: 'Invalid Buy Now order' });
             }
 
             const product = await Product.findById(buyNowOrder.productId)
@@ -44,14 +44,11 @@ const getCheckoutPage = async (req, res) => {
                 return res.status(400).render('user/page-404', { error: 'Product unavailable or insufficient stock' });
             }
 
-            regularSubTotal = buyNowOrder.subTotal;
-            finalAmount = buyNowOrder.finalAmount;
-            discountAmount = regularSubTotal - buyNowOrder.finalAmount + (buyNowOrder.discountAmount || 0);
-            couponDiscount = buyNowOrder.discountAmount || 0;
-
+            // Recalculate pricing
+            let regularPrice = product.regularPrice;
+            let salePrice = regularPrice;
             let productOfferValue = 0;
             let categoryOfferValue = 0;
-            let offerType = null;
 
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
                 productOfferValue = product.offer.discountType === 'percentage'
@@ -63,29 +60,47 @@ const getCheckoutPage = async (req, res) => {
                 categoryOfferValue = product.category.offer.percentage;
             }
 
-            if (buyNowOrder.totalOffer > 0) {
-                if (productOfferValue >= categoryOfferValue) {
-                    offerType = 'product';
-                } else {
-                    offerType = 'category';
-                }
+            const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
+            if (finalOfferValue > 0) {
+                salePrice = regularPrice * (1 - finalOfferValue / 100);
+            }
+
+            regularSubTotal = regularPrice * buyNowOrder.quantity;
+            const baseFinalAmount = salePrice * buyNowOrder.quantity;
+            discountAmount = (regularPrice - salePrice) * buyNowOrder.quantity;
+            couponDiscount = buyNowOrder.discountAmount || 0;
+            finalAmount = baseFinalAmount - couponDiscount;
+
+            let offerType = null;
+            if (finalOfferValue > 0) {
+                offerType = productOfferValue >= categoryOfferValue ? 'product' : 'category';
             }
 
             itemsWithPrices = [{
                 productId: product,
                 quantity: buyNowOrder.quantity,
-                regularPrice: buyNowOrder.regularPrice,
-                salePrice: buyNowOrder.salePrice,
-                itemDiscountAmount: discountAmount,
+                regularPrice: regularPrice,
+                salePrice: Math.round(salePrice),
+                itemDiscountAmount: Math.round(discountAmount),
                 offerType: offerType,
-                offerPercentage: buyNowOrder.totalOffer
+                offerPercentage: finalOfferValue
             }];
 
-            // Ensure appliedCoupon is set for Buy Now
-            if (buyNowOrder.couponCode && buyNowOrder.discountAmount) {
+            // Update buyNowOrder with recalculated values
+            req.session.buyNowOrder = {
+                ...buyNowOrder,
+                subTotal: regularSubTotal,
+                finalAmount: baseFinalAmount,
+                salePrice: Math.round(salePrice),
+                regularPrice: regularPrice,
+                discountAmount: couponDiscount,
+                totalOffer: finalOfferValue
+            };
+
+            if (couponDiscount > 0 && buyNowOrder.couponCode) {
                 req.session.appliedCoupon = {
                     code: buyNowOrder.couponCode,
-                    discountAmount: buyNowOrder.discountAmount,
+                    discountAmount: couponDiscount,
                     couponId: buyNowOrder.appliedCoupon?.couponId
                 };
             }
@@ -189,7 +204,7 @@ const getCheckoutPage = async (req, res) => {
         const walletBalance = user?.wallet?.balance || 0;
         const canUseWallet = walletBalance >= finalAmount;
 
-        const coupons = isBuyNow ? [] : await Coupon.find({
+        const coupons = await Coupon.find({
             isActive: true,
             expiryDate: { $gte: new Date() },
             $expr: { $lt: ["$usedCount", "$usageLimit"] },
@@ -321,6 +336,7 @@ const placeOrder = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Cart not found' });
             }
 
+            let productDiscount = 0;
             for (const item of cart.items) {
                 if (item.quantity > item.productId.quantity) {
                     return res.status(400).json({
@@ -328,6 +344,30 @@ const placeOrder = async (req, res) => {
                         message: `Insufficient stock for ${item.productId.productName}`
                     });
                 }
+                const product = item.productId;
+                let salePrice = product.regularPrice;
+                let itemDiscountAmount = 0;
+
+                let productOfferValue = 0;
+                let categoryOfferValue = 0;
+
+                if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                    productOfferValue = product.offer.discountType === 'percentage'
+                        ? product.offer.discountValue
+                        : (product.offer.discountValue / product.regularPrice) * 100;
+                }
+
+                if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                    categoryOfferValue = product.category.offer.percentage;
+                }
+
+                if (productOfferValue > 0 || categoryOfferValue > 0) {
+                    const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
+                    salePrice = product.regularPrice * (1 - finalOfferValue / 100);
+                    itemDiscountAmount = (product.regularPrice - salePrice) * item.quantity;
+                }
+
+                productDiscount += itemDiscountAmount;
             }
 
             orderData = {
@@ -341,10 +381,11 @@ const placeOrder = async (req, res) => {
                     cancellationReason: item.cancellationReason
                 })),
                 totalPrice: cart.subTotal,
-                discount: cart.discountAmount || 0,
+                discount: productDiscount, // Product discount
+                couponDiscount: cart.discountAmount || 0, // Coupon discount
                 taxes: 0,
                 shippingCost: 0,
-                finalAmount: cart.finalAmount || cart.subTotal,
+                finalAmount: cart.subTotal - productDiscount - (cart.discountAmount || 0), // Correct total
                 address: selectedAddress,
                 paymentMethod,
                 paymentStatus: 'Pending',
