@@ -86,7 +86,7 @@ const generateItemsTable = (doc, order, y) => {
     
     currentPosition += 20;
     doc.font('Helvetica-Bold');
-    generateTotalRow(doc, currentPosition, 'Total Amount', `₹${order.finalAmount.toFixed(2)}`);
+    generateTotalRow(doc, currentPosition, 'Total Amount', `₹${order.totalPrice.toFixed(2)}`);
     doc.font('Helvetica');
 };
 
