@@ -116,7 +116,7 @@ const getCartItems = async (req, res) => {
         // Ensure all amounts are numbers
         const subTotal = Number(cart.subTotal || 0);
         const discountAmount = Number(cart.discountAmount || 0);
-        const finalAmount = Number(cart.finalAmount || subTotal - discountAmount);
+        const finalAmount = Number(Math.round(cart.finalAmount || subTotal - discountAmount));
 
         return res.render('user/cart', {
             cart,
