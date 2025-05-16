@@ -1175,16 +1175,8 @@
                     data.couponCode
                 );
 
-                // Update coupon section to show applied coupon
-                const couponSection = document.querySelector('.coupon-section .section-content');
-                couponSection.innerHTML = `
-                    <div class="applied-coupon">
-                        <span>Applied Coupon: ${data.couponCode}</span>
-                        <button data-action="remove-coupon" onclick="removeCoupon(event)">
-                            <i class="fas fa-times"></i> Remove
-                        </button>
-                    </div>
-                `;
+                // Update coupon section with proper styling
+                updateCouponSection(data.couponCode, data.couponDiscount);
             } else {
                 errorElement.textContent = data.message;
                 errorElement.classList.add('show');
@@ -1232,7 +1224,7 @@
                     null
                 );
 
-                // Reset coupon section
+                // Reset coupon section with proper styling
                 const couponSection = document.querySelector('.coupon-section .section-content');
                 couponSection.innerHTML = `
                     <form class="coupon-form" onsubmit="applyCoupon(event)">
