@@ -49,8 +49,10 @@ const applyCoupon = async (req, res) => {
         }
 
         let subTotal = 0;
-        let finalAmount = 0;
         let discountAmount = 0;
+        let couponDiscount = 0;
+        let finalAmount = 0;
+        let offerPrice = 0;
 
         if (isBuyNow) {
             const buyNowOrder = req.session.buyNowOrder;
@@ -58,119 +60,119 @@ const applyCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Invalid Buy Now order' });
             }
 
-            const product = await Product.findById(buyNowOrder.productId);
+            const product = await Product.findById(buyNowOrder.productId)
+                .populate('category')
+                .populate('offer');
+
             if (!product || product.quantity < buyNowOrder.quantity) {
                 delete req.session.buyNowOrder;
                 return res.status(400).json({ success: false, message: 'Product unavailable or insufficient stock' });
             }
 
             subTotal = buyNowOrder.subTotal;
-            finalAmount = buyNowOrder.finalAmount;
+            offerPrice = buyNowOrder.salePrice * buyNowOrder.quantity;
+            discountAmount = subTotal - offerPrice;
 
             if (coupon.minPurchase && subTotal < coupon.minPurchase) {
-                return res.status(400).json({ 
-                    success: false, 
+                return res.status(400).json({
+                    success: false,
                     message: `Minimum purchase of ₹${coupon.minPurchase} required`
                 });
             }
 
-            if (coupon.discountType === 'percentage') {
-                discountAmount = (finalAmount * coupon.value) / 100;
-                if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-                    discountAmount = coupon.maxDiscount;
-                }
-            } else {
-                discountAmount = coupon.value;
+            couponDiscount = coupon.discountType === 'percentage'
+                ? (offerPrice * coupon.value) / 100
+                : coupon.value;
+
+            if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+                couponDiscount = coupon.maxDiscount;
             }
 
-            discountAmount = Math.min(discountAmount, finalAmount);
+            couponDiscount = Math.min(couponDiscount, offerPrice);
+            finalAmount = offerPrice - couponDiscount;
 
             req.session.buyNowOrder = {
                 ...buyNowOrder,
                 couponCode: coupon.code,
-                discountAmount,
-                finalAmount: finalAmount - discountAmount,
+                discountAmount: couponDiscount,
+                finalAmount,
                 appliedCoupon: {
                     code: coupon.code,
-                    discountAmount,
+                    discountAmount: couponDiscount,
                     couponId: coupon._id
                 }
             };
 
             req.session.appliedCoupon = {
                 code: coupon.code,
-                discountAmount,
+                discountAmount: couponDiscount,
                 couponId: coupon._id
             };
-
-            await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Session save error:', err);
-                        return reject(new Error('Failed to save session'));
-                    }
-                    resolve();
-                });
-            });
         } else {
-            const cart = await Cart.findOne({ userId });
+            const cart = await Cart.findOne({ userId }).populate({
+                path: 'items.productId',
+                populate: [
+                    { path: 'category', select: 'name isListed offer' },
+                    { path: 'offer' }
+                ]
+            });
+
             if (!cart || !cart.items.length) {
                 return res.status(400).json({ success: false, message: 'Cart is empty' });
             }
 
+            await cart.calculateTotals();
             subTotal = cart.subTotal;
-            finalAmount = cart.finalAmount || cart.subTotal;
+            discountAmount = cart.productDiscount;
+            offerPrice = subTotal - discountAmount;
 
             if (coupon.minPurchase && subTotal < coupon.minPurchase) {
-                return res.status(400).json({ 
-                    success: false, 
+                return res.status(400).json({
+                    success: false,
                     message: `Minimum purchase of ₹${coupon.minPurchase} required`
                 });
             }
 
-            if (coupon.discountType === 'percentage') {
-                discountAmount = (finalAmount * coupon.value) / 100;
-                if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
-                    discountAmount = coupon.maxDiscount;
-                }
-            } else {
-                discountAmount = coupon.value;
+            couponDiscount = coupon.discountType === 'percentage'
+                ? (offerPrice * coupon.value) / 100
+                : coupon.value;
+
+            if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+                couponDiscount = coupon.maxDiscount;
             }
 
-            discountAmount = Math.min(discountAmount, finalAmount);
+            couponDiscount = Math.min(couponDiscount, offerPrice);
+            finalAmount = offerPrice - couponDiscount;
 
             cart.couponCode = coupon.code;
-            cart.discountAmount = discountAmount;
-            cart.finalAmount = finalAmount - discountAmount;
-            
+            cart.couponDiscount = couponDiscount;
+            cart.finalAmount = finalAmount;
+
             await cart.save();
 
             req.session.appliedCoupon = {
                 code: coupon.code,
-                discountAmount,
+                discountAmount: couponDiscount,
                 couponId: coupon._id
             };
-
-            await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Session save error:', err);
-                        return reject(new Error('Failed to save session'));
-                    }
-                    resolve();
-                });
-            });
         }
 
-        res.status(200).json({
+        await new Promise((resolve, reject) => {
+            req.session.save(err => err ? reject(err) : resolve());
+        });
+
+        return res.status(200).json({
             success: true,
+            subTotal,
             discountAmount,
-            finalAmount: finalAmount - discountAmount,
+            couponDiscount,
+            finalAmount,
+            couponCode: coupon.code,
             message: 'Coupon applied successfully'
         });
     } catch (error) {
         console.error('Error in applyCoupon:', error);
-        res.status(500).json({ success: false, message: 'Shop is temporarily down. Please try again later.' });
+        return res.status(500).json({ success: false, message: 'Failed to apply coupon. Please try again.' });
     }
 };
 
@@ -189,63 +191,39 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
-            // Calculate the original final amount without coupon discount
-            const product = await Product.findById(buyNowOrder.productId);
+            const product = await Product.findById(buyNowOrder.productId)
+                .populate('category')
+                .populate('offer');
+
             if (!product) {
                 return res.status(400).json({ success: false, message: 'Product not found' });
             }
 
-            // Recalculate pricing to ensure accuracy
-            let regularPrice = product.regularPrice;
-            let salePrice = regularPrice;
-            let productOfferValue = 0;
-            let categoryOfferValue = 0;
+            const subTotal = buyNowOrder.subTotal;
+            const offerPrice = buyNowOrder.salePrice * buyNowOrder.quantity;
+            const discountAmount = subTotal - offerPrice;
+            const finalAmount = offerPrice;
 
-            if (product.offer && new Date(product.offer.endDate) > new Date()) {
-                productOfferValue = product.offer.discountType === 'percentage'
-                    ? product.offer.discountValue
-                    : (product.offer.discountValue / product.regularPrice) * 100;
-            }
-
-            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
-                categoryOfferValue = product.category.offer.percentage;
-            }
-
-            const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
-            if (finalOfferValue > 0) {
-                salePrice = regularPrice * (1 - finalOfferValue / 100);
-            }
-
-            const subTotal = regularPrice * buyNowOrder.quantity;
-            const finalAmount = salePrice * buyNowOrder.quantity;
-
-            // Update buyNowOrder
             req.session.buyNowOrder = {
                 ...buyNowOrder,
                 couponCode: null,
                 discountAmount: 0,
-                finalAmount: finalAmount,
-                salePrice: Math.round(salePrice),
-                subTotal: subTotal,
+                finalAmount,
                 appliedCoupon: null
             };
 
             delete req.session.appliedCoupon;
 
             await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Session save error:', err);
-                        return reject(new Error('Failed to save session'));
-                    }
-                    resolve();
-                });
+                req.session.save(err => err ? reject(err) : resolve());
             });
 
             return res.status(200).json({
                 success: true,
-                finalAmount: finalAmount,
-                discountAmount: 0,
+                subTotal,
+                discountAmount,
+                couponDiscount: 0,
+                finalAmount,
                 message: 'Coupon removed successfully'
             });
         } else {
@@ -258,34 +236,31 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
+            await cart.calculateTotals();
             cart.couponCode = null;
-            cart.discountAmount = 0;
-            cart.finalAmount = cart.subTotal;
-            
+            cart.couponDiscount = 0;
+            cart.finalAmount = cart.subTotal - cart.productDiscount;
+
             await cart.save();
 
             delete req.session.appliedCoupon;
 
             await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Session save error:', err);
-                        return reject(new Error('Failed to save session'));
-                    }
-                    resolve();
-                });
+                req.session.save(err => err ? reject(err) : resolve());
             });
 
             return res.status(200).json({
                 success: true,
+                subTotal: cart.subTotal,
+                discountAmount: cart.productDiscount,
+                couponDiscount: 0,
                 finalAmount: cart.finalAmount,
-                discountAmount: 0,
                 message: 'Coupon removed successfully'
             });
         }
     } catch (error) {
         console.error('Error in removeCoupon:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        return res.status(500).json({ success: false, message: 'Failed to remove coupon. Please try again.' });
     }
 };
 

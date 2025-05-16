@@ -910,26 +910,22 @@
                     <span>Subtotal</span>
                     <span>₹<%= regularSubTotal.toFixed(2) %></span>
                 </div>
-                
                 <% if (discountAmount > 0) { %>
                     <div class="totals-row discount">
                         <span>Product Discount</span>
                         <span>-₹<%= discountAmount.toFixed(2) %></span>
                     </div>
                 <% } %>
-                
                 <% if (couponDiscount > 0 && appliedCoupon) { %>
                     <div class="totals-row discount">
                         <span>Coupon Discount (<%= appliedCoupon.code %>)</span>
                         <span>-₹<%= couponDiscount.toFixed(2) %></span>
                     </div>
                 <% } %>
-                
                 <div class="totals-row">
                     <span>Shipping</span>
                     <span>₹<%= shippingCost.toFixed(2) %></span>
                 </div>
-                
                 <div class="totals-row final">
                     <span>Total</span>
                     <span>₹<%= finalAmount.toFixed(2) %></span>
@@ -1075,12 +1071,12 @@
         });
     });
 
-    function updateOrderSummary(discountAmount, couponDiscount, finalAmount, couponCode) {
+   function updateOrderSummary(subTotal, discountAmount, couponDiscount, finalAmount, couponCode, shippingCost = 0) {
         const orderTotals = document.querySelector('.order-totals');
 
-        // Remove existing discount rows
-        const existingDiscountRows = orderTotals.querySelectorAll('.totals-row.discount');
-        existingDiscountRows.forEach(row => row.remove());
+        // Clear existing rows except subtotal and final
+        const existingRows = orderTotals.querySelectorAll('.totals-row:not(.final):not(:first-child)');
+        existingRows.forEach(row => row.remove());
 
         // Add product discount row if applicable
         if (discountAmount > 0) {
@@ -1103,6 +1099,18 @@
             `;
             orderTotals.insertBefore(couponRow, orderTotals.querySelector('.totals-row.final'));
         }
+
+        // Add or update shipping row
+        let shippingRow = orderTotals.querySelector('.totals-row.shipping');
+        if (!shippingRow) {
+            shippingRow = document.createElement('div');
+            shippingRow.className = 'totals-row shipping';
+            orderTotals.insertBefore(shippingRow, orderTotals.querySelector('.totals-row.final'));
+        }
+        shippingRow.innerHTML = `
+            <span>Shipping</span>
+            <span>₹${shippingCost.toFixed(2)}</span>
+        `;
 
         // Update final amount
         const finalAmountElement = orderTotals.querySelector('.totals-row.final span:last-child');
@@ -1159,11 +1167,24 @@
                     confirmButtonColor: '#3498db'
                 });
 
-                // Update order summary with both discounts
-                updateOrderSummary(<%= discountAmount %>, data.discountAmount, data.finalAmount, couponCode);
-                
-                // Update coupon section
-                updateCouponSection(couponCode, data.discountAmount);
+                updateOrderSummary(
+                    data.subTotal,
+                    data.discountAmount,
+                    data.couponDiscount,
+                    data.finalAmount,
+                    data.couponCode
+                );
+
+                // Update coupon section to show applied coupon
+                const couponSection = document.querySelector('.coupon-section .section-content');
+                couponSection.innerHTML = `
+                    <div class="applied-coupon">
+                        <span>Applied Coupon: ${data.couponCode}</span>
+                        <button data-action="remove-coupon" onclick="removeCoupon(event)">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
+                `;
             } else {
                 errorElement.textContent = data.message;
                 errorElement.classList.add('show');
@@ -1188,7 +1209,7 @@
         try {
             const response = await fetch('/coupon/remove', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' }
             });
 
             const data = await response.json();
@@ -1200,12 +1221,16 @@
                     icon: 'success',
                     confirmButtonColor: '#3498db',
                     timer: 3000,
-                    timerProgressBar: true,
-                    showConfirmButton: true
+                    timerProgressBar: true
                 });
 
-                // Update order summary
-                updateOrderSummary(<%= discountAmount %>, 0, data.finalAmount, null);
+                updateOrderSummary(
+                    data.subTotal,
+                    data.discountAmount,
+                    data.couponDiscount,
+                    data.finalAmount,
+                    null
+                );
 
                 // Reset coupon section
                 const couponSection = document.querySelector('.coupon-section .section-content');
@@ -1249,7 +1274,7 @@
             console.error('Error removing coupon:', error);
             await Swal.fire({
                 title: 'Error',
-                text: 'An error occurred while removing the coupon. Please try again.',
+                text: 'Failed to remove coupon. Please try again.',
                 icon: 'error',
                 confirmButtonColor: '#3498db'
             });

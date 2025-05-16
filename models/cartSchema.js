@@ -67,9 +67,10 @@ const cartSchema = new Schema({
     }
 }, { timestamps: true });
 
+// In cartSchema.js
 cartSchema.methods.calculateTotals = async function () {
     try {
-        // Ensure we have populated product data
+        // Populate product data if needed
         if (this.items.some(item => typeof item.productId === 'object' && (!item.productId.offerDetails || !item.productId.regularPrice))) {
             await mongoose.model('Cart').populate(this, {
                 path: 'items.productId',
@@ -80,61 +81,61 @@ cartSchema.methods.calculateTotals = async function () {
             });
         }
 
-        // Initialize totals with default values
         let regularSubTotal = 0;
         let productDiscount = 0;
         let couponDiscount = 0;
 
         // Calculate regular subtotal and product discounts
-        this.items.forEach(item => {
+        for (const item of this.items) {
             const product = item.productId;
-            if (!product) return;
+            if (!product) continue;
 
-            // Safely get regular price with fallback
             const regularPrice = product.regularPrice || item.price || 0;
             regularSubTotal += regularPrice * item.quantity;
 
-            // Initialize discount calculation
             let salePrice = regularPrice;
             let itemDiscount = 0;
 
-            // Check for product offers
+            // Product offer
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
-                const offerValue = product.offer.discountType === 'percentage' 
-                    ? product.offer.discountValue 
+                const offerValue = product.offer.discountType === 'percentage'
+                    ? product.offer.discountValue
                     : (product.offer.discountValue / regularPrice) * 100;
                 salePrice = regularPrice * (1 - offerValue / 100);
                 itemDiscount = (regularPrice - salePrice) * item.quantity;
             }
 
-            // Check for category offers
+            // Category offer
             if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
                 const categoryOfferValue = product.category.offer.percentage;
                 const categorySalePrice = regularPrice * (1 - categoryOfferValue / 100);
-                
                 if (categorySalePrice < salePrice) {
-                    itemDiscount = (regularPrice - categorySalePrice) * item.quantity;
                     salePrice = categorySalePrice;
+                    itemDiscount = (regularPrice - categorySalePrice) * item.quantity;
                 }
             }
 
-            // Update item prices
             item.price = salePrice;
             item.totalPrice = salePrice * item.quantity;
             productDiscount += itemDiscount;
 
-            // Store offer details
             product.offerDetails = {
-                regularPrice: regularPrice,
-                salePrice: salePrice,
+                regularPrice,
+                salePrice,
                 hasOffer: itemDiscount > 0
             };
-        });
+        }
 
-        // Calculate coupon discount if applied
+        // Calculate coupon discount
         if (this.couponCode) {
-            const coupon = await mongoose.model('Coupon').findOne({ code: this.couponCode });
-            if (coupon) {
+            const coupon = await mongoose.model('Coupon').findOne({
+                code: this.couponCode,
+                isActive: true,
+                expiryDate: { $gte: new Date() },
+                $expr: { $lt: ["$usedCount", "$usageLimit"] }
+            });
+
+            if (coupon && (!coupon.minPurchase || regularSubTotal >= coupon.minPurchase)) {
                 const discountedSubTotal = regularSubTotal - productDiscount;
                 if (coupon.discountType === 'percentage') {
                     couponDiscount = (discountedSubTotal * coupon.value) / 100;
@@ -146,19 +147,18 @@ cartSchema.methods.calculateTotals = async function () {
                 }
             } else {
                 this.couponCode = null;
+                this.couponDiscount = 0;
             }
         }
 
-        // Update cart totals with fallback to 0
         this.subTotal = regularSubTotal || 0;
         this.productDiscount = productDiscount || 0;
         this.couponDiscount = couponDiscount || 0;
-        this.finalAmount = Math.max(0, (regularSubTotal || 0) - (productDiscount || 0) - (couponDiscount || 0));
+        this.finalAmount = Math.max(0, regularSubTotal - productDiscount - couponDiscount);
 
         return this;
     } catch (error) {
         console.error('Error in calculateTotals:', error);
-        // Set safe defaults if calculation fails
         this.subTotal = this.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
         this.productDiscount = 0;
         this.couponDiscount = 0;
