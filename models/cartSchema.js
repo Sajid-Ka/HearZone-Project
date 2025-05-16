@@ -67,7 +67,7 @@ const cartSchema = new Schema({
     }
 }, { timestamps: true });
 
-// In cartSchema.js
+
 cartSchema.methods.calculateTotals = async function () {
     try {
         // Populate product data if needed
@@ -76,10 +76,22 @@ cartSchema.methods.calculateTotals = async function () {
                 path: 'items.productId',
                 populate: [
                     { path: 'category', select: 'name isListed offer' },
+                    { path: 'brand', select: 'brandName isBlocked' },
                     { path: 'offer' }
                 ]
             });
         }
+
+        // Filter out invalid items
+        this.items = this.items.filter(item => {
+            const product = item.productId;
+            if (!product) return false;
+            return (
+                !product.isBlocked && // Product is not blocked
+                product.category && product.category.isListed && // Category is listed
+                product.brand && !product.brand.isBlocked // Brand is not blocked
+            );
+        });
 
         let regularSubTotal = 0;
         let productDiscount = 0;
@@ -167,7 +179,7 @@ cartSchema.methods.calculateTotals = async function () {
     }
 };
 
-// Pre-save hook to ensure calculations are always up-to-date
+
 cartSchema.pre("save", async function (next) {
     try {
         // Populate product details if not already populated
@@ -188,7 +200,7 @@ cartSchema.pre("save", async function (next) {
     }
 });
 
-// Static method to get cart with populated products
+
 cartSchema.statics.findCartWithProducts = function (userId) {
     return this.findOne({ userId })
         .populate({

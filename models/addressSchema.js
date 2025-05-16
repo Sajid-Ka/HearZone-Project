@@ -1,4 +1,3 @@
-// /models/addressSchema.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -7,12 +6,12 @@ const addressSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User",
         required: true,
-        index: true // Adding index for faster queries
+        index: true 
     },
     addresses: [{
         addressType: {
             type: String,
-            enum: ['Home', 'Work', 'Other'], // Restrict to specific types
+            enum: ['Home', 'Work', 'Other'], 
             required: true
         },
         name: {
@@ -25,7 +24,7 @@ const addressSchema = new Schema({
             required: true,
             trim: true
         },
-        landmark: { // Changed from landMark to landmark (camelCase consistency)
+        landmark: { 
             type: String,
             required: true,
             trim: true
@@ -36,9 +35,9 @@ const addressSchema = new Schema({
             trim: true
         },
         pinCode: {
-            type: String, // Changed to String to handle leading zeros
+            type: String, 
             required: true,
-            match: [/^\d{6}$/, 'Pin code must be 6 digits'] // Basic validation
+            match: [/^\d{6}$/, 'Pin code must be 6 digits'] 
         },
         phone: {
             type: String,

@@ -9,7 +9,7 @@ const getCartItems = async (req, res) => {
     try {
         const userId = req.session.user.id;
         
-        const cart = await Cart.findOne({ userId })
+        let cart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
                 populate: [
@@ -36,20 +36,23 @@ const getCartItems = async (req, res) => {
             });
         }
 
-        // Ensure cart has required fields
-        if (!cart.subTotal) cart.subTotal = 0;
-        if (!cart.discountAmount) cart.discountAmount = 0;
-        if (!cart.finalAmount) cart.finalAmount = cart.subTotal - cart.discountAmount;
-        
+        // Filter out invalid items
+        const initialItemCount = cart.items.length;
+        cart.items = cart.items.filter(item => {
+            const product = item.productId;
+            if (!product) return false;
+            return (
+                !product.isBlocked && // Product is not blocked
+                product.category && product.category.isListed && // Category is listed
+                product.brand && !product.brand.isBlocked // Brand is not blocked
+            );
+        });
+
+        let needsUpdate = initialItemCount !== cart.items.length;
+
+        // Process remaining items
         const updatedItems = [];
-        let needsUpdate = false;
-
         for (const item of cart.items) {
-            if (!item.productId) {
-                needsUpdate = true;
-                continue;
-            }
-
             const product = item.productId;
 
             // Calculate the best offer (product or category)
@@ -106,16 +109,16 @@ const getCartItems = async (req, res) => {
             updatedItems.push(item);
         }
 
+        // Update cart if needed
         if (needsUpdate) {
             cart.items = updatedItems;
-            cart.subTotal = updatedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-            cart.finalAmount = cart.subTotal - (cart.discountAmount || 0);
+            await cart.calculateTotals(); // Recalculate totals with filtered items
             await cart.save();
         }
 
         // Ensure all amounts are numbers
         const subTotal = Number(cart.subTotal || 0);
-        const discountAmount = Number(cart.discountAmount || 0);
+        const discountAmount = Number(cart.productDiscount + cart.couponDiscount || 0);
         const finalAmount = Number(Math.round(cart.finalAmount || subTotal - discountAmount));
 
         return res.render('user/cart', {
