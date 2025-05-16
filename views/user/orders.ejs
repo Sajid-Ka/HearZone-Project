@@ -265,7 +265,7 @@
                                 <h5>Order #<%= order.orderId %></h5>
                                 <p>Date: <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
                                 <p>Status: <span class="status-text status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
-                                <p>Total: ₹<%= order.finalAmount.toFixed(2) %></p>
+                                <p>Total: ₹<%= order.totalPrice.toFixed(2) %></p>
                                 <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
                             </div>
                         <% }) %>

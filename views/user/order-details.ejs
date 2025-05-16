@@ -357,7 +357,7 @@
                             <% } %>
                         <% } %>
                         <% if (item.returnStatus === 'Return Request') { %>
-                            <button class="btn btnším btn-danger cancel-return-item-btn" 
+                            <button class="btn btn-sm btn-danger cancel-return-item-btn" 
                                     data-item-index="<%= index %>">
                                 Cancel Return
                             </button>
@@ -366,13 +366,22 @@
                 </div>
             <% }) %>
         </div>
+       
         <div class="pricing-section">
             <hr>
-            <p>Subtotal: <span>₹<%= order.totalPrice.toFixed(2) %></span></p>
-            <p>Discount: <span>-₹<%= order.discount.toFixed(2) %></span></p>
-            <p>Taxes: <span>₹<%= order.taxes.toFixed(2) %></span></p>
-            <p>Shipping: <span>₹<%= order.shippingCost.toFixed(2) %></span></p>
-            <p><strong>Total:</strong> <strong>₹<%= order.finalAmount.toFixed(2) %></strong></p>
+            <p>Subtotal: <span>₹<%= newSubtotal.toFixed(2) %></span></p>
+
+            <% if (order.discount > 0) { %>
+                <p>Product Discount: <span>-₹<%= order.discount.toFixed(2) %></span></p>
+            <% } %>
+
+            <% if (order.couponDiscount > 0) { %>
+                <p>Coupon Discount: <span>-₹<%= order.couponDiscount.toFixed(2) %></span></p>
+            <% } %>
+
+            <p>Shipping: <span>₹<%= (order.shippingCost || 0).toFixed(2) %></span></p>
+
+            <p><strong>Total:</strong> <strong>₹<%= (order.totalPrice || 0).toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
             <% if (order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending') { %>

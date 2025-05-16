@@ -57,7 +57,7 @@ const generateItemsTable = (doc, order, y) => {
             doc,
             position,
             item.product.productName,
-            `₹${item.price.toFixed(2)}`,
+            `₹${item.price.toFixed(2)}`, // Sale price
             item.quantity,
             `₹${(item.price * item.quantity).toFixed(2)}`
         );
@@ -65,21 +65,28 @@ const generateItemsTable = (doc, order, y) => {
         generateHr(doc, position + 20);
     }
     
+    // New Subtotal: totalPrice + discount + couponDiscount
+    const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
     const subtotalPosition = tableTop + (i * 30);
-    generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${order.totalPrice.toFixed(2)}`);
+    generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${newSubtotal.toFixed(2)}`);
     
-    const discountPosition = subtotalPosition + 20;
-    generateTotalRow(doc, discountPosition, 'Discount', `-₹${order.discount.toFixed(2)}`);
+    let currentPosition = subtotalPosition;
+    if (order.discount > 0) {
+        currentPosition += 20;
+        generateTotalRow(doc, currentPosition, 'Product Discount', `-₹${order.discount.toFixed(2)}`);
+    }
     
-    const taxPosition = discountPosition + 20;
-    generateTotalRow(doc, taxPosition, 'Tax', `₹${order.taxes.toFixed(2)}`);
+    if (order.couponDiscount > 0) {
+        currentPosition += 20;
+        generateTotalRow(doc, currentPosition, 'Coupon Discount', `-₹${order.couponDiscount.toFixed(2)}`);
+    }
     
-    const shippingPosition = taxPosition + 20;
-    generateTotalRow(doc, shippingPosition, 'Shipping', `₹${order.shippingCost.toFixed(2)}`);
+    currentPosition += 20;
+    generateTotalRow(doc, currentPosition, 'Shipping', `₹${order.shippingCost.toFixed(2)}`);
     
-    const totalPosition = shippingPosition + 20;
+    currentPosition += 20;
     doc.font('Helvetica-Bold');
-    generateTotalRow(doc, totalPosition, 'Total Amount', `₹${order.finalAmount.toFixed(2)}`);
+    generateTotalRow(doc, currentPosition, 'Total Amount', `₹${order.finalAmount.toFixed(2)}`);
     doc.font('Helvetica');
 };
 
@@ -151,15 +158,25 @@ const getOrderDetails = async (req, res) => {
     try {
         const { orderId } = req.params;
         const order = await Order.findOne({ orderId, userId: req.session.user.id })
-            .populate('orderedItems.product');
+            .populate({
+                path: 'orderedItems.product',
+                populate: ['category', 'offer']
+            });
 
         if (!order) {
             return res.status(404).render('user/page-404');
         }
 
+        // Calculate the new Subtotal
+        const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
+
+        let totalPrice = order.totalPrice;
+
         res.render('user/order-details', {
+            totalPrice,
             order,
-            user: req.session.user
+            user: req.session.user,
+            newSubtotal 
         });
     } catch (error) {
         console.error('Error in getOrderDetails:', error);

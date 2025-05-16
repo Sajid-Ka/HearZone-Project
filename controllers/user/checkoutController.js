@@ -297,69 +297,106 @@ const placeOrder = async (req, res) => {
         }
 
         const selectedAddress = addressDoc.addresses.id(addressId);
-
         if (!selectedAddress) {
             return res.status(400).json({ success: false, message: 'Selected address not found' });
         }
 
         if (isBuyNow) {
             const buyNowOrder = req.session.buyNowOrder;
-
             if (!buyNowOrder || buyNowOrder.userId !== userId) {
                 return res.status(400).json({ success: false, message: 'Invalid buy now order' });
             }
 
-            const product = await Product.findById(buyNowOrder.productId);
+            const product = await Product.findById(buyNowOrder.productId)
+                .populate('category')
+                .populate('offer');
 
             if (!product || product.quantity < buyNowOrder.quantity) {
                 delete req.session.buyNowOrder;
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient stock for ${buyNowOrder.productName}`
+                    message: `Insufficient stock for ${buyNowOrder.productName}`,
                 });
             }
+
+            // Calculate pricing
+            let regularPrice = product.regularPrice;
+            let salePrice = regularPrice;
+            let productOfferValue = 0;
+            let categoryOfferValue = 0;
+
+            // Product offer
+            if (product.offer && new Date(product.offer.endDate) > new Date()) {
+                productOfferValue = product.offer.discountType === 'percentage'
+                    ? product.offer.discountValue
+                    : (product.offer.discountValue / product.regularPrice) * 100;
+            }
+
+            // Category offer
+            if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
+                categoryOfferValue = product.category.offer.percentage;
+            }
+
+            // Apply the maximum discount
+            const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
+            if (finalOfferValue > 0) {
+                salePrice = regularPrice * (1 - finalOfferValue / 100);
+            }
+
+            const quantity = buyNowOrder.quantity;
+            const totalPrice = Number((regularPrice * quantity).toFixed(2)); // Subtotal
+            const productDiscount = Number(((regularPrice - salePrice) * quantity).toFixed(2)); // Offer discount
+            const couponDiscount = Number((buyNowOrder.discountAmount || 0).toFixed(2)); // Coupon discount
+            const shippingCost = Number((0).toFixed(2)); // Adjust if shipping cost is applicable
+            const finalAmount = Number(((salePrice * quantity) - couponDiscount + shippingCost).toFixed(2)); // Final total
 
             orderData = {
                 userId,
                 orderedItems: [{
                     product: buyNowOrder.productId,
                     quantity: buyNowOrder.quantity,
-                    price: buyNowOrder.salePrice,
-                    subTotal: buyNowOrder.finalAmount,
-                    status: 'Pending'
+                    price: Number(salePrice.toFixed(2)),
+                    subTotal: Number((salePrice * quantity).toFixed(2)),
+                    status: 'Pending',
+                    regularPrice: regularPrice, 
                 }],
-                totalPrice: buyNowOrder.subTotal,
-                discount: buyNowOrder.subTotal - buyNowOrder.finalAmount + (buyNowOrder.discountAmount || 0),
+                totalPrice: totalPrice, 
+                discount: productDiscount, 
+                couponDiscount: couponDiscount, 
                 taxes: 0,
-                shippingCost: 0,
-                finalAmount: buyNowOrder.finalAmount,
+                shippingCost: shippingCost,
+                finalAmount: finalAmount, 
                 address: selectedAddress,
                 paymentMethod,
                 paymentStatus: 'Pending',
                 status: 'Pending',
                 isVisibleToAdmin: true,
                 couponApplied: !!buyNowOrder.couponCode,
-                couponCode: buyNowOrder.couponCode
+                couponCode: buyNowOrder.couponCode || null,
             };
+
         } else {
-            cart = await Cart.findOne({ userId }).populate('items.productId');
+            cart = await Cart.findOne({ userId }).populate({
+                path: 'items.productId',
+                populate: ['category', 'offer']
+            });
 
             if (!cart) {
                 return res.status(400).json({ success: false, message: 'Cart not found' });
             }
 
+            let totalPrice = 0;
             let productDiscount = 0;
-            for (const item of cart.items) {
-                if (item.quantity > item.productId.quantity) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Insufficient stock for ${item.productId.productName}`
-                    });
-                }
-                const product = item.productId;
-                let salePrice = product.regularPrice;
-                let itemDiscountAmount = 0;
+            let couponDiscount = cart.couponDiscount || 0;
+            const shippingCost = 0;
 
+            const orderedItems = cart.items.map((item) => {
+                const product = item.productId;
+                const regularPrice = product.regularPrice;
+                let salePrice = regularPrice;
+                let itemDiscount = 0;
+
+                // Calculate discounts from product/category offers
                 let productOfferValue = 0;
                 let categoryOfferValue = 0;
 
@@ -375,43 +412,57 @@ const placeOrder = async (req, res) => {
 
                 if (productOfferValue > 0 || categoryOfferValue > 0) {
                     const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
-                    salePrice = product.regularPrice * (1 - finalOfferValue / 100);
-                    itemDiscountAmount = (product.regularPrice - salePrice) * item.quantity;
+                    salePrice = regularPrice * (1 - finalOfferValue / 100);
+                    itemDiscount = (regularPrice - salePrice) * item.quantity;
                 }
 
-                productDiscount += itemDiscountAmount;
-            }
+                totalPrice += regularPrice * item.quantity;
+                productDiscount += itemDiscount;
+
+                if (item.quantity > product.quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Insufficient stock for ${product.productName}`,
+                    });
+                }
+
+                return {
+                    product: product._id,
+                    quantity: item.quantity,
+                    price: salePrice,
+                    regularPrice: regularPrice,
+                    subTotal: salePrice * item.quantity,
+                    status: item.status || 'Pending',
+                    cancellationReason: item.cancellationReason,
+                };
+            });
+
+            const finalAmount = totalPrice - productDiscount - couponDiscount + shippingCost;
 
             orderData = {
                 userId,
-                orderedItems: cart.items.map(item => ({
-                    product: item.productId._id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    subTotal: item.totalPrice,
-                    status: item.status,
-                    cancellationReason: item.cancellationReason
-                })),
-                totalPrice: cart.subTotal,
-                discount: productDiscount, // Product discount
-                couponDiscount: cart.discountAmount || 0, // Coupon discount
+                orderedItems,
+                totalPrice, 
+                discount: productDiscount, 
+                couponDiscount, 
                 taxes: 0,
-                shippingCost: 0,
-                finalAmount: cart.subTotal - productDiscount - (cart.discountAmount || 0), // Correct total
+                shippingCost,
+                finalAmount, 
                 address: selectedAddress,
                 paymentMethod,
                 paymentStatus: 'Pending',
                 status: 'Pending',
                 isVisibleToAdmin: true,
                 couponApplied: !!cart.couponCode,
-                couponCode: cart.couponCode
+                couponCode: cart.couponCode || null,
             };
         }
+
 
         if (paymentMethod === 'Cash on Delivery' && orderData.finalAmount > 5000) {
             return res.status(400).json({
                 success: false,
-                message: 'Cash on Delivery not available for orders above ₹5000'
+                message: 'Cash on Delivery not available for orders above ₹5000',
             });
         }
 
@@ -419,7 +470,7 @@ const placeOrder = async (req, res) => {
             if (user.wallet.balance < orderData.finalAmount) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Insufficient wallet balance'
+                    message: 'Insufficient wallet balance',
                 });
             }
 
@@ -436,7 +487,7 @@ const placeOrder = async (req, res) => {
                 type: 'debit',
                 description: 'Order payment',
                 orderId: `ORDER-${Date.now()}`,
-                transactionId: generateTransactionId(user._id)
+                transactionId: generateTransactionId(user._id),
             });
             await walletTransaction.save();
 
@@ -446,12 +497,7 @@ const placeOrder = async (req, res) => {
 
         if (paymentMethod === 'Razorpay') {
             try {
-                
-                const razorpayAmount = isBuyNow ? 
-                    req.session.buyNowOrder.finalAmount : 
-                    cart.finalAmount;
-
-                
+                const razorpayAmount = orderData.finalAmount;
                 const roundedAmount = Math.round(razorpayAmount * 100) / 100;
 
                 const razorpayOrder = await createRazorpayOrder(roundedAmount);
@@ -460,15 +506,15 @@ const placeOrder = async (req, res) => {
                     ...orderData,
                     razorpayOrderId: razorpayOrder.id,
                     isBuyNow,
-                    expectedAmount: roundedAmount // Store expected amount for verification
+                    expectedAmount: roundedAmount,
                 };
 
                 return res.status(200).json({
                     success: true,
                     razorpayOrderId: razorpayOrder.id,
-                    amount: Math.round(roundedAmount * 100), // convert to paise as integer
+                    amount: Math.round(roundedAmount * 100),
                     currency: 'INR',
-                    message: 'Razorpay order created successfully'
+                    message: 'Razorpay order created successfully',
                 });
             } catch (error) {
                 console.error('Error creating Razorpay order:', error);
@@ -477,7 +523,7 @@ const placeOrder = async (req, res) => {
                     paymentStatus: 'Failed',
                     status: 'Payment Failed',
                     isVisibleToAdmin: false,
-                    errorMessage: error.message
+                    errorMessage: error.message,
                 });
 
                 const savedOrder = await failedOrder.save();
@@ -486,7 +532,7 @@ const placeOrder = async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     orderId: savedOrder.orderId,
-                    message: `Razorpay payment failed: ${error.message}`
+                    message: `Razorpay payment failed: ${error.message}`,
                 });
             }
         }
@@ -499,7 +545,7 @@ const placeOrder = async (req, res) => {
                 paymentStatus: 'Failed',
                 status: 'Payment Failed',
                 isVisibleToAdmin: false,
-                errorMessage: 'Simulated payment failure'
+                errorMessage: 'Simulated payment failure',
             });
 
             const savedFailedOrder = await failedOrder.save();
@@ -508,7 +554,7 @@ const placeOrder = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 orderId: savedFailedOrder.orderId,
-                message: 'Payment simulation failed. Order saved with failed status.'
+                message: 'Payment simulation failed. Order saved with failed status.',
             });
         }
 
@@ -518,7 +564,7 @@ const placeOrder = async (req, res) => {
 
         for (const item of orderData.orderedItems) {
             await Product.findByIdAndUpdate(item.product, {
-                $inc: { quantity: -item.quantity }
+                $inc: { quantity: -item.quantity },
             });
         }
 
@@ -527,7 +573,7 @@ const placeOrder = async (req, res) => {
                 { code: orderData.couponCode },
                 {
                     $inc: { usedCount: 1 },
-                    $push: { usersUsed: userId }
+                    $push: { usersUsed: userId },
                 }
             );
         }
@@ -541,7 +587,7 @@ const placeOrder = async (req, res) => {
         res.status(200).json({
             success: true,
             orderId: savedOrder.orderId,
-            message: 'Order placed successfully'
+            message: 'Order placed successfully',
         });
     } catch (error) {
         console.error('Error in placeOrder:', error);
@@ -560,8 +606,8 @@ const placeOrder = async (req, res) => {
                 city: 'Error',
                 state: 'Error',
                 pinCode: '000000',
-                phone: '0000000000'
-            }
+                phone: '0000000000',
+            },
         });
 
         const savedFailedOrder = await minimalFailedOrder.save();
@@ -570,7 +616,7 @@ const placeOrder = async (req, res) => {
         res.status(500).json({
             success: false,
             orderId: savedFailedOrder.orderId,
-            message: `Failed to place order: ${error.message}`
+            message: `Failed to place order: ${error.message}`,
         });
     }
 };
