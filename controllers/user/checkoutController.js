@@ -248,8 +248,15 @@ const createRazorpayOrder = async (amount, currency = 'INR') => {
             throw new Error('Invalid amount: Amount must be greater than zero');
         }
 
+        // Convert to paise and ensure it's an integer
+        const amountInPaise = Math.round(amount * 100);
+        
+        if (isNaN(amountInPaise) || !Number.isInteger(amountInPaise)) {
+            throw new Error('Invalid amount: Amount must be a valid number');
+        }
+
         const options = {
-            amount: amount * 100, // convert to paise
+            amount: amountInPaise, // Already in paise as integer
             currency,
             receipt: `receipt_${Date.now()}`,
         };
@@ -439,18 +446,27 @@ const placeOrder = async (req, res) => {
 
         if (paymentMethod === 'Razorpay') {
             try {
-                const razorpayOrder = await createRazorpayOrder(orderData.finalAmount);
+                
+                const razorpayAmount = isBuyNow ? 
+                    req.session.buyNowOrder.finalAmount : 
+                    cart.finalAmount;
+
+                
+                const roundedAmount = Math.round(razorpayAmount * 100) / 100;
+
+                const razorpayOrder = await createRazorpayOrder(roundedAmount);
 
                 req.session.pendingOrder = {
                     ...orderData,
                     razorpayOrderId: razorpayOrder.id,
-                    isBuyNow
+                    isBuyNow,
+                    expectedAmount: roundedAmount // Store expected amount for verification
                 };
 
                 return res.status(200).json({
                     success: true,
                     razorpayOrderId: razorpayOrder.id,
-                    amount: orderData.finalAmount * 100,
+                    amount: Math.round(roundedAmount * 100), // convert to paise as integer
                     currency: 'INR',
                     message: 'Razorpay order created successfully'
                 });
@@ -598,27 +614,6 @@ const verifyRazorpayPayment = async (req, res) => {
             });
         }
 
-        const cart = isBuyNow ? null : await Cart.findOne({ userId });
-
-        if (!isBuyNow && (!cart || pendingOrder.finalAmount !== cart.finalAmount)) {
-            const failedOrder = new Order({
-                ...pendingOrder,
-                paymentStatus: 'Failed',
-                status: 'Payment Failed',
-                isVisibleToAdmin: false,
-                razorpayOrderId: razorpay_order_id,
-                errorMessage: 'Amount mismatch in pending order'
-            });
-            const savedOrder = await failedOrder.save();
-            delete req.session.pendingOrder;
-
-            return res.status(400).json({
-                success: false,
-                orderId: savedOrder.orderId,
-                message: 'Amount mismatch detected. Order cancelled.'
-            });
-        }
-
         const isValidSignature = verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
         if (!isValidSignature) {
@@ -644,11 +639,41 @@ const verifyRazorpayPayment = async (req, res) => {
             });
         }
 
+
+        
+        const payment = await razorpay.payments.fetch(razorpay_payment_id);
+        const paidAmount = payment.amount / 100; 
+
+        
+        if (paidAmount !== pendingOrder.expectedAmount) {
+            const amountMismatchData = {
+                ...pendingOrder,
+                paymentStatus: 'Failed',
+                status: 'Payment Failed',
+                isVisibleToAdmin: false,
+                razorpayOrderId: razorpay_order_id,
+                razorpayPaymentId: razorpay_payment_id,
+                errorMessage: `Payment amount mismatch. Expected: ${pendingOrder.expectedAmount}, Paid: ${paidAmount}`
+            };
+
+            const failedOrder = new Order(amountMismatchData);
+            const savedOrder = await failedOrder.save();
+            delete req.session.pendingOrder;
+            if (isBuyNow) delete req.session.buyNowOrder;
+
+            return res.status(400).json({
+                success: false,
+                orderId: savedOrder.orderId,
+                message: 'Payment amount mismatch. Please contact support.'
+            });
+        }
+
         const successOrderData = {
             ...pendingOrder,
             paymentStatus: 'Paid',
             razorpayPaymentId: razorpay_payment_id,
-            razorpayOrderId: razorpay_order_id
+            razorpayOrderId: razorpay_order_id,
+            paidAmount: paidAmount
         };
 
         const order = new Order(successOrderData);

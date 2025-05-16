@@ -1400,27 +1400,37 @@
 
                             const verifyData = await verifyResponse.json();
 
-                            if (verifyData.success) {
-                                Swal.fire({
-                                    title: 'Payment Successful!',
-                                    text: `Your order #${verifyData.orderId} has been placed successfully`,
-                                    icon: 'success',
-                                    confirmButtonColor: '#3498db'
-                                }).then(() => {
-                                    window.location.href = `/order-success?orderId=${verifyData.orderId}`;
-                                });
-                            } else {
-                                Swal.fire({
+                            if (!verifyResponse.ok || !verifyData.success) {
+                                let errorMessage = verifyData.message || 'Payment verification failed';
+                                
+                                // Handle amount mismatch specifically
+                                if (verifyData.message && verifyData.message.includes('amount mismatch')) {
+                                    errorMessage = 'Payment amount mismatch detected. Please contact support.';
+                                }
+
+                                await Swal.fire({
                                     title: 'Payment Failed!',
-                                    text: verifyData.message || 'Payment verification failed. Please try again.',
+                                    text: errorMessage,
                                     icon: 'error',
                                     confirmButtonColor: '#3498db'
-                                }).then(() => {
-                                    window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
                                 });
+
+                                window.location.href = `/order-failure?orderId=${data.razorpayOrderId}`;
+                                return;
                             }
+
+                            // Successful payment
+                            await Swal.fire({
+                                title: 'Payment Successful!',
+                                text: `Your order #${verifyData.orderId} has been placed successfully`,
+                                icon: 'success',
+                                confirmButtonColor: '#3498db'
+                            }).then(() => {
+                                window.location.href = `/order-success?orderId=${verifyData.orderId}`;
+                            });
                         } catch (error) {
-                            Swal.fire({
+                            console.error('Payment verification error:', error);
+                            await Swal.fire({
                                 title: 'Payment Failed!',
                                 text: 'An error occurred during payment verification. Please try again.',
                                 icon: 'error',
