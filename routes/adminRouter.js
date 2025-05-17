@@ -25,6 +25,8 @@ router.get('/logout', isAdminAuth, adminController.logout);
 // Apply adminAuth middleware to all routes
 router.use(isAdminAuth);
 
+router.get('/dashboard-data', adminController.getDashboardDataAPI);
+
 // Offer routes
 router.get('/offers', offerController.getOfferPage);
 router.post('/offers/create', offerController.createOffer);

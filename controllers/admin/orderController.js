@@ -673,7 +673,7 @@ const processCancelItemRequest = async (req, res) => {
         const { orderId } = req.params;
         const { itemIndex, action } = req.body;
 
-        // Validate inputs
+        
         if (!orderId) {
             return res.status(400).json({ success: false, message: 'Order ID is required' });
         }
@@ -684,7 +684,7 @@ const processCancelItemRequest = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid action' });
         }
 
-        // Find order
+        
         const order = await Order.findOne({ 
             orderId: { $regex: `^${orderId}$`, $options: 'i' }
         })
@@ -695,13 +695,13 @@ const processCancelItemRequest = async (req, res) => {
             return res.status(404).json({ success: false, message: `Order with ID ${orderId} not found` });
         }
 
-        // Validate item
+        
         const item = order.orderedItems[itemIndex];
         if (!item) {
             return res.status(400).json({ success: false, message: `Item at index ${itemIndex} not found` });
         }
 
-        // Check cancellation status
+        
         if (item.cancellationStatus !== 'Cancel Request') {
             return res.status(400).json({ 
                 success: false, 
@@ -709,7 +709,7 @@ const processCancelItemRequest = async (req, res) => {
             });
         }
 
-        // Handle action
+        
         if (action === 'approve') {
             const user = await User.findById(order.userId);
             if (!user) {
@@ -717,12 +717,19 @@ const processCancelItemRequest = async (req, res) => {
             }
 
             let refundMessage = '';
+            let refundAmount = 0;
+
             if (order.paymentStatus === 'Paid') {
                 if (!user.wallet) {
                     user.wallet = { balance: 0, transactions: [] };
                 }
 
-                const refundAmount = item.price * item.quantity;
+                
+                refundAmount = item.price * item.quantity;
+
+                
+                refundAmount = Math.min(refundAmount, order.totalPrice);
+
                 user.wallet.balance += refundAmount;
                 user.wallet.transactions.push({
                     amount: refundAmount,
@@ -730,7 +737,6 @@ const processCancelItemRequest = async (req, res) => {
                     description: `Refund for cancelled item in order ${order.orderId}`,
                     date: new Date()
                 });
-
 
                 function generateTransactionId(userId) {
                     return `WALLET-${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
@@ -751,7 +757,7 @@ const processCancelItemRequest = async (req, res) => {
                 refundMessage = `Cancellation approved for item: ${item.product.productName}. No refund processed as payment was not made.`;
             }
 
-            // Restore product stock
+            
             await Product.updateOne(
                 { _id: item.product._id },
                 { $inc: { quantity: item.quantity } }
@@ -761,15 +767,45 @@ const processCancelItemRequest = async (req, res) => {
             item.cancellationReason = null;
             item.cancellationRejected = false;
 
-            // Recalculate order financials
-            order.totalPrice = order.orderedItems.reduce((total, i) => 
-                i.cancellationStatus === 'Cancelled' ? total : total + i.subTotal, 0);
-            order.finalAmount = order.totalPrice - order.discount + order.taxes + order.shippingCost;
+            
+            const nonCancelledItems = order.orderedItems.filter(i => i.cancellationStatus !== 'Cancelled');
+            if (nonCancelledItems.length === 0) {
+                
+                order.totalPrice = 0;
+                order.discount = 0;
+                order.taxes = 0;
+                order.shippingCost = 0;
+                order.finalAmount = 0;
+                order.status = 'Cancelled'; 
+            } else {
+                
+                order.totalPrice = nonCancelledItems.reduce((total, i) => total + i.subTotal, 0);
 
-            // Let the pre-save hook handle order status
+                
+                const originalTotalPrice = order.orderedItems.reduce((total, i) => total + i.subTotal, 0);
+                if (originalTotalPrice > 0) {
+                    order.discount = (order.totalPrice / originalTotalPrice) * order.discount;
+                } else {
+                    order.discount = 0;
+                }
+
+                
+                order.taxes = (order.totalPrice / originalTotalPrice) * order.taxes || 0;
+
+                
+
+                
+                order.finalAmount = Math.max(0, order.totalPrice - order.discount + order.taxes + order.shippingCost);
+            }
+
+            
+            if (nonCancelledItems.length === 0 && order.paymentStatus === 'Paid') {
+                order.paymentStatus = 'Refunded';
+            }
+
             await trackStatusChange(
                 order,
-                order.status, // Will be updated by pre-save hook
+                order.status,
                 refundMessage,
                 req.admin._id
             );
@@ -781,6 +817,7 @@ const processCancelItemRequest = async (req, res) => {
                 message: refundMessage,
                 newStatus: order.status
             });
+
         } else if (action === 'reject') {
             item.cancellationStatus = 'None';
             item.cancellationReason = null;
