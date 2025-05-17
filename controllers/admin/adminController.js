@@ -234,11 +234,11 @@ async function getDashboardData(timeFilter) {
                     status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] }
                 }
             },
-            { $unwind: '$orderedItems' }, // Changed from order_items
+            { $unwind: '$orderedItems' }, 
             {
                 $lookup: {
                     from: 'products',
-                    localField: 'orderedItems.product', // Changed from order_items.productId
+                    localField: 'orderedItems.product', 
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -264,7 +264,7 @@ async function getDashboardData(timeFilter) {
             { $limit: 5 }
         ]),
         Order.aggregate([
-            { $match: { status: { $nin: ['cancelled', 'failed'] } } },
+            { $match: { status: 'Delivered'} },
             { $sort: { createdAt: -1 } },
             { $limit: 5 },
             {
@@ -279,7 +279,7 @@ async function getDashboardData(timeFilter) {
             {
                 $lookup: {
                     from: 'products',
-                    localField: 'orderedItems.product', // Changed from order_items.productId
+                    localField: 'orderedItems.product', 
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -429,18 +429,18 @@ const loadDashboard = async (req, res) => {
                 {
                     $project: {
                         productName: '$productDetails.productName',
-                        productImages: '$productDetails.productImages',
+                        productImage: '$productDetails.productImage',
                         totalSold: 1
                     }
                 }
             ]),
             Order.aggregate([
                 { $match: { status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] } } },
-                { $unwind: '$orderedItems' }, // Changed from order_items
+                { $unwind: '$orderedItems' }, 
                 {
                     $lookup: {
                         from: 'products',
-                        localField: 'orderedItems.product', // Changed from order_items.productId
+                        localField: 'orderedItems.product', 
                         foreignField: '_id',
                         as: 'productDetails'
                     }
@@ -471,7 +471,7 @@ const loadDashboard = async (req, res) => {
                 {
                     $lookup: {
                         from: 'products',
-                        localField: 'orderedItems.product', // Changed from order_items.productId
+                        localField: 'orderedItems.product', 
                         foreignField: '_id',
                         as: 'productDetails'
                     }

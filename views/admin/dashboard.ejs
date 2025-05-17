@@ -1,285 +1,782 @@
 <%- include("../partials/admin/header") %>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.42.0/apexcharts.min.js"></script>
 <style>
+    :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --success-color: #4cc9f0;
+        --warning-color: #f72585;
+        --danger-color: #ff6b6b;
+        --light-bg: #f8f9fa;
+        --dark-bg: #212529;
+        --card-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        --transition: all 0.3s ease;
+    }
+    
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f5f7fb;
+        color: #333;
+        margin: 0;
+    }
+    
     .dashboard-container {
         padding: 2rem;
-    }
-    .card {
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-    }
-    .chart-container {
-        max-width: 800px;
+        max-width: 1000px;
         margin: 0 auto;
     }
-    .filter-buttons {
+    
+    .content-header {
+        margin-bottom: 2rem;
+    }
+    
+    .content-title {
+        font-weight: 700;
+        font-size: 1.8rem;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        padding: 1.5rem;
+        transition: var(--transition);
+        border-top: 4px solid transparent;
+        margin-bottom: 1.5rem;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-revenue { border-top-color: var(--primary-color); }
+    .card-customers { border-top-color: var(--success-color); }
+    .card-orders { border-top-color: var(--warning-color); }
+    
+    .summary-card h5 {
+        font-size: 1rem;
+        color: #6c757d;
         margin-bottom: 1rem;
     }
+    
+    .summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-growth {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .growth-positive {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .growth-negative {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    .summary-icon {
+        float: right;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -3rem;
+    }
+    
+    .icon-revenue { background: rgba(67, 97, 238, 0.1); color: var(--primary-color); }
+    .icon-customers { background: rgba(76, 201, 240, 0.1); color: var(--success-color); }
+    .icon-orders { background: rgba(247, 37, 133, 0.1); color: var(--warning-color); }
+    
+    .filter-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .filter-select {
+        border: none;
+        background: #f1f3f9;
+        color: #555;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: var(--transition);
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        background-color: black;
+        color: white;
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-card h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #333;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .table-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .table-card h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #333;
+    }
+    
     .table-responsive {
         overflow-x: auto;
+    }
+    
+    .table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        color: #6c757d;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+        text-align: left;
+    }
+    
+    .table td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-pending { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
+    .status-delivered { background-color: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .status-processing { background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; }
+    .status-cancelled { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+    
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -0.75rem;
+        margin-left: -0.75rem;
+    }
+    
+    .col-md-4 {
+        flex: 0 0 33.33333%;
+        max-width: 33.33333%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+    }
+    
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+    }
+    
+    .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+    }
+    
+    @media (max-width: 767.98px) {
+        .col-md-4, .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+    
+    .product-image, .brand-image {
+        width: 40px;
+        height: 40px;
+        object-fit: contain; 
+        border-radius: 8px;
+        margin-right: 10px;
+        background-color: #f1f3f9;
+    }
+    
+    .product-cell {
+        display: flex;
+        align-items: center;
+    }
+    
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
     }
 </style>
 
 <section class="content-main dashboard-container">
+    <!-- Header -->
     <div class="content-header">
-        <h2 class="content-title card-title">Admin Dashboard</h2>
+        <h2 class="content-title">Dashboard Overview</h2>
     </div>
 
     <!-- Summary Cards -->
     <div class="row">
         <div class="col-md-4">
-            <div class="card">
+            <div class="summary-card card-revenue">
+                <div class="summary-icon icon-revenue">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
                 <h5>Total Revenue</h5>
-                <p>₹<%= dashboardData.summary.totalRevenue.toFixed(2) %></p>
-                <small>Growth: <%= dashboardData.summary.revenueGrowth %>%</small>
+                <div class="summary-value">₹<%= dashboardData.summary.totalRevenue.toFixed(2) %></div>
+                <div class="summary-growth <%= dashboardData.summary.revenueGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+                    <% if (dashboardData.summary.revenueGrowth >= 0) { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    <% } else { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    <% } %>
+                    <%= Math.abs(dashboardData.summary.revenueGrowth) %>% since last period
+                </div>
             </div>
         </div>
+        
         <div class="col-md-4">
-            <div class="card">
+            <div class="summary-card card-customers">
+                <div class="summary-icon icon-customers">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
                 <h5>Total Customers</h5>
-                <p><%= dashboardData.summary.totalCustomers %></p>
-                <small>Growth: <%= dashboardData.summary.customerGrowth %>%</small>
+                <div class="summary-value"><%= dashboardData.summary.totalCustomers %></div>
+                <div class="summary-growth <%= dashboardData.summary.customerGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+                    <% if (dashboardData.summary.customerGrowth >= 0) { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    <% } else { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    <% } %>
+                    <%= Math.abs(dashboardData.summary.customerGrowth) %>% since last period
+                </div>
             </div>
         </div>
+        
         <div class="col-md-4">
-            <div class="card">
+            <div class="summary-card card-orders">
+                <div class="summary-icon icon-orders">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                </div>
                 <h5>Total Orders</h5>
-                <p><%= dashboardData.summary.totalOrders %></p>
-                <small>Growth: <%= dashboardData.summary.orderGrowth %>%</small>
+                <div class="summary-value"><%= dashboardData.summary.totalOrders %></div>
+                <div class="summary-growth <%= dashboardData.summary.orderGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+                    <% if (dashboardData.summary.orderGrowth >= 0) { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    <% } else { %>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    <% } %>
+                    <%= Math.abs(dashboardData.summary.orderGrowth) %>% since last period
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Time Filter -->
-    <div class="card">
-        <div class="filter-buttons">
-            <a href="?timeFilter=weekly" class="btn btn-sm <%= timeFilter === 'weekly' ? 'btn-primary' : 'btn-outline-primary' %>">Weekly</a>
-            <a href="?timeFilter=monthly" class="btn btn-sm <%= timeFilter === 'monthly' ? 'btn-primary' : 'btn-outline-primary' %>">Monthly</a>
-            <a href="?timeFilter=yearly" class="btn btn-sm <%= timeFilter === 'yearly' ? 'btn-primary' : 'btn-outline-primary' %>">Yearly</a>
+    <div class="filter-card">
+        <select class="filter-select" onchange="window.location.href='?timeFilter=' + this.value">
+            <option value="weekly" <%= timeFilter === 'weekly' ? 'selected' : '' %>>Weekly</option>
+            <option value="monthly" <%= timeFilter === 'monthly' ? 'selected' : '' %>>Monthly</option>
+            <option value="yearly" <%= timeFilter === 'yearly' ? 'selected' : '' %>>Yearly</option>
+        </select>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3>Sales Performance</h3>
+                <div class="chart-container">
+                    <div id="salesChart"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3>New Customers</h3>
+                <div class="chart-container">
+                    <div id="customersChart"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Sales Chart -->
-    <div class="card">
-        <h3>Sales Over Time</h3>
-        <div class="chart-container">
-            <canvas id="salesChart"></canvas>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3>Order Statistics</h3>
+                <div class="chart-container">
+                    <div id="ordersChart"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h3>Top Categories by Sales</h3>
+                <div class="chart-container">
+                    <div id="categoriesChart"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Customers Chart -->
-    <div class="card">
-        <h3>New Customers Over Time</h3>
-        <div class="chart-container">
-            <canvas id="customersChart"></canvas>
+    <!-- Tables -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-card">
+                <h3>Top Selling Products</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 65%;">Product</th>
+                                <th style="width: 30%;">Units Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% topSellingProducts.forEach((product, index) => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td class="product-cell">
+                                       <img src="<%= product.productImage && product.productImage.length ? '/Uploads/product-images/' + product.productImage[0] : '/Uploads/product-images/default-product.jpg' %>" 
+                                         alt="<%= product.productName || 'Product image' %>" 
+                                         class="product-image">
+                                        <strong><%= product.productName %></strong>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center;">
+                                            <div style="flex-grow: 1; height: 6px; background: #f1f3f9; border-radius: 3px; margin-right: 10px;">
+                                                <div style="width: <%= (product.totalSold / Math.max(...topSellingProducts.map(p => p.totalSold))) * 100 %>%; height: 6px; background: #4361ee; border-radius: 3px;"></div>
+                                            </div>
+                                            <%= product.totalSold %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Orders Chart -->
-    <div class="card">
-        <h3>Orders Over Time</h3>
-        <div class="chart-container">
-            <canvas id="ordersChart"></canvas>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-card">
+                <h3>Top Selling Categories</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 65%;">Category</th>
+                                <th style="width: 30%;">Units Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% topSellingCategories.forEach((category, index) => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><strong><%= category.name %></strong></td>
+                                    <td>
+                                        <div style="display: flex; align-items: center;">
+                                            <div style="flex-grow: 1; height: 6px; background: #f1f3f9; border-radius: 3px; margin-right: 10px;">
+                                                <div style="width: <%= (category.totalSold / Math.max(...topSellingCategories.map(c => c.totalSold))) * 100 %>%; height: 6px; background: #4cc9f0; border-radius: 3px;"></div>
+                                            </div>
+                                            <%= category.totalSold %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Category Performance -->
-    <div class="card">
-        <h3>Top Categories by Sales</h3>
-        <div class="chart-container">
-            <canvas id="categoriesChart"></canvas>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-card">
+                <h3>Top Selling Brands</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 65%;">Brand</th>
+                                <th style="width: 30%;">Units Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% topSellingBrands.forEach((brand, index) => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td class="product-cell">
+                                        <img src="<%= brand.brandImage|| '/images/default-brand.jpg' %>" alt="<%= brand.brandName %>" class="brand-image">
+                                        <strong><%= brand.brandName %></strong>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center;">
+                                            <div style="flex-grow: 1; height: 6px; background: #f1f3f9; border-radius: 3px; margin-right: 10px;">
+                                                <div style="width: <%= (brand.totalSold / Math.max(...topSellingBrands.map(b => b.totalSold))) * 100 %>%; height: 6px; background: #f72585; border-radius: 3px;"></div>
+                                            </div>
+                                            <%= brand.totalSold %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Top Selling Products -->
-    <div class="card">
-        <h3>Top 5 Selling Products</h3>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Units Sold</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% topSellingProducts.forEach(product => { %>
-                        <tr>
-                            <td><%= product.productName %></td>
-                            <td><%= product.totalSold %></td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Top Selling Categories -->
-    <div class="card">
-        <h3>Top 5 Selling Categories</h3>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Category</th>
-                        <th>Units Sold</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% topSellingCategories.forEach(category => { %>
-                        <tr>
-                            <td><%= category.name %></td>
-                            <td><%= category.totalSold %></td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Top Selling Brands -->
-    <div class="card">
-        <h3>Top 5 Selling Brands</h3>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Brand</th>
-                        <th>Units Sold</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% topSellingBrands.forEach(brand => { %>
-                        <tr>
-                            <td><%= brand.brandName %></td>
-                            <td><%= brand.totalSold %></td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Recent Orders -->
-    <div class="card">
-        <h3>Recent Orders</h3>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Product</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% dashboardData.recentOrders.forEach(order => { %>
-                        <tr>
-                            <td><%= order.orderId %></td>
-                            <td><%= order.customer %></td>
-                            <td><%= order.product %></td>
-                            <td><%= new Date(order.date).toLocaleDateString() %></td>
-                            <td>₹<%= order.totalPrice.toFixed(2) %></td>
-                            <td><%= order.status %></td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom: 0;">Recent Orders</h3>
+                    <a href="/admin/orders" style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem; font-weight: 500;">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% dashboardData.recentOrders.slice(0, 5).forEach(order => { %>
+                                <tr>
+                                    <td><a href="/admin/orders/<%= order.orderId %>" style="color: var(--primary-color); text-decoration: none;">#<%= order.orderId.toString().padStart(5, '0') %></a></td>
+                                    <td><%= order.customer %></td>
+                                    <td><%= new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></td>
+                                    <td>₹<%= order.totalPrice.toFixed(2) %></td>
+                                    <td>
+                                        <% 
+                                        let statusClass = '';
+                                        switch(order.status.toLowerCase()) {
+                                            case 'delivered':
+                                                statusClass = 'status-delivered';
+                                                break;
+                                            case 'pending':
+                                                statusClass = 'status-pending';
+                                                break;
+                                            case 'processing':
+                                                statusClass = 'status-processing';
+                                                break;
+                                            case 'cancelled':
+                                                statusClass = 'status-cancelled';
+                                                break;
+                                            default:
+                                                statusClass = 'status-pending';
+                                        }
+                                        %>
+                                        <span class="status-badge <%= statusClass %>"><%= order.status %></span>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
 <script>
-    // Sales Chart
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
-        type: 'line',
-        data: {
-            labels: <%- JSON.stringify(dashboardData.sales.labels) %>,
-            datasets: [{
-                label: 'Sales (₹)',
-                data: <%- JSON.stringify(dashboardData.sales.data) %>,
-                borderColor: '#007bff',
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Period' } },
-                y: { title: { display: true, text: 'Amount' } }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sales Chart
+        const salesOptions = {
+            series: [{
+                name: 'Revenue',
+                data: <%- JSON.stringify(dashboardData.sales.data) %>
+            }],
+            chart: {
+                height: 300,
+                type: 'area',
+                toolbar: { show: false },
+                fontFamily: 'Poppins, sans-serif'
+            },
+            colors: ['#4361ee'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.3,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: <%- JSON.stringify(dashboardData.sales.labels) %>,
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            yaxis: {
+                title: { text: 'Amount (₹)', style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } },
+                labels: {
+                    formatter: function(value) { return '₹' + value.toFixed(0); },
+                    style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' }
+                }
+            },
+            tooltip: {
+                x: { format: 'dd/MM/yy HH:mm' },
+                y: { formatter: function(value) { return '₹' + value.toFixed(2); } }
+            },
+            grid: {
+                borderColor: '#e9ecef',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: true } }
+            },
+            markers: {
+                size: 4,
+                colors: ['#4361ee'],
+                strokeColors: '#fff',
+                strokeWidth: 2,
+                hover: { size: 6 }
             }
-        }
-    });
+        };
+        const salesChart = new ApexCharts(document.querySelector("#salesChart"), salesOptions);
+        salesChart.render();
 
-    // Customers Chart
-    const customersCtx = document.getElementById('customersChart').getContext('2d');
-    new Chart(customersCtx, {
-        type: 'line',
-        data: {
-            labels: <%- JSON.stringify(dashboardData.customers.labels) %>,
-            datasets: [{
-                label: 'New Customers',
-                data: <%- JSON.stringify(dashboardData.customers.data) %>,
-                borderColor: '#28a745',
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Period' } },
-                y: { title: { display: true, text: 'Count' } }
+        // Customers Chart
+        const customersOptions = {
+            series: [{
+                name: 'New Customers',
+                data: <%- JSON.stringify(dashboardData.customers.data) %>
+            }],
+            chart: {
+                height: 300,
+                type: 'area',
+                toolbar: { show: false },
+                fontFamily: 'Poppins, sans-serif'
+            },
+            colors: ['#4cc9f0'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.3,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: <%- JSON.stringify(dashboardData.customers.labels) %>,
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            yaxis: {
+                title: { text: 'Count', style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } },
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            tooltip: { x: { format: 'dd/MM/yy HH:mm' } },
+            grid: {
+                borderColor: '#e9ecef',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: true } }
+            },
+            markers: {
+                size: 4,
+                colors: ['#4cc9f0'],
+                strokeColors: '#fff',
+                strokeWidth: 2,
+                hover: { size: 6 }
             }
-        }
-    });
+        };
+        const customersChart = new ApexCharts(document.querySelector("#customersChart"), customersOptions);
+        customersChart.render();
 
-    // Orders Chart
-    const ordersCtx = document.getElementById('ordersChart').getContext('2d');
-    new Chart(ordersCtx, {
-        type: 'line',
-        data: {
-            labels: <%- JSON.stringify(dashboardData.orders.labels) %>,
-            datasets: [{
-                label: 'Orders',
-                data: <%- JSON.stringify(dashboardData.orders.data) %>,
-                borderColor: '#ffc107',
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Period' } },
-                y: { title: { display: true, text: 'Count' } }
+        // Orders Chart
+        const ordersOptions = {
+            series: [{
+                name: 'Orders',
+                data: <%- JSON.stringify(dashboardData.orders.data) %>
+            }],
+            chart: {
+                height: 300,
+                type: 'area',
+                toolbar: { show: false },
+                fontFamily: 'Poppins, sans-serif'
+            },
+            colors: ['#f72585'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.3,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: <%- JSON.stringify(dashboardData.orders.labels) %>,
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            yaxis: {
+                title: { text: 'Count', style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } },
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            tooltip: { x: { format: 'dd/MM/yy HH:mm' } },
+            grid: {
+                borderColor: '#e9ecef',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: true } }
+            },
+            markers: {
+                size: 4,
+                colors: ['#f72585'],
+                strokeColors: '#fff',
+                strokeWidth: 2,
+                hover: { size: 6 }
             }
-        }
-    });
+        };
+        const ordersChart = new ApexCharts(document.querySelector("#ordersChart"), ordersOptions);
+        ordersChart.render();
 
-    // Categories Chart
-    const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
-    new Chart(categoriesCtx, {
-        type: 'bar',
-        data: {
-            labels: <%- JSON.stringify(dashboardData.categories.labels) %>,
-            datasets: [{
-                label: 'Sales (₹)',
-                data: <%- JSON.stringify(dashboardData.categories.data) %>,
-                backgroundColor: '#007bff'
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Category' } },
-                y: { title: { display: true, text: 'Sales' } }
-            }
-        }
+        // Categories Chart
+        const categoriesOptions = {
+            series: [{
+                name: 'Sales',
+                data: <%- JSON.stringify(dashboardData.categories.data) %>
+            }],
+            chart: {
+                height: 300,
+                type: 'bar',
+                toolbar: { show: false },
+                fontFamily: 'Poppins, sans-serif'
+            },
+            colors: ['#4361ee'],
+            plotOptions: {
+                bar: { borderRadius: 8, columnWidth: '60%', distributed: true }
+            },
+            dataLabels: { enabled: false },
+            xaxis: {
+                categories: <%- JSON.stringify(dashboardData.categories.labels) %>,
+                labels: { style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } }
+            },
+            yaxis: {
+                title: { text: 'Sales (₹)', style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' } },
+                labels: {
+                    formatter: function(value) { return '₹' + value.toFixed(0); },
+                    style: { fontSize: '12px', fontFamily: 'Poppins, sans-serif' }
+                }
+            },
+            fill: { opacity: 1 },
+            grid: {
+                borderColor: '#e9ecef',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: true } }
+            },
+            tooltip: {
+                y: { formatter: function(value) { return '₹' + value.toFixed(2); } }
+            },
+            legend: { show: false }
+        };
+        const categoriesChart = new ApexCharts(document.querySelector("#categoriesChart"), categoriesOptions);
+        categoriesChart.render();
     });
 </script>
 <%- include("../partials/admin/footer") %>
