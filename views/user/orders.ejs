@@ -274,9 +274,6 @@
                                 });
                                 %>
                                 <p>Total: ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
-                                    <% if (returnedItemsTotal > 0) { %>
-                                        <br><small style="color: #dc3545;">(₹<%= returnedItemsTotal.toFixed(2) %> returned)</small>
-                                    <% } %>
                                 </p>
                                 <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
                             </div>

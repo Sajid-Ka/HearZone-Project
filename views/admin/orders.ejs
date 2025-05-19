@@ -394,9 +394,6 @@
                             });
                             %>
                             ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
-                            <% if (returnedItemsTotal > 0) { %>
-                                <br><small style="color: #dc3545;">(₹<%= returnedItemsTotal.toFixed(2) %> returned)</small>
-                            <% } %>
                         </div>
                     </div>
                     

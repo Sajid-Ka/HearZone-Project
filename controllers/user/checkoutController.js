@@ -113,6 +113,16 @@ const getCheckoutPage = async (req, res) => {
 
             await cart.calculateTotals();
 
+
+        const outOfStockItems = cart.items.filter(item => item.productId.quantity === 0);
+        if (outOfStockItems.length > 0) {
+            const productNames = outOfStockItems.map(item => item.productId.productName).join(', ');
+            return res.status(400).json({
+                success: false,
+                message: `The following products are out of stock: ${productNames}. Please remove them from your cart to proceed.`
+            });
+        }
+
             // Re-apply coupon from cart if session data is missing
             if (cart.couponCode && !req.session.appliedCoupon) {
                 const coupon = await Coupon.findOne({
