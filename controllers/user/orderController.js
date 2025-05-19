@@ -57,7 +57,7 @@ const generateItemsTable = (doc, order, y) => {
             doc,
             position,
             item.product.productName,
-            `₹${item.price.toFixed(2)}`, // Sale price
+            `₹${item.price.toFixed(2)}`,
             item.quantity,
             `₹${(item.price * item.quantity).toFixed(2)}`
         );
@@ -65,7 +65,6 @@ const generateItemsTable = (doc, order, y) => {
         generateHr(doc, position + 20);
     }
     
-    // New Subtotal: totalPrice + discount + couponDiscount
     const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
     const subtotalPosition = tableTop + (i * 30);
     generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${newSubtotal.toFixed(2)}`);
@@ -88,6 +87,28 @@ const generateItemsTable = (doc, order, y) => {
     doc.font('Helvetica-Bold');
     generateTotalRow(doc, currentPosition, 'Total Amount', `₹${order.totalPrice.toFixed(2)}`);
     doc.font('Helvetica');
+    
+    // Add Payment Details
+    currentPosition += 40;
+    doc.font('Helvetica-Bold')
+       .fontSize(12)
+       .text('Payment Details', 50, currentPosition);
+    generateHr(doc, currentPosition + 20);
+    
+    currentPosition += 30;
+    doc.font('Helvetica')
+       .fontSize(10)
+       .text(`Payment Method: ${order.paymentMethod || 'Not specified'}`, 50, currentPosition);
+    
+    currentPosition += 20;
+    doc.text(`Payment Status: ${order.paymentStatus || 'Not specified'}`, 50, currentPosition);
+    
+    if (order.razorpayOrderId || order.transactionId) {
+        currentPosition += 20;
+        doc.text(`Transaction ID: ${order.razorpayOrderId || order.transactionId || 'N/A'}`, 50, currentPosition);
+    }
+    
+    return currentPosition;
 };
 
 const generateInvoice = async (req, order, res, isAdmin = false) => {
@@ -99,13 +120,24 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
         res.setHeader('Content-Type', 'application/pdf');
         
         doc.pipe(res);
+
+        doc.fillColor('#444444')
+           .fontSize(24)
+           .font('Helvetica-Bold')
+           .text('HearZone', 0, 30, { align: 'center' })
+           .fontSize(10)
+           .font('Helvetica')
+           .text('Sounds Never Settle', 0, 55, { align: 'center' })
+           .moveDown();
         
         doc.fillColor('#444444')
            .fontSize(20)
-           .text('INVOICE', 200, 50, { align: 'right' })
+           .font('Helvetica-Bold')
+           .text('INVOICE', 50, 80, { align: 'left' })
            .fontSize(10)
-           .text(`Invoice #: ${order.orderId}`, 200, 80, { align: 'right' })
-           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 200, 95, { align: 'right' })
+           .font('Helvetica')
+           .text(`Invoice #: ${order.orderId}`, 50, 110, { align: 'left' })
+           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 50, 125, { align: 'left' })
            .moveDown();
         
         const customer = isAdmin ? order.userId : req.session.user;
@@ -113,12 +145,12 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
         
         doc.fillColor('#444444')
            .fontSize(14)
-           .text('Bill To:', 50, 130)
+           .text('Bill To:', 50, 160)
            .fontSize(10)
-           .text(customer.name, 50, 150)
-           .text(shippingAddress.landmark, 50, 165)
-           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 180)
-           .text(`Phone: ${shippingAddress.phone}`, 50, 195)
+           .text(customer.name, 50, 180)
+           .text(shippingAddress.landmark, 50, 195)
+           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 210)
+           .text(`Phone: ${shippingAddress.phone}`, 50, 225)
            .moveDown();
         
         const invoiceTableTop = 250;

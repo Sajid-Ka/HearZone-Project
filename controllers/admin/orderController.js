@@ -51,11 +51,12 @@ const generateTotalRow = (doc, y, label, value) => {
 const generateItemsTable = (doc, order, y) => {
     let i;
     const tableTop = y + 30;
+
     
     for (i = 0; i < order.orderedItems.length; i++) {
         const item = order.orderedItems[i];
         const position = tableTop + (i * 30);
-        
+
         generateTableRow(
             doc,
             position,
@@ -64,25 +65,54 @@ const generateItemsTable = (doc, order, y) => {
             item.quantity,
             `₹${(item.price * item.quantity).toFixed(2)}`
         );
-        
+
         generateHr(doc, position + 20);
     }
+
+    
+    let returnedItemsTotal = 0;
+    order.orderedItems.forEach(item => {
+        if (item.returnStatus === 'Returned') {
+            returnedItemsTotal += item.price * item.quantity;
+        }
+    });
+
+    
+    const subtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
+
     
     const subtotalPosition = tableTop + (i * 30);
-    generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${order.totalPrice.toFixed(2)}`);
+    generateTotalRow(doc, subtotalPosition, 'Subtotal', `₹${subtotal.toFixed(2)}`);
+
     
-    const discountPosition = subtotalPosition + 20;
-    generateTotalRow(doc, discountPosition, 'Discount', `-₹${order.discount.toFixed(2)}`);
+    if (order.discount > 0) {
+        const discountPosition = subtotalPosition + 20;
+        generateTotalRow(doc, discountPosition, 'Product Discount', `-₹${order.discount.toFixed(2)}`);
+    }
+
     
-    const taxPosition = discountPosition + 20;
+    const couponDiscountPosition = order.discount > 0 ? subtotalPosition + 40 : subtotalPosition + 20;
+    generateTotalRow(doc, couponDiscountPosition, 'Coupon Discount', `-₹${(order.couponDiscount || 0).toFixed(2)}`);
+
+    
+    const taxPosition = couponDiscountPosition + 20;
     generateTotalRow(doc, taxPosition, 'Tax', `₹${order.taxes.toFixed(2)}`);
+
     
     const shippingPosition = taxPosition + 20;
     generateTotalRow(doc, shippingPosition, 'Shipping', `₹${order.shippingCost.toFixed(2)}`);
+
     
-    const totalPosition = shippingPosition + 20;
+    let returnedItemsPosition;
+    if (returnedItemsTotal > 0) {
+        returnedItemsPosition = shippingPosition + 20;
+        generateTotalRow(doc, returnedItemsPosition, 'Returned Items', `-₹${returnedItemsTotal.toFixed(2)}`);
+    }
+
+    
+    const totalPosition = returnedItemsTotal > 0 ? returnedItemsPosition + 20 : shippingPosition + 20;
     doc.font('Helvetica-Bold');
-    generateTotalRow(doc, totalPosition, 'Total Amount', `₹${order.finalAmount.toFixed(2)}`);
+    generateTotalRow(doc, totalPosition, 'Total', `₹${(order.totalPrice - returnedItemsTotal).toFixed(2)}`);
     doc.font('Helvetica');
 };
 
@@ -90,38 +120,49 @@ const generateInvoice = async (req, order, res, isAdmin = false) => {
     try {
         const doc = new PDFDocument({ margin: 50 });
         const fileName = `invoice_${order.orderId}.pdf`;
-
+        
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Type', 'application/pdf');
-
+        
         doc.pipe(res);
 
         doc.fillColor('#444444')
-           .fontSize(20)
-           .text('INVOICE', 50, 50, { align: 'right' })
+           .fontSize(24)
+           .font('Helvetica-Bold')
+           .text('HearZone', 0, 30, { align: 'center' })
            .fontSize(10)
-           .text(`Invoice #: ${order.orderId}`, 50, 80, { align: 'right' })
-           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 50, 95, { align: 'right' })
+           .font('Helvetica')
+           .text('Sounds Never Settle', 0, 55, { align: 'center' })
            .moveDown();
-
+        
+        doc.fillColor('#444444')
+           .fontSize(20)
+           .font('Helvetica-Bold')
+           .text('INVOICE', 50, 80, { align: 'left' })
+           .fontSize(10)
+           .font('Helvetica')
+           .text(`Invoice #: ${order.orderId}`, 50, 110, { align: 'left' })
+           .text(`Invoice Date: ${order.invoiceDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 50, 125, { align: 'left' })
+           .moveDown();
+        
         const customer = isAdmin ? order.userId : req.session.user;
         const shippingAddress = order.address;
-
+        
         doc.fillColor('#444444')
            .fontSize(14)
-           .text('Bill To:', 50, 130)
+           .text('Bill To:', 50, 160)
            .fontSize(10)
-           .text(customer.name, 50, 150)
-           .text(shippingAddress.landmark, 50, 165)
-           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 180)
-           .text(`Phone: ${shippingAddress.phone}`, 50, 195)
+           .text(customer.name, 50, 180)
+           .text(shippingAddress.landmark, 50, 195)
+           .text(`${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pinCode}`, 50, 210)
+           .text(`Phone: ${shippingAddress.phone}`, 50, 225)
            .moveDown();
-
+        
         const invoiceTableTop = 250;
         generateTableHeader(doc, invoiceTableTop);
         generateItemsTable(doc, order, invoiceTableTop);
         generateFooter(doc);
-
+        
         doc.end();
     } catch (error) {
         console.error('Error generating invoice:', error);
@@ -1038,7 +1079,7 @@ const getOrderDetails = async (req, res) => {
     }
 };
 
-// Get request counts
+
 const getRequestCounts = async (req, res) => {
     try {
         // Count orders with items that have cancel or return requests
@@ -1059,7 +1100,7 @@ const getRequestCounts = async (req, res) => {
     }
 };
 
-// Get cancel requests
+
 const getCancelRequests = async (req, res) => {
     try {
         const requests = await Order.find({
@@ -1075,7 +1116,7 @@ const getCancelRequests = async (req, res) => {
     }
 };
 
-// Get return requests
+
 const getReturnRequests = async (req, res) => {
     try {
         const requests = await Order.find({
@@ -1091,7 +1132,7 @@ const getReturnRequests = async (req, res) => {
     }
 };
 
-// Handle cancel request
+
 const handleCancelRequest = async (req, res) => {
     try {
         const { orderId } = req.params;

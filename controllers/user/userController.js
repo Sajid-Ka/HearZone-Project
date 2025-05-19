@@ -36,11 +36,22 @@ const sendVerificationEmail = async (email, otp) => {
         });
 
         const mailOptions = {
-            from: process.env.NODEMAILER_EMAIL,
+            from: `HearZone <noreply@yourdomain.com>`,
             to: email,
-            subject: 'Verify Your Account',
-            text: `Your OTP is ${otp}`,
-            html: `<b>Your OTP: ${otp}</b>`
+            subject: 'Your OTP for Account Verification',
+            replyTo: 'support@yourdomain.com',
+            text: `Hello,\n\nYour OTP is ${otp}.\n\nThis code is valid for 1 minutes.\n\nBest regards,\nHearZone`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>HearZone</h2>
+                    <p>Hello,</p>
+                    <p>Your OTP is <b>${otp}</b>. This code is valid for 1 minutes.</p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                    
+                    <p>Best regards,<br>HearZone</p>
+                    <p><a href="https://yourdomain.com">Visit our website</a></p>
+                </div>
+            `
         };
 
         const info = await transporter.sendMail(mailOptions);
