@@ -381,7 +381,19 @@
 
             <p>Shipping: <span>₹<%= (order.shippingCost || 0).toFixed(2) %></span></p>
 
-            <p><strong>Total:</strong> <strong>₹<%= (order.totalPrice || 0).toFixed(2) %></strong></p>
+            <% 
+            // Calculate returned items total
+            let returnedItemsTotal = 0;
+            order.orderedItems.forEach(item => {
+                if (item.returnStatus === 'Returned') {
+                    returnedItemsTotal += (item.price * item.quantity);
+                }
+            });
+            if (returnedItemsTotal > 0) { %>
+                <p>Returned Items: <span style="color: #dc3545;">-₹<%= returnedItemsTotal.toFixed(2) %></span></p>
+            <% } %>
+
+            <p><strong>Total:</strong> <strong>₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
             <% if (order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending') { %>

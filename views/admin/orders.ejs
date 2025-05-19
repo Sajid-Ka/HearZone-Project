@@ -383,7 +383,21 @@
                     
                     <div class="detail-group">
                         <div class="detail-label">Amount</div>
-                        <div class="detail-value">₹<%= order.totalPrice.toFixed(2) %></div>
+                        <div class="detail-value">
+                            <% 
+                            // Calculate returned items total
+                            let returnedItemsTotal = 0;
+                            order.orderedItems.forEach(item => {
+                                if (item.returnStatus === 'Returned') {
+                                    returnedItemsTotal += (item.price * item.quantity);
+                                }
+                            });
+                            %>
+                            ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
+                            <% if (returnedItemsTotal > 0) { %>
+                                <br><small style="color: #dc3545;">(₹<%= returnedItemsTotal.toFixed(2) %> returned)</small>
+                            <% } %>
+                        </div>
                     </div>
                     
                     <div class="detail-group">

@@ -114,8 +114,26 @@ async function getDashboardData(timeFilter) {
         recentOrders
     ] = await Promise.all([
         Order.aggregate([
-            { $match: { status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded', 'pending'] } } },
-            { $group: { _id: null, total: { $sum: '$finalAmount' } } }
+            { 
+                $match: { 
+                    status: { $nin: ['cancelled', 'failed', 'pending'] }
+                } 
+            },
+            { $unwind: '$orderedItems' },
+            {
+                $group: {
+                    _id: null,
+                    total: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
+                                0,
+                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+                            ]
+                        }
+                    }
+                }
+            }
         ]),
         User.countDocuments({ isAdmin: false }),
         Order.countDocuments({ status: { $nin: ['cancelled', 'failed'] } }),
@@ -123,10 +141,24 @@ async function getDashboardData(timeFilter) {
             {
                 $match: {
                     createdAt: { $gte: startDate, $lte: currentDate },
-                    status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] }
+                    status: { $nin: ['cancelled', 'failed', 'pending'] }
                 }
             },
-            { $group: { _id: null, total: { $sum: '$finalAmount' } } }
+            { $unwind: '$orderedItems' },
+            {
+                $group: {
+                    _id: null,
+                    total: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
+                                0,
+                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+                            ]
+                        }
+                    }
+                }
+            }
         ]),
         Order.aggregate([
             {
@@ -138,10 +170,24 @@ async function getDashboardData(timeFilter) {
                         ).toDate(),
                         $lt: startDate
                     },
-                    status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] }
+                    status: { $nin: ['cancelled', 'failed', 'pending'] }
                 }
             },
-            { $group: { _id: null, total: { $sum: '$finalAmount' } } }
+            { $unwind: '$orderedItems' },
+            {
+                $group: {
+                    _id: null,
+                    total: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
+                                0,
+                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+                            ]
+                        }
+                    }
+                }
+            }
         ]),
         User.countDocuments({
             createdAt: { $gte: startDate, $lte: currentDate },
@@ -175,9 +221,10 @@ async function getDashboardData(timeFilter) {
             {
                 $match: {
                     createdAt: { $gte: startDate, $lte: currentDate },
-                    status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] }
+                    status: { $nin: ['cancelled', 'failed', 'pending'] }
                 }
             },
+            { $unwind: '$orderedItems' },
             {
                 $group: {
                     _id: timeFilter === 'weekly'
@@ -185,7 +232,15 @@ async function getDashboardData(timeFilter) {
                         : timeFilter === 'yearly'
                             ? { $dateToString: { format: '%Y', date: '$createdAt' } }
                             : { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-                    total: { $sum: '$finalAmount' }
+                    total: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
+                                0,
+                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+                            ]
+                        }
+                    }
                 }
             },
             { $sort: { '_id': 1 } }
@@ -231,14 +286,14 @@ async function getDashboardData(timeFilter) {
         Order.aggregate([
             {
                 $match: {
-                    status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] }
+                    status: { $nin: ['cancelled', 'failed', 'pending'] }
                 }
             },
-            { $unwind: '$orderedItems' }, 
+            { $unwind: '$orderedItems' },
             {
                 $lookup: {
                     from: 'products',
-                    localField: 'orderedItems.product', 
+                    localField: 'orderedItems.product',
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -257,14 +312,26 @@ async function getDashboardData(timeFilter) {
                 $group: {
                     _id: '$categoryDetails._id',
                     categoryName: { $first: '$categoryDetails.name' },
-                    totalSales: { $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] } }
+                    totalSales: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
+                                0,
+                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+                            ]
+                        }
+                    }
                 }
             },
             { $sort: { totalSales: -1 } },
             { $limit: 5 }
         ]),
         Order.aggregate([
-            { $match: { status: 'Delivered'} },
+            { 
+                $match: { 
+                    status: 'Delivered'
+                }
+            },
             { $sort: { createdAt: -1 } },
             { $limit: 5 },
             {
@@ -279,7 +346,7 @@ async function getDashboardData(timeFilter) {
             {
                 $lookup: {
                     from: 'products',
-                    localField: 'orderedItems.product', 
+                    localField: 'orderedItems.product',
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -290,7 +357,24 @@ async function getDashboardData(timeFilter) {
                     customer: '$userDetails.name',
                     product: { $arrayElemAt: ['$productDetails.productName', 0] },
                     date: '$createdAt',
-                    totalPrice: 1,
+                    totalPrice: {
+                        $reduce: {
+                            input: '$orderedItems',
+                            initialValue: 0,
+                            in: {
+                                $add: [
+                                    '$$value',
+                                    {
+                                        $cond: [
+                                            { $eq: ['$$this.returnStatus', 'Returned'] },
+                                            0,
+                                            { $multiply: ['$$this.price', '$$this.quantity'] }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
                     status: 1
                 }
             }

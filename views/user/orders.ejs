@@ -1,4 +1,3 @@
-
 <%- include('../partials/user/header') %>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -265,7 +264,20 @@
                                 <h5>Order #<%= order.orderId %></h5>
                                 <p>Date: <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A' %></p>
                                 <p>Status: <span class="status-text status-<%= order.status.toLowerCase().replace(/\s+/g, '-') %>"><%= order.status %></span></p>
-                                <p>Total: ₹<%= order.totalPrice.toFixed(2) %></p>
+                                <% 
+                                // Calculate returned items total
+                                let returnedItemsTotal = 0;
+                                order.orderedItems.forEach(item => {
+                                    if (item.returnStatus === 'Returned') {
+                                        returnedItemsTotal += (item.price * item.quantity);
+                                    }
+                                });
+                                %>
+                                <p>Total: ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
+                                    <% if (returnedItemsTotal > 0) { %>
+                                        <br><small style="color: #dc3545;">(₹<%= returnedItemsTotal.toFixed(2) %> returned)</small>
+                                    <% } %>
+                                </p>
                                 <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
                             </div>
                         <% }) %>
