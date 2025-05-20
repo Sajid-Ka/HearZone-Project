@@ -88,7 +88,7 @@ const generateItemsTable = (doc, order, y) => {
     generateTotalRow(doc, currentPosition, 'Total Amount', `₹${order.totalPrice.toFixed(2)}`);
     doc.font('Helvetica');
     
-    // Add Payment Details
+
     currentPosition += 40;
     doc.font('Helvetica-Bold')
        .fontSize(12)
@@ -199,7 +199,7 @@ const getOrderDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Calculate the new Subtotal
+        
         const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
 
         let totalPrice = order.totalPrice;
@@ -248,7 +248,7 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // Check if any items can be cancelled
+        
         const cancellableItems = order.orderedItems.filter(item => 
             item.itemStatus === 'Pending' && item.cancellationStatus === 'None'
         );
@@ -260,7 +260,7 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // Set all pending items to Cancel Request
+        
         cancellableItems.forEach(item => {
             item.cancellationStatus = 'Cancel Request';
             item.cancellationReason = reason || 'Not specified';
@@ -341,7 +341,7 @@ const downloadInvoice = async (req, res) => {
         if (!isAdmin) {
             query.userId = req.session.user.id;
         } else {
-            query.isVisibleToAdmin = true; // Only show admin-visible orders
+            query.isVisibleToAdmin = true; 
         }
         
         const order = await Order.findOne(query)
@@ -368,17 +368,17 @@ const searchOrders = async (req, res) => {
             return res.redirect('/orders');
         }
 
-        // Clean up the search query
+        
         let searchQuery = query.trim();
         
-        // Remove common prefixes if present
+        
         if (searchQuery.startsWith('Order #')) {
             searchQuery = searchQuery.replace('Order #', '').trim();
         } else if (searchQuery.startsWith('Order Details - #')) {
             searchQuery = searchQuery.replace('Order Details - #', '').trim();
         }
 
-        // Create regex pattern for partial order ID match
+        
         const orderIdPattern = new RegExp(searchQuery.replace(/[-\s]/g, '.*'), 'i');
         
         const orders = await Order.find({
@@ -468,7 +468,7 @@ const cancelOrderItem = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Item not found' });
         }
 
-        // Check if item can be cancelled
+        
         if (item.itemStatus !== 'Pending') {
             return res.status(400).json({ 
                 success: false, 
@@ -476,7 +476,7 @@ const cancelOrderItem = async (req, res) => {
             });
         }
 
-        // Check if item is already cancelled or has pending request
+        
         if (item.cancellationStatus !== 'None') {
             return res.status(400).json({ 
                 success: false, 
@@ -484,7 +484,7 @@ const cancelOrderItem = async (req, res) => {
             });
         }
 
-        // Set item cancellation status
+        
         item.cancellationStatus = 'Cancel Request';
         item.cancellationReason = reason || 'Not specified';
 
@@ -555,7 +555,7 @@ const returnOrderItem = async (req, res) => {
         item.returnStatus = 'Return Request';
         item.returnReason = reason;
 
-        // Update order status if not already in Return Request status
+        
         if (order.status !== 'Return Request') {
             order.status = 'Return Request';
         }
@@ -651,7 +651,7 @@ const retryPayment = async (req, res) => {
             });
         }
 
-        // Check stock availability
+        
         for (const item of order.orderedItems) {
             if (item.quantity > item.product.quantity) {
                 return res.status(400).json({ 
@@ -666,7 +666,7 @@ const retryPayment = async (req, res) => {
             order.razorpayOrderId = razorpayOrder.id;
             await order.save();
 
-            // Store order in session for verification
+            
             req.session.pendingOrder = {
                 ...order.toObject(),
                 razorpayOrderId: razorpayOrder.id
@@ -680,12 +680,12 @@ const retryPayment = async (req, res) => {
                 message: 'Razorpay order created for retry payment'
             });
         } else {
-            // For non-Razorpay methods, update status directly (assuming retry logic for COD/Wallet)
+            
             order.paymentStatus = 'Pending';
             order.isVisibleToAdmin = true;
             await order.save();
 
-            // Update product stock
+            
             for (const item of order.orderedItems) {
                 await Product.findByIdAndUpdate(item.product._id, {
                     $inc: { quantity: -item.quantity }

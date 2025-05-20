@@ -1,11 +1,11 @@
 const cron = require('node-cron');
-const User = require('../models/userSchema'); // Adjust the path if needed
+const User = require('../models/userSchema'); 
 
 const cleanupExpiredTempUsers = async () => {
     try {
         await User.deleteMany({
-            otp: { $ne: null }, // Users with OTP set
-            otpExpiresAt: { $lt: new Date() }, // Expired OTPs
+            otp: { $ne: null }, 
+            otpExpiresAt: { $lt: new Date() }, 
         });
         console.log('Cleaned up expired temporary users');
     } catch (error) {
@@ -13,7 +13,7 @@ const cleanupExpiredTempUsers = async () => {
     }
 };
 
-// Schedule the cleanup task to run every hour
+
 cron.schedule('0 * * * *', cleanupExpiredTempUsers);
 
 console.log('Scheduled job: Cleanup expired temporary users');

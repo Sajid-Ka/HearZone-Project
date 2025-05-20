@@ -114,7 +114,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Add to cart from wishlist
+        
         document.querySelectorAll('.add-to-cart').forEach(button => {
             button.addEventListener('click', async function() {
                 const productId = this.dataset.id;
@@ -154,7 +154,7 @@
             });
         });
 
-        // Remove from wishlist
+        
         document.querySelectorAll('.remove-btn').forEach(button => {
             button.addEventListener('click', async function() {
                 const productId = this.dataset.id;
@@ -201,7 +201,6 @@
             if (items === 0) {
                 setTimeout(() => location.reload(), 1500);
             }
-            // Update navbar wishlist count if implemented
         }
     });
 </script>

@@ -47,7 +47,7 @@ const loadShoppingPage = async (req, res) => {
             query.brand = new mongoose.Types.ObjectId(brandId);
         }
 
-        // Get all products first to calculate offer prices
+        
         let productQuery = Product.find(query)
             .populate('brand')
             .populate('offer')
@@ -58,7 +58,7 @@ const loadShoppingPage = async (req, res) => {
 
         let products = await productQuery;
 
-        // Calculate final prices for all products
+       
         const productsWithFinalPrices = await Promise.all(products.map(async (product) => {
             let finalPrice = product.regularPrice;
             let hasDiscount = false;
@@ -66,7 +66,7 @@ const loadShoppingPage = async (req, res) => {
             let offerType = null;
             let totalOffer = 0;
 
-            // Check product offer
+            
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
                 const productDiscount = product.offer.discountType === 'percentage' 
                     ? product.offer.discountValue 
@@ -75,13 +75,13 @@ const loadShoppingPage = async (req, res) => {
                 offerType = 'product';
             }
 
-            // Check category offer
+            
             if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
                 totalOffer = Math.max(totalOffer, product.category.offer.percentage);
                 offerType = 'category';
             }
 
-            // Apply discount if any
+           
             if (totalOffer > 0) {
                 finalPrice = product.regularPrice * (1 - totalOffer / 100);
                 hasDiscount = true;
@@ -98,7 +98,7 @@ const loadShoppingPage = async (req, res) => {
             };
         }));
 
-        // Apply price range filter if specified
+        
         let filteredProducts = productsWithFinalPrices;
         if (!isNaN(gt) || !isNaN(lt)) {
             filteredProducts = productsWithFinalPrices.filter(product => {
@@ -110,7 +110,7 @@ const loadShoppingPage = async (req, res) => {
             });
         }
 
-        // Apply sorting
+        
         let sortedProducts = [...filteredProducts];
         switch (sortOption) {
             case 'newArrival':
@@ -132,12 +132,12 @@ const loadShoppingPage = async (req, res) => {
                 sortedProducts.sort((a, b) => b.createdAt - a.createdAt);
         }
 
-        // Pagination
+        
         const totalProducts = sortedProducts.length;
         const totalPages = Math.ceil(totalProducts / limit);
         const paginatedProducts = sortedProducts.slice(skip, skip + limit);
 
-        // Calculate ratings for paginated products
+        
         const productsWithRatings = await Promise.all(paginatedProducts.map(async (product) => {
             const reviews = await Review.find({ productId: product._id });
             const avgRating = reviews.length > 0 

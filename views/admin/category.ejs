@@ -282,7 +282,7 @@
             <div class="loading-spinner"></div>
         </div>
         <div class="container">
-            <!-- Category Form -->
+            
             <div class="category-form">
                 <h2 class="content-title">Add Category</h2>
                 <form onsubmit="return handleFormSubmit(event)">
@@ -304,7 +304,7 @@
                 </form>
             </div>
 
-            <!-- Category Table -->
+            
             <div class="table-container">
                 <h2 class="content-title">Manage Categories</h2>
                 <div class="table-responsive">
@@ -397,7 +397,7 @@
             </div>
         </div>
 
-        <!-- Edit Modal -->
+        
         <div id="editModal" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="closeEditModal()">×</span>
@@ -419,7 +419,7 @@
             </div>
         </div>
 
-        <!-- Add Offer Modal -->
+        
         <div id="offerModal" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="closeOfferModal()">×</span>
@@ -452,13 +452,13 @@
     <script>
         let isLoading = false;
 
-        // Get current page from URL
+        
         function getCurrentPage() {
             const urlParams = new URLSearchParams(window.location.search);
             return parseInt(urlParams.get('page')) || 1;
         }
 
-        // Toggle loading state
+        
         function toggleLoading(show) {
             const overlay = document.getElementById('loadingOverlay');
             const paginationLinks = document.querySelectorAll('.pagination a');
@@ -469,7 +469,7 @@
             });
         }
 
-        // Function to load categories for a specific page
+        
         async function loadPage(page) {
             if (isLoading) return;
             toggleLoading(true);
@@ -503,7 +503,7 @@
             }
         }
 
-        // Function to update the category table dynamically
+        
         function updateCategoryTable(categories) {
             const tbody = document.getElementById('categoryTableBody');
             if (!tbody) return;
@@ -561,7 +561,7 @@
             });
         }
 
-        // Function to update pagination dynamically
+       
         function updatePagination(currentPage, totalPages) {
             const pagination = document.getElementById('pagination');
             if (!pagination) return;
@@ -595,7 +595,7 @@
             pagination.innerHTML = newPagination;
         }
 
-        // Form Submission for Adding Category
+       
         function handleFormSubmit(event) {
             event.preventDefault();
             if (!validateForm()) return;
@@ -638,7 +638,7 @@
             });
         }
 
-        // List/Unlist Category
+        
         function handleListUnlist(categoryId, isListed) {
             const action = isListed ? 'unlistCategory' : 'listCategory';
             const actionText = isListed ? 'Unlist' : 'List';
@@ -675,21 +675,21 @@
             });
         }
 
-        // Update Category Row
+    
         function updateCategoryRow(categoryId, category) {
             const row = document.querySelector(`tr[data-category-id="${categoryId}"]`);
             if (row) {
-                // Update basic info
+                
                 row.cells[0].textContent = category.name;
                 row.cells[1].textContent = category.description;
 
-                // Update status badge
+                
                 const statusCell = row.cells[2];
                 const statusBadge = statusCell.querySelector('.badge');
                 statusBadge.className = `badge ${category.isListed ? 'badge-success' : 'badge-danger'}`;
                 statusBadge.textContent = category.isListed ? 'Listed' : 'Unlisted';
 
-                // Update offer info
+                
                 const offerCell = row.cells[3];
                 if (category.offer && category.offer.isActive) {
                     offerCell.innerHTML = `<span class="badge badge-info">
@@ -699,7 +699,7 @@
                     offerCell.textContent = 'No active offer';
                 }
 
-                // Update action buttons
+                
                 const actionCell = row.cells[4];
                 actionCell.innerHTML = `
                     <button class="btn ${category.isListed ? 'btn-danger' : 'btn-success'}" 
@@ -728,19 +728,19 @@
             }
         }
 
-        // Edit Category Submission
+        
         function handleEditSubmit(event) {
             event.preventDefault();
             const categoryId = document.getElementById('editCategoryId').value;
             const categoryName = document.getElementById('editCategoryName').value;
             const description = document.getElementById('editDescription').value;
 
-            // Get original values from the row
+            
             const row = document.querySelector(`tr[data-category-id="${categoryId}"]`);
             const originalName = row.cells[0].textContent;
             const originalDescription = row.cells[1].textContent;
 
-            // Check if there are any changes
+            
             if (categoryName === originalName && description === originalDescription) {
                 Swal.fire('Info', 'No changes were made to the category', 'info');
                 closeEditModal();
@@ -787,7 +787,7 @@
             });
         }
 
-        // Open Edit Modal
+        
         function openEditModal(categoryId, name, description) {
             document.getElementById('editCategoryId').value = categoryId;
             document.getElementById('editCategoryName').value = name;
@@ -795,12 +795,12 @@
             document.getElementById('editModal').style.display = 'block';
         }
 
-        // Close Edit Modal
+        
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
         }
 
-        // Delete Category
+        
         function handleDelete(categoryId) {
             Swal.fire({
                 title: 'Are you sure?',
@@ -838,7 +838,7 @@
             });
         }
 
-        // Form Validation
+        
         function validateForm() {
             clearErrorMessages();
             const name = document.getElementsByName("name")[0];
@@ -902,20 +902,20 @@
             }
         });
 
-        // Open Offer Modal
+        
         function openOfferModal(categoryId, categoryName) {
             document.getElementById('offerCategoryId').value = categoryId;
             document.getElementById('categoryName').value = categoryName;
             document.getElementById('offerModal').style.display = 'block';
         }
 
-        // Close Offer Modal
+        
         function closeOfferModal() {
             document.getElementById('offerModal').style.display = 'none';
             document.getElementById('offerForm').reset();
         }
 
-        // Handle Offer Submission
+        
         function handleOfferSubmit(event) {
             event.preventDefault();
             
@@ -923,13 +923,13 @@
             const percentage = document.getElementById('offerPercentage').value;
             const endDate = document.getElementById('offerEndDate').value;
 
-            // Validate percentage
+            
             if (percentage < 0 || percentage > 100) {
                 Swal.fire('Error!', 'Percentage must be between 0 and 100', 'error');
                 return false;
             }
 
-            // Validate end date
+            
             const endDateObj = new Date(endDate);
             if (endDateObj <= new Date()) {
                 Swal.fire('Error!', 'End date must be in the future', 'error');
@@ -967,7 +967,7 @@
             return false;
         }
 
-        // Handle Cancel Offer
+        
         function handleCancelOffer(categoryId) {
             Swal.fire({
                 title: 'Cancel Offer',

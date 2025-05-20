@@ -194,7 +194,7 @@ const postNewPassword = async (req, res) => {
             { $set: { password: passwordHash } }
         );
 
-        // Clear session data
+        
         req.session.email = null;
         req.session.userOtp = null;
 

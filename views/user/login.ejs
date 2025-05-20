@@ -179,13 +179,13 @@
         const passwordError = document.getElementById('passwordError');
         let hasError = false;
 
-        // Reset previous error states
+        
         email.classList.remove('input-error');
         password.classList.remove('input-error');
         emailError.style.display = 'none';
         passwordError.style.display = 'none';
 
-        // Validate email
+        
         if (!email.value.trim()) {
             email.classList.add('input-error');
             emailError.textContent = 'Please enter your email';
@@ -198,7 +198,7 @@
             hasError = true;
         }
 
-        // Validate password
+        
         if (!password.value.trim()) {
             password.classList.add('input-error');
             passwordError.textContent = 'Please enter your password';
@@ -211,16 +211,16 @@
         }
     });
 
-    // Toggle password visibility
+    
     const togglePassword = document.getElementById('togglePassword');
     const password = document.getElementById('password');
 
     togglePassword.addEventListener('click', function() {
-        // Toggle the type attribute
+        
         const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
         password.setAttribute('type', type);
         
-        // Toggle the eye icon
+        
         this.classList.toggle('fa-eye');
         this.classList.toggle('fa-eye-slash');
     });

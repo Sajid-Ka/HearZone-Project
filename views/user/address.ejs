@@ -245,7 +245,7 @@
                         </div>
                     </div>
             
-                    <!-- Edit Modal -->
+                    
                     <div class="modal fade" id="editModal<%= address._id %>" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
@@ -324,7 +324,7 @@
 <br>
 
 <script>
-    // In your address form script (client-side)
+    
     document.getElementById('addAddressForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -332,17 +332,17 @@
         const formData = new FormData(form);
         const jsonData = Object.fromEntries(formData);
 
-        // Clear previous error messages
+        
         form.querySelectorAll('.error-message').forEach(error => {
             error.textContent = '';
             error.previousElementSibling.classList.remove('is-invalid');
         });
 
-        // Client-side validation
+        
         let hasErrors = false;
         const errors = {};
 
-        // Validate required fields
+        
         const requiredFields = ['name', 'addressType', 'city', 'landmark', 'state', 'pinCode', 'phone'];
         requiredFields.forEach(field => {
             const value = jsonData[field]?.trim();
@@ -352,9 +352,9 @@
             }
         });
 
-        // Relax the validation patterns
-        const namePattern = /^[A-Za-z\s\-']+$/; // Allows hyphens and apostrophes in names
-        const addressPattern = /^[A-Za-z0-9\s\-.,'()]+$/; // More permissive for addresses
+        
+        const namePattern = /^[A-Za-z\s\-']+$/; 
+        const addressPattern = /^[A-Za-z0-9\s\-.,'()]+$/; 
         
         if (jsonData.name && !namePattern.test(jsonData.name)) {
             errors.name = 'Please enter a valid name';
@@ -376,7 +376,7 @@
             hasErrors = true;
         }
 
-        // Phone number validation
+        
         if (jsonData.phone && !/^\d{10}$/.test(jsonData.phone)) {
             errors.phone = 'Phone must be exactly 10 digits';
             hasErrors = true;
@@ -392,7 +392,7 @@
             hasErrors = true;
         }
 
-        // If there are client-side errors, display them and stop submission
+        
         if (hasErrors) {
             Object.entries(errors).forEach(([field, message]) => {
                 const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
@@ -405,7 +405,7 @@
             return;
         }
 
-        // Proceed with form submission if no client-side errors
+        
         try {
             const response = await fetch('/address/add', {
                 method: 'POST',
@@ -427,7 +427,7 @@
                 });
                 window.location.href = '/address';
             }else if (result.errors) {
-                // Server-side validation errors
+                
                 Object.entries(result.errors).forEach(([field, message]) => {
                     const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
                     const inputElement = form.querySelector(`[name="${field}"]`);
@@ -441,7 +441,7 @@
             }
         } catch (error) {
             console.error('Error:', error);
-            // Show generic error message
+            
             const generalError = form.querySelector('.error-message[data-field="general"]');
             if (generalError) {
                 generalError.textContent = 'An error occurred while saving the address';
@@ -450,13 +450,13 @@
         }
     });
 
-    // Edit Address Forms
+    
     document.querySelectorAll('.edit-address-form').forEach(form => {
         const modalId = form.closest('.modal').id;
         const modal = document.getElementById(modalId);
         let originalValues = {};
 
-        // Store original values when modal is shown
+        
         modal.addEventListener('show.bs.modal', function() {
             form.querySelectorAll('input, select').forEach(input => {
                 originalValues[input.name] = input.type === 'checkbox' ? input.checked : input.value;
@@ -469,11 +469,11 @@
             const formData = new FormData(this);
             const jsonData = Object.fromEntries(formData);
 
-            // Clear previous errors
+            
             form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
             form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
-            // Check for changes
+            
             let hasChanges = false;
             Object.keys(jsonData).forEach(key => {
                 const currentValue = key === 'isDefault' ? (jsonData[key] === 'on') : jsonData[key];
@@ -527,7 +527,7 @@
                         });
                     }
                 } else if (result.errors) {
-                    // Show field-specific errors under inputs
+                    
                     Object.entries(result.errors).forEach(([field, message]) => {
                         const errorElement = form.querySelector(`.error-message[data-field="${field}"]`);
                         const inputElement = form.querySelector(`[name="${field}"]`);
@@ -536,7 +536,7 @@
                             inputElement.classList.add('is-invalid');
                         }
                     });
-                    // Show SweetAlert with all errors combined
+                    
                     const errorMessages = Object.values(result.errors).join('\n');
                     await Swal.fire({
                         icon: 'error',
@@ -561,7 +561,7 @@
         });
     });
 
-    // Delete Address Buttons
+    
     document.querySelectorAll('.delete-address-btn').forEach(button => {
         button.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -629,7 +629,7 @@
                 confirmButtonColor: '#222',
                 confirmButtonText: 'OK'
             }).then(() => {
-                // Remove the query param from URL without reloading
+                
                 const url = new URL(window.location);
                 url.searchParams.delete('added');
                 window.history.replaceState({}, document.title, url.pathname);

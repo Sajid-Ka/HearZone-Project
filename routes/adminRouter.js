@@ -27,6 +27,7 @@ router.use(isAdminAuth);
 
 router.get('/dashboard-data', adminController.getDashboardDataAPI);
 
+
 // Offer routes
 router.get('/offers', offerController.getOfferPage);
 router.post('/offers/create', offerController.createOffer);
@@ -51,7 +52,8 @@ router.post('/orders/:orderId/return', orderController.processReturnRequest);
 router.get('/orders/invoice/:orderId', orderController.downloadInvoice); 
 router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline);
 router.post('/orders/cancel-item/:orderId', orderController.processCancelItemRequest);
-router.post('/orders/return-item/:orderId', orderController.processReturnItemRequest); 
+router.post('/orders/return-item/:orderId', orderController.processReturnItemRequest);
+
 
 // Order request routes
 router.get('/pending-requests', orderController.getPendingRequests);

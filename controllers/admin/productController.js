@@ -37,7 +37,7 @@ const addProducts = async (req, res) => {
 
         const { productName, category, brand, highlights, specifications, ...products } = req.body;
 
-        // Check for duplicate product
+       
         const productExists = await Product.findOne({ 
             productName: { $regex: new RegExp(`^${productName}$`, 'i') }
         });
@@ -46,7 +46,7 @@ const addProducts = async (req, res) => {
             return res.status(400).json({ success: false, message: "Product already exists" });
         }
 
-        // Validate category and brand
+        
         const [categoryDoc, brandDoc] = await Promise.all([
             Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } }),
             Brand.findOne({ brandName: { $regex: new RegExp(`^${brand}$`, 'i') } })
@@ -60,7 +60,7 @@ const addProducts = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid brand" });
         }
 
-        // Process images
+        
         const images = await Promise.all(req.files.map(async file => {
             const filename = file.filename;
             const tempPath = file.path;
@@ -76,13 +76,13 @@ const addProducts = async (req, res) => {
             return filename;
         }));
 
-        // Process highlights and specifications
+        
         const processedHighlights = highlights ? 
             highlights.split('\n').map(h => h.trim()).filter(h => h) : [];
         const processedSpecifications = specifications ? 
             specifications.split('\n').map(s => s.trim()).filter(s => s) : [];
 
-        // Create new product
+       
         const newProduct = new Product({
             productName,
             ...products,
@@ -156,7 +156,7 @@ const getAllProducts = async (req, res) => {
             Offer.find({ isActive: true, endDate: { $gte: new Date() } })
         ]);
 
-        // Update salePrice for expired offers
+        
         const updatedProducts = await Promise.all(productData.map(async (product) => {
             if (product.offer && new Date(product.offer.endDate) < new Date()) {
                 await Product.findByIdAndUpdate(product._id, {
@@ -330,23 +330,23 @@ const editProduct = async (req, res) => {
                     sharp(tempPath).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 90 }).toFile(reImagePath)
                 ]);
 
-                // Check if this is a replacement for an existing image
+                
                 const replacedImageIndex = images.findIndex(img => replacedImages.includes(img));
                 if (replacedImageIndex !== -1) {
-                    // Delete the old image files
+                   
                     const oldImage = images[replacedImageIndex];
                     await Promise.all([
                         safeDelete(path.join(productImagesDir, oldImage)),
                         safeDelete(path.join(reImageDir, oldImage))
                     ]);
-                    // Replace the old image with the new one
+                    
                     images[replacedImageIndex] = filename;
                 } else {
-                    // Add as a new image if not replacing
+                    
                     if (images.length < 4) {
                         images.push(filename);
                     } else {
-                        // If limit reached, skip adding and delete the uploaded file
+                        
                         await Promise.all([
                             safeDelete(productImagePath),
                             safeDelete(reImagePath)

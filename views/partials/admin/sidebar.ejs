@@ -20,7 +20,7 @@
                     </li>
 
 <script>
-    // Function to update request count badge
+    
     async function updateRequestCount() {
         try {
             const response = await fetch('/admin/orders/request-counts');
@@ -29,7 +29,7 @@
             const badge = document.getElementById('requestCount');
             badge.textContent = totalRequests;
             
-            // Show/hide badge based on count
+            
             if (totalRequests > 0) {
                 badge.style.display = 'inline-block';
             } else {
@@ -40,7 +40,7 @@
         }
     }
 
-    // Update count every 30 seconds
+    
     updateRequestCount();
     setInterval(updateRequestCount, 30000);
 </script> 

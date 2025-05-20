@@ -581,7 +581,7 @@
         </nav>
     </div>
 
-    <!-- Add/Edit Offer Modal -->
+    
     <div class="modal fade" id="addOfferModal" tabindex="-1" aria-labelledby="addOfferModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -628,7 +628,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Debounce function
+    
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Function to load a page dynamically
+    
     async function loadPage(page, search = '', isBlocked = false) {
         try {
             const tbody = document.querySelector('#productTableBody');
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.message || 'Failed to load data');
             }
 
-            // Update table body
+           
             if (data.data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -732,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).join('');
             }
 
-            // Update pagination
+            
             const pagination = document.querySelector('#pagination');
             pagination.innerHTML = '';
             if (data.currentPage > 1) {
@@ -761,17 +761,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             }
 
-            // Update button styles
+            
             const availableBtn = document.querySelector('#availableProductsBtn');
             const blockedBtn = document.querySelector('#blockedProductsBtn');
             availableBtn.className = `toggle-btn ${!isBlocked ? 'active' : ''}`;
             blockedBtn.className = `toggle-btn ${isBlocked ? 'active' : ''}`;
 
-            // Update browser URL
+            
             const newUrl = `/admin/products?page=${page}${search ? '&search=' + encodeURIComponent(search) : ''}${isBlocked ? '&blocked=true' : ''}`;
             history.pushState({ page, search, isBlocked }, '', newUrl);
 
-            // Update clear button visibility
+            
             updateClearButtonVisibility();
         } catch (error) {
             console.error('Error loading page:', error);
@@ -797,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to handle pagination clicks
+    
     function handlePaginationClick(e) {
         const button = e.target.closest('.page-link');
         if (!button) return;
@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPage(page, search, isBlocked);
     }
 
-    // Function to handle block clicks
+    
     async function handleBlockClick(e) {
         const button = e.target.closest('.block-btn');
         if (!button) return;
@@ -886,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to handle unblock clicks
+    
     async function handleUnblockClick(e) {
         const button = e.target.closest('.unblock-btn');
         if (!button) return;
@@ -964,30 +964,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to handle edit button clicks
+    
     function handleEditClick(e) {
         const link = e.target.closest('.edit-link');
         if (!link) return;
-        // Allow default navigation behavior
+        
         const href = link.getAttribute('href');
         if (href) {
             window.location.href = href;
         }
     }
 
-    // Function to validate offer form
+    
     function validateOfferForm() {
         let isValid = true;
         const discountValue = document.getElementById('discountValue');
         const endDate = document.getElementById('endDate');
         
-        // Reset error states
+        
         [discountValue, endDate].forEach(input => {
             input.classList.remove('is-invalid');
             document.getElementById(`${input.id}Error`).textContent = '';
         });
 
-        // Validate discount value
+        
         const discount = parseFloat(discountValue.value);
         if (isNaN(discount) || discount <= 0) {
             discountValue.classList.add('is-invalid');
@@ -999,7 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
 
-        // Validate end date
+        
         const end = new Date(endDate.value);
         if (!endDate.value) {
             endDate.classList.add('is-invalid');
@@ -1010,12 +1010,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return isValid;
     }
 
-    // Function to handle offer button clicks
+    
     async function handleOfferButtonClick(e) {
         const button = e.target.closest('.offer-btn, .cancel-offer-btn');
         if (!button) return;
 
-        // Prevent default only for offer buttons to avoid affecting other links
+        
         if (button.classList.contains('offer-btn') || button.classList.contains('cancel-offer-btn')) {
             e.preventDefault();
         }
@@ -1025,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const regularPrice = button.getAttribute('data-regular-price');
         const currentOffer = button.getAttribute('data-current-offer');
 
-        // If it's a cancel offer button
+        
         if (button.classList.contains('cancel-offer-btn')) {
             const result = await Swal.fire({
                 title: 'Are you sure?',
@@ -1054,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const data = await response.json();
                     if (data.success) {
-                        // Update button to Add Offer
+                        
                         button.classList.remove('cancel-offer-btn');
                         button.classList.add('offer-btn');
                         button.setAttribute('data-bs-toggle', 'modal');
@@ -1069,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             showConfirmButton: false
                         });
 
-                        // Reload page to update prices
+                        
                         const search = document.querySelector('#searchInput').value;
                         const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
                         loadPage(1, search, isBlocked);
@@ -1098,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // For Add Offer button, open modal
+        
         const offerModal = document.getElementById('addOfferModal');
         const productNameSpan = document.getElementById('productName');
         const productNameInput = document.getElementById('productNameInput');
@@ -1110,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cancelOfferBtn = document.getElementById('cancelOfferBtn');
         const offerAction = document.getElementById('offerAction');
 
-        // Reset form
+        
         [discountValue, endDate].forEach(input => {
             input.value = '';
             input.classList.remove('is-invalid');
@@ -1125,12 +1125,12 @@ document.addEventListener('DOMContentLoaded', function() {
         offerAction.textContent = 'Add';
         cancelOfferBtn.style.display = 'none';
 
-        // Manually trigger modal open
+        
         const modalInstance = new bootstrap.Modal(offerModal);
         modalInstance.show();
     }
 
-    // Function to attach offer modal save button listener
+    
     function attachOfferModalSaveListener() {
         const saveOfferBtn = document.getElementById('saveOfferBtn');
         const offerModal = document.getElementById('addOfferModal');
@@ -1161,7 +1161,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let url, payload;
                 if (offerId) {
-                    // Editing existing offer
+                    
                     url = '/admin/offers/assign';
                     payload = {
                         productId,
@@ -1171,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         regularPrice
                     };
                 } else {
-                    // Creating new offer
+                    
                     url = '/admin/offers/create';
                     payload = {
                         productId,
@@ -1201,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        // Force close modal and remove backdrop
+                        
                         const modal = bootstrap.Modal.getInstance(offerModal);
                         if (modal) {
                             modal.hide();
@@ -1209,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.body.classList.remove('modal-open');
                             document.body.style = '';
                         }
-                        // Reload page
+                        
                         const search = document.querySelector('#searchInput').value;
                         const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
                         loadPage(1, search, isBlocked);
@@ -1239,7 +1239,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Update the clear button visibility based on search input
+
     function updateClearButtonVisibility() {
         const searchInput = document.querySelector('#searchInput');
         const clearButton = document.querySelector('#clearSearchBtn');
@@ -1253,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to clear search and reset results
+    
     function clearSearch() {
         const searchInput = document.querySelector('#searchInput');
         if (searchInput) {
@@ -1264,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add loading animation to buttons
+    
     function addLoadingToButton(button, text) {
         const originalContent = button.innerHTML;
         button.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ${text}`;
@@ -1275,17 +1275,17 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Initial setup
+
     const searchInput = document.querySelector('#searchInput');
     const clearSearchBtn = document.querySelector('#clearSearchBtn');
 
-    // Create debounced search function
+    
     const debouncedSearch = debounce(function(value) {
         const isBlocked = document.querySelector('#blockedProductsBtn').classList.contains('active');
         loadPage(1, value, isBlocked);
     }, 500);
 
-    // Add event listener to search input
+    
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             updateClearButtonVisibility();
@@ -1294,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateClearButtonVisibility();
     }
 
-    // Add event listener to clear button
+    
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1304,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle Available/Blocked Products buttons
+    
     document.querySelector('#availableProductsBtn').addEventListener('click', function() {
         if (this.classList.contains('active')) return;
         const resetBlockedBtn = addLoadingToButton(this, 'Loading...');
@@ -1319,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPage(1, search, true).then(resetBlockedBtn);
     });
 
-    // Add keyboard shortcuts
+    
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             setTimeout(() => {
@@ -1332,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Event delegation for interactive buttons
+    
     document.body.addEventListener('click', function(e) {
         handlePaginationClick(e);
         handleBlockClick(e);
@@ -1341,10 +1341,10 @@ document.addEventListener('DOMContentLoaded', function() {
         handleEditClick(e);
     });
 
-    // Initialize save button listener
+    
     attachOfferModalSaveListener();
 
-    // Handle popstate for browser back/forward
+    
     window.addEventListener('popstate', function(event) {
         const state = event.state;
         if (state) {
@@ -1354,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Ensure Bootstrap is loaded before initializing modals
+    
     if (typeof bootstrap === 'undefined') {
         console.error('Bootstrap is not loaded');
         Swal.fire({

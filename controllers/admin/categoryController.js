@@ -14,7 +14,7 @@ const categoryInfo = async (req, res) => {
         const totalCategories = await Category.countDocuments();
         const totalPages = Math.ceil(totalCategories / limit);
 
-        // Check if the request is AJAX
+        
         if (req.get('X-Requested-With') === 'XMLHttpRequest') {
             return res.json({
                 success: true,
@@ -25,7 +25,7 @@ const categoryInfo = async (req, res) => {
             });
         }
 
-        // Render EJS for initial page load
+        
         res.render('category', {
             data: categoryData,
             totalPages: totalPages,

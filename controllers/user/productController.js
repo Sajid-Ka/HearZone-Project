@@ -12,7 +12,7 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Find product with populated category and offer
+        
         const product = await Product.findById(productId)
             .populate('category')
             .populate('offer')
@@ -22,7 +22,7 @@ const productDetails = async (req, res) => {
             return res.status(404).render('user/page-404');
         }
 
-        // Calculate offers
+        
         let productOffer = 0;
         let categoryOffer = 0;
         let totalOffer = 0;
@@ -35,22 +35,22 @@ const productDetails = async (req, res) => {
             categoryOffer = product.category.offer.percentage;
         }
         
-        // Determine which offer to show (the bigger one)
+        
         if (productOffer > 0 || categoryOffer > 0) {
             totalOffer = Math.max(productOffer, categoryOffer);
         }
         
-        // Calculate sale price
+       
         let salePrice = product.regularPrice;
         if (totalOffer > 0) {
             salePrice = product.regularPrice * (1 - totalOffer / 100);
         }
 
-        // Update product with calculated values
+       
         product.salePrice = Math.round(salePrice);
         product.totalOffer = totalOffer
 
-        // Treat undefined isListed as true to avoid false negatives
+        
         const isProductListed = product.isListed !== false;
 
         if (!isProductListed || product.isBlocked) {
@@ -66,16 +66,16 @@ const productDetails = async (req, res) => {
             );
         }
 
-        // Fetch blocked brand IDs
+        
         const blockedBrands = await Brand.find({ isBlocked: true }).select('_id');
         const blockedBrandIds = blockedBrands.map(brand => brand._id);
 
-        // Get related products by category with more lenient conditions
+        
         let relatedProducts = await Product.find({
             category: product.category?._id,
             _id: { $ne: product._id },
-            isBlocked: false, // Exclude blocked products
-            brand: { $nin: blockedBrandIds }, // Exclude products from blocked brands
+            isBlocked: false, 
+            brand: { $nin: blockedBrandIds }, 
             $or: [
                 { isListed: true },
                 { isListed: { $exists: false } }
@@ -84,14 +84,14 @@ const productDetails = async (req, res) => {
         .limit(3)
         .populate('brand');
 
-        // If we don't have enough products by category, try brand
+        
         if (relatedProducts.length < 3 && product.brand?._id) {
             const brandProducts = await Product.find({
                 brand: product.brand._id,
                 _id: { $ne: product._id },
                 category: { $ne: product.category?._id },
-                isBlocked: false, // Exclude blocked products
-                brand: { $nin: blockedBrandIds }, // Exclude products from blocked brands
+                isBlocked: false, 
+                brand: { $nin: blockedBrandIds },
                 $or: [
                     { isListed: true },
                     { isListed: { $exists: false } }
@@ -103,7 +103,7 @@ const productDetails = async (req, res) => {
             relatedProducts = [...relatedProducts, ...brandProducts];
         }
 
-        // Process related products for display with null checks
+        
         const enhancedRelatedProducts = relatedProducts.map(prod => {
             const productOffer = prod.productOffer || 0;
             const categoryOffer = prod.category?.offer || 0;
@@ -124,13 +124,13 @@ const productDetails = async (req, res) => {
             };
         });
 
-        // Calculate reviews and average rating with fallback
+        
         const reviews = await Review.find({ productId: product._id });
         const averageRating = reviews.length > 0 
             ? (reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length).toFixed(1)
             : '0.0';
 
-        // Render the page with all the data
+    
         res.render('product-details', {
             user: req.session.user ? await User.findById(req.session.user.id) : null,
             product: {

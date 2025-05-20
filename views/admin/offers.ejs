@@ -248,7 +248,7 @@
         </table>
     </div>
 
-    <!-- Create Offer Modal -->
+    
     <div class="modal fade" id="createOfferModal" tabindex="-1" aria-labelledby="createOfferModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -327,11 +327,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     showConfirmButton: false
                 });
 
-                // Close modal
+                
                 const modal = bootstrap.Modal.getInstance(document.getElementById('createOfferModal'));
                 modal.hide();
 
-                // Reload page
+                
                 window.location.reload();
             } else {
                 Swal.fire({
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Set minimum date for startDate and endDate
+    
     document.getElementById('endDate').setAttribute('min', new Date().toISOString().split('T')[0]);
 });
 </script>

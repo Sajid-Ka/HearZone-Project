@@ -71,7 +71,7 @@ async function getDashboardData(timeFilter) {
     const currentDate = new Date();
     let startDate, labels, format;
 
-    // Set time filter parameters
+    
     switch (timeFilter) {
         case 'weekly':
             startDate = moment().subtract(6, 'days').startOf('day').toDate();
@@ -96,7 +96,7 @@ async function getDashboardData(timeFilter) {
             format = '%Y-%m';
     }
 
-    // Fetch data in parallel
+    
     const [
         totalRevenue,
         totalCustomers,
@@ -381,7 +381,7 @@ async function getDashboardData(timeFilter) {
         ])
     ]);
 
-    // Calculate growth percentages
+    
     const revenueGrowth = calculateGrowthPercentage(
         currentPeriodRevenue[0]?.total || 0,
         previousPeriodRevenue[0]?.total || 0
@@ -395,12 +395,12 @@ async function getDashboardData(timeFilter) {
         previousPeriodOrders
     );
 
-    // Map data to chart format
+    
     const salesData = mapDataToLabels(salesByPeriod, labels, timeFilter, 'total');
     const customersData = mapDataToLabels(customersByPeriod, labels, timeFilter, 'count');
     const ordersData = mapDataToLabels(ordersByPeriod, labels, timeFilter, 'count');
 
-    // Prepare category data
+    
     const categoryLabels = categoryPerformance.map(cat => cat.categoryName);
     const categoryData = categoryPerformance.map(cat => cat.totalSales);
 
@@ -464,38 +464,38 @@ const mapDataToLabels = (data, labels, timeFilter, valueField) => {
 
 const loadDashboard = async (req, res) => {
     try {
-        // Prevent caching
+        
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Expires', '0');
         res.setHeader('Pragma', 'no-cache');
 
-        // Check admin session
+        
         if (!req.session.admin) {
             return res.redirect('/admin/login');
         }
 
-        // Fetch recent orders with corrected populate field
+        
         const orders = await Order.find({ status: { $nin: ['failed'] } })
             .populate('userId', 'name email mobile')
-            .populate('orderedItems.product', 'productName productImages price') // Corrected path
+            .populate('orderedItems.product', 'productName productImages price') 
             .sort({ createdAt: -1 })
             .limit(5)
             .lean();
 
             
 
-        // Get time filter (default to monthly)
+        
         const timeFilter = req.query.timeFilter || 'monthly';
 
-        // Fetch dashboard data and top-selling data in parallel
+        
         const [dashboardData, topSellingProducts, topSellingCategories, topSellingBrands] = await Promise.all([
             getDashboardData(timeFilter),
             Order.aggregate([
                 { $match: { status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] } } },
-                { $unwind: '$orderedItems' }, // Changed from order_items
+                { $unwind: '$orderedItems' }, 
                 {
                     $group: {
-                        _id: '$orderedItems.product', // Changed from order_items.productId
+                        _id: '$orderedItems.product', 
                         totalSold: { $sum: '$orderedItems.quantity' }
                     }
                 },
@@ -551,7 +551,7 @@ const loadDashboard = async (req, res) => {
             ]),
             Order.aggregate([
                 { $match: { status: { $nin: ['cancelled', 'failed', 'Return approved', 'refunded'] } } },
-                { $unwind: '$orderedItems' }, // Changed from order_items
+                { $unwind: '$orderedItems' }, 
                 {
                     $lookup: {
                         from: 'products',
@@ -583,7 +583,7 @@ const loadDashboard = async (req, res) => {
             ])
         ]);
 
-        // Render dashboard
+        
         res.render('dashboard', {
             dashboardData,
             orders,

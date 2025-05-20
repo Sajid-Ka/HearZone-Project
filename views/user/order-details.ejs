@@ -2,14 +2,14 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-    /* Main Container */
+    
     .order-details-container {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         min-height: 100vh;
         padding: 40px 15px;
     }
 
-    /* Order Card */
+    
     .order-card {
         background: white;
         border-radius: 15px;
@@ -37,7 +37,7 @@
         border-radius: 2px;
     }
 
-    /* Back Button */
+    
     .btn-back {
         background: #636e72;
         border: none;
@@ -63,7 +63,7 @@
         margin-right: 8px;
     }
 
-    /* Order Info */
+    
     .order-info p {
         color: #636e72;
         margin-bottom: 15px;
@@ -77,7 +77,7 @@
         display: inline-block;
     }
 
-    /* Items Section */
+    
     .items-section {
         margin: 20px 0;
     }
@@ -133,7 +133,7 @@
         white-space: nowrap;
     }
 
-    /* Responsive adjustments */
+    
     @media (max-width: 768px) {
         .item-row {
             grid-template-columns: 1fr;
@@ -150,7 +150,7 @@
         }
     }
 
-    /* Pricing Section */
+    
     .pricing-section hr {
         margin: 25px 0;
         border-color: #eee;
@@ -168,7 +168,7 @@
         font-size: 1.2rem;
     }
 
-    /* Buttons */
+    
     .action-buttons {
         margin-top: 25px;
         display: flex;
@@ -411,7 +411,7 @@
 <br>
 
 <script>
-    // Cancel Item
+   
     document.querySelectorAll('.cancel-item-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const itemIndex = e.target.dataset.itemIndex;
@@ -443,7 +443,7 @@
         });
     });
 
-    // Return Item
+    
     document.querySelectorAll('.return-item-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const itemIndex = e.target.dataset.itemIndex;
@@ -476,7 +476,7 @@
         });
     });
 
-    // Cancel Return Request
+    
     document.querySelectorAll('.cancel-return-item-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const itemIndex = e.target.dataset.itemIndex;
@@ -508,7 +508,7 @@
         });
     });
 
-    // Retry Payment
+    
     document.querySelectorAll('.retry-payment-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const orderId = e.target.dataset.orderId;

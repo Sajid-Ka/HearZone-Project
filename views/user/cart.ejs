@@ -9,14 +9,14 @@
     margin: 0 auto;
 }
 
-/* Cart header */
+
 h1.mb-4 {
     font-size: 2.5rem;
     font-weight: 700;
     color: #333;
 }
 
-/* Card styling */
+
 .card.shadow-sm {
     border: none;
     border-radius: 10px;
@@ -28,7 +28,7 @@ h1.mb-4 {
     padding: 1.5rem;
 }
 
-/* Cart item styling */
+
 .cart-item {
     transition: all 0.3s ease;
 }
@@ -59,7 +59,7 @@ h1.mb-4 {
     color: #000000;
 }
 
-/* Quantity control */
+
 .quantity-control .input-group {
     max-width: 120px;
 }
@@ -75,7 +75,7 @@ h1.mb-4 {
     font-size: 0.9rem;
 }
 
-/* Remove button */
+
 .remove-item {
     border-radius: 50%;
     width: 32px;
@@ -92,7 +92,7 @@ h1.mb-4 {
     border-color: #dc3545;
 }
 
-/* Order summary */
+
 .card-header {
     background-color: #f8f9fa !important;
     border-bottom: none;
@@ -112,7 +112,7 @@ h1.mb-4 {
     border-color: #eee;
 }
 
-/* Coupon section */
+
 #couponCode {
     border-radius: 5px 0 0 5px;
 }
@@ -129,7 +129,7 @@ h1.mb-4 {
     background-color: #0056b3;
 }
 
-/* Buttons */
+
 .btn-primary {
     background-color: #007bff;
     border: none;
@@ -159,7 +159,7 @@ h1.mb-4 {
     color: white;
 }
 
-/* Empty cart styling */
+
 .text-center.py-5 {
     background-color: #f8f9fa;
     border-radius: 10px;
@@ -175,7 +175,7 @@ h1.mb-4 {
     margin-top: 1.5rem;
 }
 
-/* Toast notification */
+
 #cartToast {
     min-width: 300px;
 }
@@ -205,7 +205,7 @@ h1.mb-4 {
     background-color: rgb(203, 56, 56);
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
     .cart-item .row {
         flex-direction: column;
@@ -271,7 +271,7 @@ h1.mb-4 {
             <div class="col-lg-8">
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <!-- Cart Items -->
+                        
                         <% cart.items.forEach(item => { %>
                             <% const product = item.productId; %>
                             <div class="row cart-item mb-3 pb-3 border-bottom" data-id="<%= item.productId._id %>">
@@ -391,7 +391,7 @@ h1.mb-4 {
                         </div>
                         
                         
-                        <!-- Checkout button -->
+                        
                         <button id="proceedToCheckout" class="btn btn-primary w-100 mt-2"
                                 <%= cart.items.some(item => item.productId.stock === 0) ? 'disabled' : '' %>>
                             Proceed to Checkout
@@ -424,7 +424,7 @@ h1.mb-4 {
     <% } %>
 </div>
 
-<!-- Toast notification for alerts -->
+
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
     <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
@@ -443,7 +443,7 @@ h1.mb-4 {
         const toast = new bootstrap.Toast(document.getElementById('cartToast'));
         const MAX_QUANTITY_PER_ITEM = 5;
         
-        // Show notification (unchanged)
+        
         function showNotification(message, isError = false) {
             const toastEl = document.getElementById('cartToast');
             const toastBody = toastEl.querySelector('.toast-body');
@@ -459,7 +459,7 @@ h1.mb-4 {
             toast.show();
         }
         
-       // Update cart counts in navbar (unchanged)
+       
         function updateCartCount(count) {
             const cartCountEl = document.querySelector('.cart-count');
             if (cartCountEl) {
@@ -467,13 +467,13 @@ h1.mb-4 {
             }
         }
         
-        // Update order summary (unchanged)
+       
         function updateOrderSummary(data) {
     document.getElementById('subtotal').textContent = parseFloat(data.subTotal).toFixed(2);
         const discountEl = document.getElementById('discount');
         if (discountEl) {
             discountEl.textContent = parseFloat(data.discountAmount).toFixed(2);
-            // Show or hide the discount section based on discountAmount
+            
             const discountSection = discountEl.closest('.d-flex');
             if (data.discountAmount > 0) {
                 discountSection.style.display = 'flex';
@@ -494,7 +494,7 @@ h1.mb-4 {
         });
 
         
-        // Handle quantity changes
+        
         document.querySelectorAll('.quantity-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const action = this.dataset.action;
@@ -536,14 +536,14 @@ h1.mb-4 {
                         const totalPriceEl = itemContainer.querySelector('.item-total');
                         totalPriceEl.textContent = '₹' + parseFloat(data.item.totalPrice).toFixed(2);
                         
-                        // Update order summary with the correct discount values
+                        
                         updateOrderSummary({
                             subTotal: data.subTotal,
                             discountAmount: data.discountAmount,
                             finalAmount: data.finalAmount
                         });
                         
-                        // Update button states
+                        
                         const incrementBtn = itemContainer.querySelector('[data-action="increment"]');
                         if (incrementBtn) {
                             incrementBtn.disabled = quantity >= MAX_QUANTITY_PER_ITEM || quantity >= parseInt(quantityInput.max);
@@ -564,7 +564,7 @@ h1.mb-4 {
             });
         });
 
-        // Handle quantity input changes
+        
         document.querySelectorAll('.quantity-input').forEach(input => {
             input.addEventListener('change', function() {
                 const itemContainer = this.closest('.cart-item');
@@ -628,13 +628,13 @@ h1.mb-4 {
         });
 
 
-        // Update the quantity input max attribute in the EJS template
+        
         document.querySelectorAll('.quantity-input').forEach(input => {
             const stockLimit = parseInt(input.max);
             input.max = Math.min(MAX_QUANTITY_PER_ITEM, stockLimit);
         });
         
-        // Remove item from cart with SweetAlert2
+        
         document.querySelectorAll('.remove-item').forEach(button => {
             button.addEventListener('click', async function() {
                 const itemContainer = this.closest('.cart-item');
@@ -665,7 +665,7 @@ h1.mb-4 {
                             itemContainer.remove();
                             updateCartCount(data.cartCount);
                             
-                            // Safely handle the discount amounts
+                           
                             const discountAmount = data.discountAmount || 0;
                             updateOrderSummary({
                                 subTotal: data.subTotal || 0,
@@ -702,7 +702,7 @@ h1.mb-4 {
             });
         });
     
-    // Clear cart with SweetAlert2
+    
     const clearCartBtn = document.getElementById('clearCart');
         if (clearCartBtn) {
             clearCartBtn.addEventListener('click', async function() {
@@ -754,7 +754,7 @@ h1.mb-4 {
             });
         }
         
-        // Proceed to checkout
+      
         const checkoutBtn = document.getElementById('proceedToCheckout');
         if (checkoutBtn) {
             checkoutBtn.addEventListener('click', async function (e) {
@@ -769,7 +769,7 @@ h1.mb-4 {
                     });
 
                     if (response.ok) {
-                        // Everything fine, redirect
+                        
                         window.location.href = '/checkout';
                     } else {
                         const data = await response.json();

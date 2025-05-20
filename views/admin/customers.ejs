@@ -1,5 +1,5 @@
 <%- include("../../views/partials/admin/header") %>
-<!-- Add SweetAlert2 CDN -->
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -32,7 +32,7 @@
         margin: 0 auto;
     }
     .search-input {
-        padding-right: 40px; /* Space for clear button */
+        padding-right: 40px; 
     }
     .clear-btn {
         position: absolute;
@@ -43,7 +43,7 @@
         border: none;
         font-size: 18px;
         cursor: pointer;
-        display: none; /* Hidden by default */
+        display: none; 
         color: #666;
     }
     .clear-btn:hover {
@@ -137,7 +137,7 @@
         const success = urlParams.get('success');
         const error = urlParams.get('error');
 
-        // Handle success/error notifications
+        
         if (success === 'block') {
             Swal.fire({
                 title: 'Blocked!',
@@ -164,7 +164,7 @@
             });
         }
 
-        // Debounce function
+        
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -177,7 +177,7 @@
             };
         }
 
-        // Function to load a page dynamically
+        
         async function loadPage(page, search = '', isBlocked = false) {
             try {
                 const tbody = document.querySelector('#customerTableBody');
@@ -202,7 +202,7 @@
                     throw new Error(data.message || 'Failed to load data');
                 }
 
-                // Update table body
+                
                 tbody.innerHTML = data.data.map(user => `
                     <tr class="align-middle">
                         <td style="padding: 15px;">${user.name}</td>
@@ -217,7 +217,7 @@
                     </tr>
                 `).join('');
 
-                // Update pagination
+                
                 const pagination = document.querySelector('#pagination');
                 pagination.innerHTML = '';
                 for (let i = 1; i <= data.totalPages; i++) {
@@ -233,13 +233,13 @@
                     pagination.appendChild(li);
                 }
 
-                // Update button styles
+                
                 const allUsersBtn = document.querySelector('#allUsersBtn');
                 const blockedUsersBtn = document.querySelector('#blockedUsersBtn');
                 allUsersBtn.className = `btn mx-2 ${!isBlocked ? 'btn-primary' : 'btn-outline-primary'}`;
                 blockedUsersBtn.className = `btn mx-2 ${isBlocked ? 'btn-primary' : 'btn-outline-primary'}`;
 
-                // Attach event listeners to new pagination links
+                
                 document.querySelectorAll('.pagination .page-link').forEach(link => {
                     link.addEventListener('click', async function(e) {
                         e.preventDefault();
@@ -249,10 +249,10 @@
                     });
                 });
 
-                // Re-attach block/unblock listeners
+                
                 attachBlockUnblockListeners();
 
-                // Update browser URL
+                
                 const newUrl = `/admin/users?page=${page}${data.search ? '&search=' + encodeURIComponent(data.search) : ''}${isBlocked ? '&blocked=true' : ''}`;
                 history.pushState({ page, search: data.search, isBlocked }, '', newUrl);
             } catch (error) {
@@ -268,7 +268,7 @@
             }
         }
 
-        // Handle search input
+        
         const searchInput = document.querySelector('#searchInput');
         const clearBtn = document.querySelector('#clearSearch');
 
@@ -295,7 +295,7 @@
             await loadPage(1, value, isBlocked);
         }, 500);
 
-        // Handle All Users and Blocked Users buttons
+        
         document.querySelector('#allUsersBtn').addEventListener('click', async function(e) {
             e.preventDefault();
             const searchInput = document.querySelector('#searchInput').value;
@@ -308,7 +308,7 @@
             await loadPage(1, searchInput, true);
         });
 
-        // Function to attach block/unblock event listeners
+        
         function attachBlockUnblockListeners() {
             document.querySelectorAll('.block-btn').forEach(button => {
                 button.addEventListener('click', async function() {
@@ -455,10 +455,10 @@
             });
         }
 
-        // Initialize block/unblock listeners
+        
         attachBlockUnblockListeners();
 
-        // Handle popstate for browser back/forward
+        
         window.addEventListener('popstate', async function(event) {
             const state = event.state;
             if (state) {
@@ -468,7 +468,7 @@
             }
         });
 
-        // Initialize CSS for smooth transitions
+        
         const style = document.createElement('style');
         style.textContent = `
             tr {
@@ -481,7 +481,7 @@
         `;
         document.head.appendChild(style);
 
-        // Initialize page based on URL parameters
+        
         const initialPage = parseInt(urlParams.get('page')) || 1;
         const initialSearch = urlParams.get('search') || '';
         const initialIsBlocked = urlParams.get('blocked') === 'true';

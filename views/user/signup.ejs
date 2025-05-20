@@ -243,7 +243,7 @@
         }
     }
 
-    // Toggle password visibility
+    
     const togglePassword = document.getElementById('togglePassword');
     const password = document.getElementById('password');
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
@@ -278,7 +278,7 @@
               error6.style.display = 'block';
               error6.innerHTML = "Referral code must be 8 characters long";
           } else if (referralVal.length === 0 && new URLSearchParams(window.location.search).has('ref')) {
-              // If URL has ref parameter but field is empty, show message
+              
               error6.style.display = 'block';
               error6.innerHTML = "Referral code from your link is pre-filled. Remove it if not needed.";
           } else {

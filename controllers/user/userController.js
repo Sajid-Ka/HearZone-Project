@@ -92,7 +92,7 @@ const loadHomepage = async (req, res) => {
             populate: { path: 'offer' }
         });
 
-        // Process products with correct pricing
+        
         const processedProducts = productData.map(product => {
             let productOffer = 0;
             let categoryOffer = 0;
@@ -188,7 +188,7 @@ const signup = async (req, res) => {
             return res.render('signup', { message: 'Phone number must be exactly 10 digits', refCode });
         }
 
-        // Validate referral code if provided
+       
         let referredByUser = null;
         if (refCode) {
             referredByUser = await User.findOne({ referralCode: refCode });
@@ -249,7 +249,7 @@ const verifyOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email already in use' });
         }
 
-        // Generate unique referral code
+       
         let newReferralCode;
         let isUnique = false;
         while (!isUnique) {
@@ -263,13 +263,13 @@ const verifyOtp = async (req, res) => {
             email: userData.email,
             phone: userData.phone,
             password: passwordHash,
-            referralCode: newReferralCode, // Required for new users
+            referralCode: newReferralCode, 
             referredBy: userData.referralCode ? (await User.findOne({ referralCode: userData.referralCode }))._id : null
         });
 
         const savedUser = await newUser.save();
 
-        // Create coupon for referring user if applicable
+        
         if (userData.referralCode) {
             const referringUser = await User.findOne({ referralCode: userData.referralCode });
             if (referringUser) {
@@ -434,7 +434,7 @@ const logout = async (req, res) => {
         const userId = req.session.user?.id;
         
         if (userId) {
-            // Clear any applied coupon from the cart
+            
             const cart = await Cart.findOne({ userId });
             if (cart && cart.couponCode) {
                 cart.couponCode = null;
@@ -444,7 +444,7 @@ const logout = async (req, res) => {
             }
         }
         
-        // Clear session
+        
         delete req.session.user;
         delete req.session.appliedCoupon;
         

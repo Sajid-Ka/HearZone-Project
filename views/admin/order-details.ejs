@@ -454,7 +454,7 @@
     <div class="order-section">
         <h3 class="section-title">Order Status Timeline</h3>
         <div class="timeline-container" id="statusTimeline">
-            <!-- Initial basic timeline entry if there's a cancel request -->
+            
             <% if (order.orderedItems.some(item => item.cancellationStatus === 'Cancel Request')) { %>
                 <div class="timeline-item">
                     <div class="timeline-date"><%= new Date().toLocaleString() %></div>
@@ -522,41 +522,41 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Function to update dropdown state based on order status
+        
         function updateDropdownState(dropdown, status) {
             const terminalStatuses = ['Cancelled', 'Returned', 'Delivered'];
             dropdown.disabled = terminalStatuses.includes(status);
         }
 
-        // Initialize dropdown state
+     
         const statusSelect = document.getElementById('statusSelect');
         if (statusSelect) {
             updateDropdownState(statusSelect, statusSelect.dataset.originalStatus);
         }
 
-        // Check if there are pending requests that would block the timeline
+        
         const hasPendingRequests = function() {
-            // Check for cancel requests
+            
             const cancelRequestElements = document.querySelectorAll('.status-cancel-request');
             if (cancelRequestElements.length > 0) return true;
             
-            // Check for return requests
+            
             const returnRequestElements = document.querySelectorAll('.status-return-request');
             if (returnRequestElements.length > 0) return true;
             
             return false;
         };
 
-        // Load timeline with timeout and error handling
+        
         function loadTimeline(orderId) {
-            // Skip loading external timeline if there are pending requests
+            
             if (hasPendingRequests()) {
                 console.log('Skipping timeline API call due to pending requests');
                 return;
             }
             
             const timelineContainer = document.getElementById('statusTimeline');
-            const timeoutDuration = 10000; // 10 seconds timeout
+            const timeoutDuration = 10000; 
             
             let timeoutId = setTimeout(() => {
                 timelineContainer.innerHTML = `
@@ -628,12 +628,12 @@
                 });
         }
 
-        // Load timeline on page load if there's no statusSelect or no pending requests
+        
         if (statusSelect && !hasPendingRequests()) {
             loadTimeline(statusSelect.dataset.orderId);
         }
 
-        // Handle status update
+        
         if (statusSelect) {
             statusSelect.addEventListener('change', async function() {
                 const orderId = this.dataset.orderId;
@@ -667,23 +667,23 @@
                         if (data.success) {
                             await Swal.fire('Success', data.message, 'success');
 
-                            // Update UI
+                            
                             this.dataset.originalStatus = newStatus;
                             updateDropdownState(this, newStatus);
 
-                            // Update order status badge
+                            
                             const orderStatusBadge = document.querySelector('.order-header .order-status');
                             orderStatusBadge.textContent = newStatus;
                             orderStatusBadge.className = `order-status status-${newStatus.toLowerCase().replace(/\s+/g, '-')}`;
 
-                            // Update payment status badge if provided in response
+                            
                             if (data.order && data.order.paymentStatus) {
                                 const paymentStatusBadge = document.querySelector('.payment-status');
                                 paymentStatusBadge.textContent = data.order.paymentStatus;
                                 paymentStatusBadge.className = `payment-status payment-status-${data.order.paymentStatus.toLowerCase().replace(/\s+/g, '-')}`;
                             }
 
-                            // Update non-cancelled item statuses
+                            
                             document.querySelectorAll('.items-table tbody tr').forEach(row => {
                                 const statusCell = row.querySelector('td:nth-child(5)');
                                 const statusSpan = statusCell.querySelector('.order-status');
@@ -697,11 +697,11 @@
                                 }
                             });
 
-                            // Reload timeline if no pending requests
+                            
                             if (!hasPendingRequests()) {
                                 loadTimeline(orderId);
                             } else {
-                                // Add a new entry to the timeline for this status change
+                                
                                 const timelineContainer = document.getElementById('statusTimeline');
                                 const newEntry = document.createElement('div');
                                 newEntry.className = 'timeline-item';
@@ -728,14 +728,14 @@
             });
         }
 
-        // Handle item cancel request approval
+        
         document.querySelectorAll('.approve-cancel-item').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
                 const orderId = this.dataset.orderId;
                 const itemIndex = this.dataset.itemIndex;
 
-                // Disable button to prevent multiple clicks
+                
                 this.disabled = true;
 
                 const result = await Swal.fire({
@@ -777,14 +777,14 @@
             });
         });
 
-        // Handle item cancel request rejection
+        
         document.querySelectorAll('.reject-cancel-item').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
                 const orderId = this.dataset.orderId;
                 const itemIndex = this.dataset.itemIndex;
 
-                // Disable button to prevent multiple clicks
+               
                 this.disabled = true;
 
                 const result = await Swal.fire({
@@ -826,7 +826,7 @@
             });
         });
 
-        // Handle item return request approval and rejection
+       
         document.querySelectorAll('.approve-return-item, .reject-return-item').forEach(button => {
             button.addEventListener('click', async function(e) {
                 e.preventDefault();
@@ -834,7 +834,7 @@
                 const itemIndex = this.dataset.itemIndex;
                 const action = this.classList.contains('approve-return-item') ? 'approve' : 'reject';
 
-                // Disable button to prevent multiple clicks
+                
                 this.disabled = true;
 
                 const result = await Swal.fire({

@@ -25,7 +25,7 @@ const getWallet = async (req, res) => {
         const totalPages = Math.ceil(totalTransactions / limit);
 
         if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
-            // Render only the transaction section for AJAX requests
+            
             const transactionHTML = `
                 ${transactions.length > 0 ? `
                     <div class="overflow-x-auto">

@@ -34,7 +34,7 @@ const createOffer = async (req, res) => {
 
         await offer.save();
 
-        // Calculate sale price
+        
         let salePrice = parseFloat(regularPrice);
         if (offer.discountType === 'percentage') {
             salePrice = salePrice * (1 - offer.discountValue / 100);
@@ -42,7 +42,7 @@ const createOffer = async (req, res) => {
             salePrice = salePrice - offer.discountValue;
         }
 
-        // Update product
+        
         await Product.findByIdAndUpdate(productId, {
             offer: offer._id,
             salePrice: Math.max(0, Math.round(salePrice))
@@ -69,13 +69,13 @@ const assignOfferToProduct = async (req, res) => {
 
         let offer;
         if (offerId) {
-            // Update existing offer
+            
             offer = await Offer.findById(offerId);
             if (!offer) {
                 return res.status(404).json({ success: false, message: 'Offer not found' });
             }
 
-            // Update offer details
+           
             offer.discountValue = discountValue || offer.discountValue;
             offer.endDate = endDate || offer.endDate;
 
@@ -97,7 +97,7 @@ const assignOfferToProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Offer has expired' });
         }
 
-        // Calculate sale price
+       
         let salePrice = parseFloat(regularPrice);
         if (offer.discountType === 'percentage') {
             salePrice = salePrice * (1 - offer.discountValue / 100);
@@ -105,13 +105,13 @@ const assignOfferToProduct = async (req, res) => {
             salePrice = salePrice - offer.discountValue;
         }
 
-        // Update product
+       
         await Product.findByIdAndUpdate(productId, {
             offer: offer._id,
             salePrice: Math.max(0, Math.round(salePrice))
         });
 
-        // Add product to offer if not already included
+        
         if (!offer.products.includes(productId)) {
             offer.products.push(productId);
             await offer.save();
@@ -175,7 +175,7 @@ const addCategoryOffer = async (req, res) => {
             });
         }
 
-        // Validate percentage
+        
         if (percentage < 0 || percentage > 100) {
             return res.status(400).json({
                 success: false,
@@ -183,7 +183,7 @@ const addCategoryOffer = async (req, res) => {
             });
         }
 
-        // Validate end date
+        
         const endDateObj = new Date(endDate);
         if (endDateObj <= new Date()) {
             return res.status(400).json({

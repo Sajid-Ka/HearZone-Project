@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
 
-<!-- Existing CSS styles remain unchanged -->
+
 <style>
     body, html {
         margin: 0;
@@ -1223,7 +1223,7 @@
         <% } %>
 
         <div class="reviews-list">
-            <!-- Reviews will be loaded here dynamically -->
+            
         </div>
     </div>
 </div>
@@ -1363,7 +1363,7 @@
         
         try {
             if (isCurrentlyInWishlist) {
-                // Remove from wishlist
+                
                 const response = await fetch('/wishlist/remove', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1386,7 +1386,7 @@
                     throw new Error(data.message || 'Failed to remove from wishlist');
                 }
             } else {
-                // First check if product is in cart
+               
                 const cartCheck = await fetch('/wishlist/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1405,7 +1405,7 @@
                     return;
                 }
                 
-                // Add to wishlist
+                
                 const response = await fetch('/wishlist/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

@@ -11,8 +11,8 @@ const getAvailableCoupons = async (req, res) => {
             $expr: { $lt: ["$usedCount", "$usageLimit"] },
             usersUsed: { $nin: [userId] },
             $or: [
-                { isReferral: false }, // Regular coupons
-                { isReferral: true, userId: userId } // Referral coupons only for this user
+                { isReferral: false }, 
+                { isReferral: true, userId: userId } 
             ]
         });
         res.json(coupons);

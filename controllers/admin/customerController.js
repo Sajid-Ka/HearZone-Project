@@ -59,7 +59,7 @@ const customerInfo = async (req, res) => {
 
 const customerBlocked = async (req, res) => {
     try {
-        // Get ID from either query params, body, or FormData
+        
         let id = req.query.id || (req.body && req.body.id);
         
         
@@ -73,11 +73,11 @@ const customerBlocked = async (req, res) => {
             }
         }
 
-        // Block the user
+        
         await User.updateOne({ _id: id }, { $set: { isBlocked: true } });
         
 
-        // Handle session cleanup for the blocked user
+        
         try {
             if (req.sessionStore) {
                 const sessions = await new Promise((resolve, reject) => {
@@ -115,10 +115,10 @@ const customerBlocked = async (req, res) => {
             }
         } catch (sessionError) {
             console.error("Error handling sessions:", sessionError);
-            // Continue execution even if session handling fails
+            
         }
 
-        // Check content type to determine response format
+        
         if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
             req.headers['accept'] && req.headers['accept'].includes('application/json')) {
             return res.json({ success: true, message: 'Customer blocked successfully' });
@@ -139,7 +139,7 @@ const customerBlocked = async (req, res) => {
 
 const customerUnblocked = async (req, res) => {
     try {
-        // Get ID from either query params, body, or FormData
+        
         let id = req.query.id || (req.body && req.body.id);
         
         
@@ -152,11 +152,11 @@ const customerUnblocked = async (req, res) => {
             }
         }
 
-        // Unblock the user
+        
         await User.updateOne({ _id: id }, { $set: { isBlocked: false } });
         
         
-        // Check content type to determine response format
+        
         if (req.headers['content-type'] && req.headers['content-type'].includes('application/json') || 
             req.headers['accept'] && req.headers['accept'].includes('application/json')) {
             return res.json({ success: true, message: 'Customer unblocked successfully' });

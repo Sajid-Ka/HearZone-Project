@@ -1,5 +1,5 @@
 <%- include("../../views/partials/user/header") %>
-<!-- Add CSS links here -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
 <style>
@@ -179,7 +179,7 @@
     flex-direction: column;
     position: relative;
     margin-bottom: 1rem; 
-    min-height: 420px; /* Add fixed minimum height */
+    min-height: 420px; 
 }
 
   .product-card:hover {
@@ -211,7 +211,7 @@
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    height: 160px; /* Fixed height for product info */
+    height: 160px; 
 }
 
   .product-name {
@@ -219,7 +219,7 @@
     font-size: 1rem;
     color: var(--text-color);
     margin: 0;
-    height: 2.4em; /* Fixed height for 2 lines */
+    height: 2.4em; 
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -331,7 +331,7 @@
     border-color: var(--primary-color);
   }
 
-  /* Clear filters button styles */
+  
   .clear-filters-btn {
     display: block;
     width: 100%;
@@ -562,7 +562,7 @@
     
     <div class="product-list-container">
       <aside class="sidebar">
-        <!-- Clear filters button -->
+        
         <% if (selectedCategory || selectedBrand || (typeof gt !== 'undefined' && gt !== null) || (typeof lt !== 'undefined' && lt !== null)) { %>
           <div class="filters-applied">
             Filters applied
@@ -628,7 +628,7 @@
         <% } else { %>
           <% for(let i=0; i<products.length; i++) { %>
             <div class="product-card">
-              <!-- Add out of stock overlay -->
+              
               <% if (products[i].quantity === 0) { %>
                   <div class="out-of-stock-overlay">
                       <span>Out of Stock</span>
@@ -662,7 +662,7 @@
                           <span class="discount-badge" style="background: <%= products[i].offerType === 'category' ? '#4f46e5' : '#ff4757' %>; color: white; padding: 0.25rem 0.5rem; border-radius: 15px; font-size: 0.8rem; margin-left: 0.5rem;">
                               <%= products[i].discountBadge %>
                               <% if (products[i].offerType === 'category') { %>
-                                  (Category)
+                                  
                               <% } %>
                           </span>
                       <% } else { %>
@@ -720,7 +720,7 @@ function applySorting(sortValue) {
     window.location.href = currentUrl.toString();
 }
 
-// Add search form handler
+
 document.querySelector('.search-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const query = this.querySelector('.search-input').value;

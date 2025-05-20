@@ -1,4 +1,4 @@
-<!-- views/partials/toast-notification.ejs -->
+
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
     <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
@@ -10,7 +10,7 @@
 </div>
 
 <script>
-    // Global toast notification function
+    
     function showToast(message, isError = false) {
         const toastEl = document.getElementById('cartToast');
         if (!toastEl) return;
@@ -18,14 +18,14 @@
         const toastBody = toastEl.querySelector('.toast-body');
         toastBody.textContent = message;
         
-        // Apply error styling if needed
+        
         if (isError) {
             toastBody.classList.add('text-danger');
         } else {
             toastBody.classList.remove('text-danger');
         }
         
-        // Show the toast
+       
         const toast = new bootstrap.Toast(toastEl);
         toast.show();
     }

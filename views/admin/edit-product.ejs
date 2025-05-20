@@ -414,7 +414,7 @@
     </div>
 </section>
 
-<!-- Cropper Modal -->
+
 <div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-labelledby="cropperModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -547,7 +547,7 @@ function validateAndSubmit() {
         const form = document.querySelector('form');
         const formData = new FormData(form);
 
-        // Append replaced image IDs if any
+       
         if (window.replacedImages && window.replacedImages.length > 0) {
             formData.append('replacedImages', JSON.stringify(window.replacedImages));
         }
@@ -821,7 +821,7 @@ function cropExistingImage(button, imageId = null) {
     });
     cropperModal.show();
 
-    // Initialize Cropper.js after the modal is fully shown
+    
     $('#cropperModal').off('shown.bs.modal').on('shown.bs.modal', function() {
         if (cropper) {
             cropper.destroy();
@@ -842,9 +842,9 @@ function cropExistingImage(button, imageId = null) {
         });
     });
 
-    // Handle crop button click
+    
     const cropButton = document.getElementById('cropImageBtn');
-    cropButton.onclick = null; // Remove any existing handler
+    cropButton.onclick = null; 
     cropButton.onclick = function() {
         if (!cropper) return;
 
@@ -864,11 +864,11 @@ function cropExistingImage(button, imageId = null) {
                 return;
             }
 
-            // Update the image preview
+            
             const imageUrl = URL.createObjectURL(blob);
             imageElement.src = imageUrl;
 
-            // Update the file input
+            
             let fileInput = currentImageItem.querySelector('input[type="file"]');
             if (!fileInput) {
                 fileInput = document.createElement('input');
@@ -882,14 +882,14 @@ function cropExistingImage(button, imageId = null) {
             dataTransfer.items.add(new File([blob], `cropped_image_${Date.now()}.jpg`, { type: 'image/jpeg' }));
             fileInput.files = dataTransfer.files;
 
-            // Track replaced image if it was an existing image
+           
             if (currentImageId) {
                 window.replacedImages = window.replacedImages || [];
                 window.replacedImages.push(currentImageId);
                 currentImageItem.setAttribute('data-image-id', `cropped_image_${Date.now()}`);
             }
 
-            // Clean up and close modal
+            
             cropperModal.hide();
         }, 'image/jpeg', 0.9);
     };

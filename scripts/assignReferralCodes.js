@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('../models/userSchema'); // Adjust path
-const { generateReferralCode } = require('../utils/referralUtils'); // Adjust path
+const User = require('../models/userSchema'); 
+const { generateReferralCode } = require('../utils/referralUtils'); 
 require('dotenv').config();
 
 async function fixReferralCodes() {

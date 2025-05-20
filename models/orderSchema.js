@@ -77,7 +77,6 @@ const orderSchema = new Schema({
     finalAmount: {
         type: Number,
         required: true,
-        min: 0
     },
     address: {
         type: {
@@ -177,15 +176,14 @@ orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
 
-// Virtual to calculate total items
+
 orderSchema.virtual('totalItems').get(function() {
     return this.orderedItems.reduce((total, item) => 
         item.cancellationStatus === 'Cancelled' ? total : total + item.quantity, 0);
 });
 
-// Pre-save hook to ensure financial consistency, status management, and payment status update
+
 orderSchema.pre('save', async function(next) {
-    // Always generate order ID for new orders regardless of payment status
     if (this.isNew) {
         const today = new Date();
         const dateStr = today.toISOString().slice(0,10).replace(/-/g,"");
@@ -201,27 +199,27 @@ orderSchema.pre('save', async function(next) {
         }
     }
 
-    // IMPORTANT: Check payment status first before any other operations
+    
     if (this.paymentStatus === 'Failed') {
         this.status = 'Payment Failed';
         this.isVisibleToAdmin = false;
-        return next(); // Skip other calculations for failed payments
+        return next(); 
     }
 
-    // Only calculate financials for orders with items
+    
     if (this.orderedItems && this.orderedItems.length > 0) {
-        // Calculate subtotal for each item
+       
         this.orderedItems.forEach(item => {
             if (item.price && item.quantity) {
                 item.subTotal = item.price * item.quantity;
             }
         });
 
-        // Calculate total price excluding cancelled items
+        
         this.totalPrice = this.orderedItems.reduce((total, item) => 
             item.cancellationStatus === 'Cancelled' ? total : total + (item.subTotal || 0), 0);
         
-        // Ensure finalAmount is calculated, with safe defaults
+        
         if (typeof this.totalPrice === 'number') {
             const discount = typeof this.discount === 'number' ? this.discount : 0;
             const taxes = typeof this.taxes === 'number' ? this.taxes : 0;
@@ -231,14 +229,14 @@ orderSchema.pre('save', async function(next) {
         }
     }
 
-    // Update payment status to Paid for COD orders when status changes to Delivered
+    
     if (this.isModified('status') && this.status === 'Delivered' && this.paymentMethod === 'Cash on Delivery') {
         this.paymentStatus = 'Paid';
     }
 
-    // Only proceed with normal status determination if not a failed payment
+    
     if (this.orderedItems && this.orderedItems.length > 0) {
-        // Determine order status based on item statuses
+       
         const allItemsCancelled = this.orderedItems.every(item => 
             item.cancellationStatus === 'Cancelled'
         );
@@ -271,7 +269,7 @@ orderSchema.pre('save', async function(next) {
             item.itemStatus === 'Pending' && item.cancellationStatus === 'None'
         );
 
-        // Update order status based on priority
+        
         if (allItemsCancelled) {
             this.status = 'Cancelled';
         } else if (allItemsCancelRequest) {

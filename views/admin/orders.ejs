@@ -460,7 +460,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Function to get valid next statuses
+        
         function getValidNextStatuses(currentStatus) {
             const validTransitions = {
                 'Pending': ['Shipped', 'Cancelled'],
@@ -472,23 +472,23 @@
             return validTransitions[currentStatus] || [];
         }
 
-        // Function to update dropdown options based on current status
+       
         function updateStatusDropdown(dropdown, currentStatus) {
             const validStatuses = getValidNextStatuses(currentStatus);
             const $dropdown = $(dropdown);
             
-            // Clear dropdown
+            
             $dropdown.empty();
             
-            // Add current status
+            
             $dropdown.append(`<option value="${currentStatus}" selected>${currentStatus}</option>`);
             
-            // Add valid next statuses
+            
             validStatuses.forEach(status => {
                 $dropdown.append(`<option value="${status}">${status}</option>`);
             });
 
-            // Disable dropdown for Delivered, Cancelled, and Returned orders
+            
             if (currentStatus === 'Delivered' || currentStatus === 'Cancelled' || currentStatus === 'Returned') {
                 $dropdown.prop('disabled', true);
             } else {
@@ -496,26 +496,26 @@
             }
         }
 
-        // Initialize dropdown states on page load
+        
         $('.update-status').each(function() {
             const orderStatus = $(this).data('original-status');
             updateStatusDropdown(this, orderStatus);
         });
 
-        // Handle filter form submission
+        
         $('#filterForm').on('submit', function(e) {
             e.preventDefault();
             const formData = $(this).serialize();
             window.location.href = `/admin/orders?${formData}`;
         });
 
-        // Handle status updates
+        
         $('.update-status').change(function() {
             const orderId = $(this).data('order-id');
             const newStatus = $(this).val();
             const $dropdown = $(this);
 
-            // Don't proceed if dropdown is disabled
+            
             if ($dropdown.prop('disabled')) {
                 return;
             }
@@ -536,11 +536,11 @@
                         data: JSON.stringify({ status: newStatus }),
                         success: function(response) {
                             Swal.fire('Success', response.message, 'success').then(() => {
-                                // Update the original status data attribute
+                                
                                 $dropdown.data('original-status', newStatus);
-                                // Update dropdown options
+                                
                                 updateStatusDropdown($dropdown[0], newStatus);
-                                // Update the displayed status badge
+                                
                                 const statusBadge = $dropdown.closest('.order-card').find('.order-status');
                                 statusBadge.text(newStatus);
                                 statusBadge.removeClass(function(index, className) {
@@ -551,20 +551,20 @@
                         },
                         error: function(xhr) {
                             Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update status', 'error');
-                            // Reset dropdown to current status
+                           
                             const currentStatus = $dropdown.data('original-status');
                             updateStatusDropdown($dropdown[0], currentStatus);
                         }
                     });
                 } else {
-                    // Reset dropdown to current status
+                    
                     const currentStatus = $dropdown.data('original-status');
                     updateStatusDropdown($dropdown[0], currentStatus);
                 }
             });
         });
 
-        // Timeline functionality
+        
         $('.view-timeline').click(function() {
             const orderId = $(this).data('order-id');
             
@@ -597,7 +597,7 @@
             });
         });
 
-        // Return request handling
+        
         $('.approve-return').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -656,7 +656,7 @@
             });
         });
 
-        // Handle cancel request approval
+        
         $('.approve-cancel').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -694,7 +694,7 @@
             });
         });
 
-        // Handle cancel request rejection
+       
         $('.reject-cancel').click(function() {
             const orderId = $(this).data('order-id');
             Swal.fire({
@@ -732,7 +732,7 @@
             });
         });
 
-        // Function to update pending request count
+        
         async function updatePendingRequestCount() {
             try {
                 const response = await fetch('/admin/orders/request-counts');
@@ -741,7 +741,7 @@
                 const badge = document.getElementById('pendingRequestCount');
                 badge.textContent = totalRequests;
                 
-                // Show/hide badge based on count
+                
                 if (totalRequests > 0) {
                     badge.style.display = 'block';
                 } else {
@@ -752,11 +752,11 @@
             }
         }
 
-        // Update count every 30 seconds
+        
         updatePendingRequestCount();
         setInterval(updatePendingRequestCount, 30000);
 
-        // Add refresh button handler
+        
         document.getElementById('refreshBtn').addEventListener('click', function() {
             updatePendingRequestCount();
         });

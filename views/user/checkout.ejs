@@ -988,7 +988,7 @@
                     </div>
                     <div class="payment-content">
                         <div class="payment-options">
-                            <!-- Existing payment options -->
+                            
                             <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Cash on Delivery') ? 'selected' : '' %>" for="cod">
                                 <div class="payment-radio">
                                     <input type="radio" name="paymentMethod" id="cod" value="Cash on Delivery" <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Cash on Delivery') ? 'checked' : '' %>>
@@ -1011,7 +1011,7 @@
                                 <div class="payment-description">Secure online payment</div>
                             </label>
                             
-                            <!-- Add Wallet Payment Option -->
+                            
                             <label class="payment-card <%= (typeof paymentMethod !== 'undefined' && paymentMethod === 'Wallet') ? 'selected' : '' %> <%= canUseWallet ? '' : 'disabled' %>" for="wallet">
                                 <div class="payment-radio">
                                     <input type="radio" name="paymentMethod" id="wallet" value="Wallet" 
@@ -1044,14 +1044,14 @@
 </div>
 
 <script>
-    // Stop event propagation for edit button
+   
     document.querySelectorAll('.btn-edit').forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     });
 
-    // Address card selection
+    
     document.querySelectorAll('.address-card').forEach(card => {
         card.addEventListener('click', function(e) {
             if (e.target.closest('.btn-edit')) return;
@@ -1061,7 +1061,7 @@
         });
     });
 
-    // Payment card selection
+    
     document.querySelectorAll('.payment-card').forEach(card => {
         card.addEventListener('click', function(e) {
             if (e.target.closest('.payment-radio')) return;
@@ -1074,11 +1074,11 @@
    function updateOrderSummary(subTotal, discountAmount, couponDiscount, finalAmount, couponCode, shippingCost = 0) {
         const orderTotals = document.querySelector('.order-totals');
 
-        // Clear existing rows except subtotal and final
+        
         const existingRows = orderTotals.querySelectorAll('.totals-row:not(.final):not(:first-child)');
         existingRows.forEach(row => row.remove());
 
-        // Add product discount row if applicable
+       
         if (discountAmount > 0) {
             const productDiscountRow = document.createElement('div');
             productDiscountRow.className = 'totals-row discount';
@@ -1089,7 +1089,7 @@
             orderTotals.insertBefore(productDiscountRow, orderTotals.querySelector('.totals-row.final'));
         }
 
-        // Add coupon discount row if applicable
+        
         if (couponDiscount > 0 && couponCode) {
             const couponRow = document.createElement('div');
             couponRow.className = 'totals-row discount';
@@ -1100,7 +1100,7 @@
             orderTotals.insertBefore(couponRow, orderTotals.querySelector('.totals-row.final'));
         }
 
-        // Add or update shipping row
+        
         let shippingRow = orderTotals.querySelector('.totals-row.shipping');
         if (!shippingRow) {
             shippingRow = document.createElement('div');
@@ -1112,7 +1112,7 @@
             <span>₹${shippingCost.toFixed(2)}</span>
         `;
 
-        // Update final amount
+        
         const finalAmountElement = orderTotals.querySelector('.totals-row.final span:last-child');
         finalAmountElement.textContent = `₹${finalAmount.toFixed(2)}`;
     }
@@ -1132,7 +1132,7 @@
             </div>
         `;
 
-        // Re-attach remove coupon event listener
+        
         document.querySelector('[data-action="remove-coupon"]').addEventListener('click', removeCoupon);
     }
 
@@ -1175,7 +1175,7 @@
                     data.couponCode
                 );
 
-                // Update coupon section with proper styling
+                
                 updateCouponSection(data.couponCode, data.couponDiscount);
             } else {
                 errorElement.textContent = data.message;
@@ -1224,7 +1224,7 @@
                     null
                 );
 
-                // Reset coupon section with proper styling
+                
                 const couponSection = document.querySelector('.coupon-section .section-content');
                 couponSection.innerHTML = `
                     <form class="coupon-form" onsubmit="applyCoupon(event)">
@@ -1290,7 +1290,7 @@
         }
     }
 
-    // Add event listener for coupon clicks
+   
     document.addEventListener('click', function(event) {
         const couponItem = event.target.closest('.coupon-item[data-coupon-code]');
         if (couponItem) {
@@ -1301,7 +1301,7 @@
         }
     });
 
-    // Attach remove coupon event listener
+    
     document.addEventListener('click', function(event) {
         if (event.target.closest('[data-action="remove-coupon"]')) {
             event.preventDefault();
@@ -1309,7 +1309,7 @@
         }
     });
 
-    // Place Order
+    
     document.getElementById('placeOrderBtn').addEventListener('click', async () => {
         const addressId = document.querySelector('input[name="address"]:checked')?.value;
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
@@ -1403,7 +1403,7 @@
                             if (!verifyResponse.ok || !verifyData.success) {
                                 let errorMessage = verifyData.message || 'Payment verification failed';
                                 
-                                // Handle amount mismatch specifically
+                                
                                 if (verifyData.message && verifyData.message.includes('amount mismatch')) {
                                     errorMessage = 'Payment amount mismatch detected. Please contact support.';
                                 }
@@ -1419,7 +1419,7 @@
                                 return;
                             }
 
-                            // Successful payment
+                            
                             await Swal.fire({
                                 title: 'Payment Successful!',
                                 text: `Your order #${verifyData.orderId} has been placed successfully`,
@@ -1485,7 +1485,7 @@
         }
     });
 
-    // Edit Address Forms
+    
     document.querySelectorAll('.edit-address-form').forEach(form => {
         const modalId = form.closest('.modal').id;
         const modal = document.getElementById(modalId);
@@ -1584,14 +1584,14 @@
             codOption.disabled = true;
             codLabel.classList.add('disabled');
             
-            // If COD was selected, switch to another payment method
+            
             if (codOption.checked) {
                 codOption.checked = false;
                 document.getElementById('razorpay').checked = true;
                 document.querySelector('label[for="razorpay"]').classList.add('selected');
             }
             
-            // Add a tooltip or explanation
+            
             const tooltip = document.createElement('div');
             tooltip.className = 'payment-description text-danger';
             tooltip.textContent = 'Cash on Delivery not available for orders above ₹5000';
@@ -1602,7 +1602,7 @@
         }
     }
 
-    // Handle retry payment
+    
     document.addEventListener('DOMContentLoaded', async function() {
         updatePaymentMethods();
 

@@ -70,7 +70,6 @@ const cartSchema = new Schema({
 
 cartSchema.methods.calculateTotals = async function () {
     try {
-        // Populate product data if needed
         if (this.items.some(item => typeof item.productId === 'object' && (!item.productId.offerDetails || !item.productId.regularPrice))) {
             await mongoose.model('Cart').populate(this, {
                 path: 'items.productId',
@@ -82,14 +81,14 @@ cartSchema.methods.calculateTotals = async function () {
             });
         }
 
-        // Filter out invalid items
+        
         this.items = this.items.filter(item => {
             const product = item.productId;
             if (!product) return false;
             return (
-                !product.isBlocked && // Product is not blocked
-                product.category && product.category.isListed && // Category is listed
-                product.brand && !product.brand.isBlocked // Brand is not blocked
+                !product.isBlocked &&
+                product.category && product.category.isListed && 
+                product.brand && !product.brand.isBlocked 
             );
         });
 
@@ -97,7 +96,7 @@ cartSchema.methods.calculateTotals = async function () {
         let productDiscount = 0;
         let couponDiscount = 0;
 
-        // Calculate regular subtotal and product discounts
+        
         for (const item of this.items) {
             const product = item.productId;
             if (!product) continue;
@@ -108,7 +107,7 @@ cartSchema.methods.calculateTotals = async function () {
             let salePrice = regularPrice;
             let itemDiscount = 0;
 
-            // Product offer
+            
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
                 const offerValue = product.offer.discountType === 'percentage'
                     ? product.offer.discountValue
@@ -117,7 +116,7 @@ cartSchema.methods.calculateTotals = async function () {
                 itemDiscount = (regularPrice - salePrice) * item.quantity;
             }
 
-            // Category offer
+            
             if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
                 const categoryOfferValue = product.category.offer.percentage;
                 const categorySalePrice = regularPrice * (1 - categoryOfferValue / 100);
@@ -138,7 +137,7 @@ cartSchema.methods.calculateTotals = async function () {
             };
         }
 
-        // Calculate coupon discount
+        
         if (this.couponCode) {
             const coupon = await mongoose.model('Coupon').findOne({
                 code: this.couponCode,
@@ -182,7 +181,7 @@ cartSchema.methods.calculateTotals = async function () {
 
 cartSchema.pre("save", async function (next) {
     try {
-        // Populate product details if not already populated
+        
         if (this.items.some(item => typeof item.productId === 'object' && !item.productId.offerDetails)) {
             await mongoose.model('Cart').populate(this, {
                 path: 'items.productId',

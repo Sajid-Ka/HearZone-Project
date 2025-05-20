@@ -1,9 +1,8 @@
-// controllers/user/wishlistController.js
 const Wishlist = require('../../models/wishlistSchema');
 const Product = require('../../models/productSchema');
 const Cart = require('../../models/cartSchema');
 
-// Get wishlist items
+
 const getWishlistItems = async (req, res) => {
     try {
         const userId = req.session.user.id;
@@ -22,7 +21,7 @@ const getWishlistItems = async (req, res) => {
             });
         }
 
-        // Filter out invalid products
+        
         const validProducts = wishlist.products.filter(item => 
             item.productId && 
             !item.productId.isBlocked && 
@@ -46,13 +45,13 @@ const getWishlistItems = async (req, res) => {
     }
 };
 
-// Add to wishlist
+
 const addToWishlist = async (req, res) => {
     try {
         const userId = req.session.user.id;
         const { productId } = req.body;
 
-        // Check if product exists and is available
+        
         const product = await Product.findById(productId)
             .select('isBlocked quantity');
         
@@ -63,7 +62,7 @@ const addToWishlist = async (req, res) => {
             });
         }
 
-        // Check if product is in cart
+       
         const cart = await Cart.findOne({ userId })
             .select('items.productId');
         
@@ -74,7 +73,7 @@ const addToWishlist = async (req, res) => {
             });
         }
 
-        // Check if product is already in wishlist
+       
         const wishlist = await Wishlist.findOne({ userId });
         
         if (wishlist && wishlist.products.some(item => item.productId.toString() === productId)) {
@@ -84,7 +83,7 @@ const addToWishlist = async (req, res) => {
             });
         }
 
-        // Add to wishlist (create if doesn't exist)
+        
         await Wishlist.findOneAndUpdate(
             { userId },
             { $addToSet: { products: { productId } } },
@@ -107,7 +106,7 @@ const addToWishlist = async (req, res) => {
 };
 
 
-// Remove from wishlist
+
 const removeFromWishlist = async (req, res) => {
     try {
         const userId = req.session.user.id;

@@ -2,7 +2,7 @@ const Brand = require('../../models/brandSchema');
 const path = require('path');
 const fs = require('fs');
 
-// Add these helper functions at the top
+
 const moveFile = (oldPath, newPath) => {
     return new Promise((resolve, reject) => {
         fs.rename(oldPath, newPath, (err) => {
@@ -26,7 +26,7 @@ const getAllBrands = async (req, res) => {
             .skip(skip)
             .limit(limit);
 
-        // Check if the request is AJAX (fetch request)
+        
         if (req.get('X-Requested-With') === 'XMLHttpRequest') {
             return res.json({
                 success: true,
@@ -36,7 +36,7 @@ const getAllBrands = async (req, res) => {
             });
         }
 
-        // Render EJS for initial page load
+        
         res.render('brand', {
             brands,
             currentPage: page,
@@ -71,20 +71,20 @@ const addBrand = async (req, res) => {
             return res.json({ success: false, message: 'Brand image is required' });
         }
 
-        // Check if brand name already exists (case-insensitive)
+        
         const existingBrand = await Brand.findOne({
             brandName: { $regex: new RegExp(`^${brandName}$`, 'i') }
         });
 
         if (existingBrand) {
-            // Clean up the uploaded file
+            
             if (req.file) {
                 fs.unlink(req.file.path, () => {});
             }
             return res.json({ success: false, message: 'Brand name already exists' });
         }
 
-        // Move file from temp to re-image directory
+        
         const tempPath = req.file.path;
         const targetPath = path.join(__dirname, `../../public/uploads/re-image/${req.file.filename}`);
         await moveFile(tempPath, targetPath);
@@ -97,7 +97,7 @@ const addBrand = async (req, res) => {
         await newBrand.save();
         res.json({ success: true, message: 'Brand added successfully' });
     } catch (err) {
-        // If there's an error, try to clean up the temp file
+        
         if (req.file) {
             fs.unlink(req.file.path, () => {});
         }
@@ -115,7 +115,7 @@ const updateBrand = async (req, res) => {
             return res.json({ success: false, message: 'Brand image is required' });
         }
 
-        // Move file from temp to re-image directory
+        
         const tempPath = req.file.path;
         const targetPath = path.join(__dirname, `../../public/uploads/re-image/${req.file.filename}`);
         await moveFile(tempPath, targetPath);
@@ -129,7 +129,7 @@ const updateBrand = async (req, res) => {
         await Brand.findByIdAndUpdate(brandId, updateData);
         res.json({ success: true, message: 'Brand updated successfully' });
     } catch (err) {
-        // If there's an error, try to clean up the temp file
+        
         if (req.file) {
             fs.unlink(req.file.path, () => {});
         }
@@ -155,7 +155,7 @@ const toggleBrandStatus = async (req, res) => {
 
 const deleteBrand = async (req, res) => {
     try {
-        // Backend: deleteBrand
+        
         const { brandId } = req.body;
         await Brand.findByIdAndDelete(brandId);
         const totalBrands = await Brand.countDocuments();

@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const User = require('../../models/userSchema');
 const Wallet = require('../../models/walletSchema');
 
-// Initialize Razorpay
+
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET
@@ -123,7 +123,7 @@ const getCheckoutPage = async (req, res) => {
             });
         }
 
-            // Re-apply coupon from cart if session data is missing
+            
             if (cart.couponCode && !req.session.appliedCoupon) {
                 const coupon = await Coupon.findOne({
                     code: cart.couponCode,
@@ -258,7 +258,7 @@ const createRazorpayOrder = async (amount, currency = 'INR') => {
             throw new Error('Invalid amount: Amount must be greater than zero');
         }
 
-        // Convert to paise and ensure it's an integer
+       
         const amountInPaise = Math.round(amount * 100);
         
         if (isNaN(amountInPaise) || !Number.isInteger(amountInPaise)) {
@@ -266,7 +266,7 @@ const createRazorpayOrder = async (amount, currency = 'INR') => {
         }
 
         const options = {
-            amount: amountInPaise, // Already in paise as integer
+            amount: amountInPaise, 
             currency,
             receipt: `receipt_${Date.now()}`,
         };
@@ -329,36 +329,36 @@ const placeOrder = async (req, res) => {
                 });
             }
 
-            // Calculate pricing
+            
             let regularPrice = product.regularPrice;
             let salePrice = regularPrice;
             let productOfferValue = 0;
             let categoryOfferValue = 0;
 
-            // Product offer
+            
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
                 productOfferValue = product.offer.discountType === 'percentage'
                     ? product.offer.discountValue
                     : (product.offer.discountValue / product.regularPrice) * 100;
             }
 
-            // Category offer
+            
             if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
                 categoryOfferValue = product.category.offer.percentage;
             }
 
-            // Apply the maximum discount
+            
             const finalOfferValue = Math.max(productOfferValue, categoryOfferValue);
             if (finalOfferValue > 0) {
                 salePrice = regularPrice * (1 - finalOfferValue / 100);
             }
 
             const quantity = buyNowOrder.quantity;
-            const totalPrice = Number((regularPrice * quantity).toFixed(2)); // Subtotal
-            const productDiscount = Number(((regularPrice - salePrice) * quantity).toFixed(2)); // Offer discount
-            const couponDiscount = Number((buyNowOrder.discountAmount || 0).toFixed(2)); // Coupon discount
-            const shippingCost = Number((0).toFixed(2)); // Adjust if shipping cost is applicable
-            const finalAmount = Number(((salePrice * quantity) - couponDiscount + shippingCost).toFixed(2)); // Final total
+            const totalPrice = Number((regularPrice * quantity).toFixed(2));
+            const productDiscount = Number(((regularPrice - salePrice) * quantity).toFixed(2)); 
+            const couponDiscount = Number((buyNowOrder.discountAmount || 0).toFixed(2)); 
+            const shippingCost = Number((0).toFixed(2)); 
+            const finalAmount = Number(((salePrice * quantity) - couponDiscount + shippingCost).toFixed(2)); 
 
             orderData = {
                 userId,
@@ -406,7 +406,7 @@ const placeOrder = async (req, res) => {
                 let salePrice = regularPrice;
                 let itemDiscount = 0;
 
-                // Calculate discounts from product/category offers
+                
                 let productOfferValue = 0;
                 let categoryOfferValue = 0;
 
@@ -826,7 +826,7 @@ const getOrderFailurePage = async (req, res) => {
         const order = await Order.findOne({ orderId })
             .populate('orderedItems.product');
 
-        delete req.session.buyNowOrder; // Clear buy-now session
+        delete req.session.buyNowOrder; 
 
         res.render('user/order-failure', {
             order: order || { orderId: orderId || 'N/A' },

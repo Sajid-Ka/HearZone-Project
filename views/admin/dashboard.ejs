@@ -274,12 +274,12 @@
 </style>
 
 <section class="content-main dashboard-container">
-    <!-- Header -->
+    
     <div class="content-header">
         <h2 class="content-title">Dashboard Overview</h2>
     </div>
 
-    <!-- Summary Cards -->
+    
     <div class="row">
         <div class="col-md-4">
             <div class="summary-card card-revenue">
@@ -360,7 +360,7 @@
         </div>
     </div>
 
-    <!-- Time Filter -->
+    
     <div class="filter-card">
         <select class="filter-select" onchange="window.location.href='?timeFilter=' + this.value">
             <option value="weekly" <%= timeFilter === 'weekly' ? 'selected' : '' %>>Weekly</option>
@@ -369,7 +369,7 @@
         </select>
     </div>
 
-    <!-- Charts -->
+    
     <div class="row">
         <div class="col-md-6">
             <div class="chart-card">
@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <!-- Tables -->
+    
     <div class="row">
         <div class="col-md-12">
             <div class="table-card">
@@ -545,7 +545,7 @@
                         <tbody>
                             <% dashboardData.recentOrders.slice(0, 5).forEach(order => { %>
                                 <tr>
-                                    <td><a href="/admin/orders/<%= order.orderId %>" style="color: var(--primary-color); text-decoration: none;">#<%= order.orderId.toString().padStart(5, '0') %></a></td>
+                                    <td><a href="/admin/orders/details/<%= order.orderId %>" style="color: var(--primary-color); text-decoration: none;">#<%= order.orderId.toString().padStart(5, '0') %></a></td>
                                     <td><%= order.customer %></td>
                                     <td><%= new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></td>
                                     <td>₹<%= order.totalPrice.toFixed(2) %></td>
@@ -583,7 +583,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Sales Chart
+        
         const salesOptions = {
             series: [{
                 name: 'Revenue',
@@ -638,7 +638,7 @@
         const salesChart = new ApexCharts(document.querySelector("#salesChart"), salesOptions);
         salesChart.render();
 
-        // Customers Chart
+        
         const customersOptions = {
             series: [{
                 name: 'New Customers',
@@ -687,7 +687,7 @@
         const customersChart = new ApexCharts(document.querySelector("#customersChart"), customersOptions);
         customersChart.render();
 
-        // Orders Chart
+        
         const ordersOptions = {
             series: [{
                 name: 'Orders',
@@ -736,7 +736,7 @@
         const ordersChart = new ApexCharts(document.querySelector("#ordersChart"), ordersOptions);
         ordersChart.render();
 
-        // Categories Chart
+       
         const categoriesOptions = {
             series: [{
                 name: 'Sales',

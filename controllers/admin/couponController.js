@@ -20,7 +20,7 @@ const createCoupon = async (req, res) => {
   try {
     const { code, discountType, discount, expirationDate, usageLimit, minOrderValue } = req.body;
 
-    // Validation logic
+    
     if (!code) return res.status(400).json({ field: 'code', message: 'Coupon code is required' });
     if (!discountType) return res.status(400).json({ field: 'discountType', message: 'Discount type is required' });
     if (!discount) return res.status(400).json({ field: 'discount', message: 'Discount value is required' });
@@ -49,7 +49,7 @@ const createCoupon = async (req, res) => {
       minPurchase: parseFloat(minOrderValue),
       usedCount: 0,
       isActive: true,
-      maxDiscount: discountType === 'percentage' ? null : 0, // Adjust based on your logic
+      maxDiscount: discountType === 'percentage' ? null : 0, 
     });
 
     await coupon.save();

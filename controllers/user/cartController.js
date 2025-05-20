@@ -19,7 +19,7 @@ const getCartItems = async (req, res) => {
                 ]
             });
 
-        // Initialize default values
+        
         let cartData = {
             items: [],
             subTotal: 0,
@@ -36,44 +36,44 @@ const getCartItems = async (req, res) => {
             });
         }
 
-        // Filter out invalid items
+        
         const initialItemCount = cart.items.length;
         cart.items = cart.items.filter(item => {
             const product = item.productId;
             if (!product) return false;
             return (
-                !product.isBlocked && // Product is not blocked
-                product.category && product.category.isListed && // Category is listed
-                product.brand && !product.brand.isBlocked // Brand is not blocked
+                !product.isBlocked && 
+                product.category && product.category.isListed && 
+                product.brand && !product.brand.isBlocked 
             );
         });
 
         let needsUpdate = initialItemCount !== cart.items.length;
 
-        // Process remaining items
+      
         const updatedItems = [];
         for (const item of cart.items) {
             const product = item.productId;
 
-            // Calculate the best offer (product or category)
+            
             let productOfferValue = 0;
             let categoryOfferValue = 0;
             let finalOfferValue = 0;
             let offerType = null;
 
-            // Check product offer
+            
             if (product.offer && new Date(product.offer.endDate) > new Date()) {
                 productOfferValue = product.offer.discountType === 'percentage' 
                     ? product.offer.discountValue 
                     : (product.offer.discountValue / product.regularPrice) * 100;
             }
 
-            // Check category offer
+            
             if (product.category?.offer?.isActive && new Date(product.category.offer.endDate) > new Date()) {
                 categoryOfferValue = product.category.offer.percentage;
             }
 
-            // Determine which offer to apply (the bigger one)
+            
             if (productOfferValue > 0 || categoryOfferValue > 0) {
                 if (productOfferValue >= categoryOfferValue) {
                     finalOfferValue = productOfferValue;
@@ -84,20 +84,20 @@ const getCartItems = async (req, res) => {
                 }
             }
 
-            // Calculate sale price
+            
             let salePrice = product.regularPrice;
             if (finalOfferValue > 0) {
                 salePrice = product.regularPrice * (1 - finalOfferValue / 100);
             }
 
-            // Update item price if needed
+            
             if (!item.price || item.price !== salePrice) {
                 item.price = salePrice;
                 item.totalPrice = salePrice * item.quantity;
                 needsUpdate = true;
             }
 
-            // Add offer details to the product object
+            
             product.offerDetails = {
                 regularPrice: product.regularPrice,
                 salePrice: Math.round(salePrice),
@@ -109,14 +109,14 @@ const getCartItems = async (req, res) => {
             updatedItems.push(item);
         }
 
-        // Update cart if needed
+        
         if (needsUpdate) {
             cart.items = updatedItems;
-            await cart.calculateTotals(); // Recalculate totals with filtered items
+            await cart.calculateTotals(); 
             await cart.save();
         }
 
-        // Ensure all amounts are numbers
+        
         const subTotal = Number(cart.subTotal || 0);
         const discountAmount = Number(cart.productDiscount + cart.couponDiscount || 0);
         const finalAmount = Number(Math.round(cart.finalAmount || subTotal - discountAmount));
@@ -291,7 +291,7 @@ const updateQuantity = async (req, res) => {
         const { productId, quantity, action } = req.body;
         const MAX_QUANTITY_PER_ITEM = 5;
 
-        // Validate action
+       
         if (!['increment', 'decrement', 'set'].includes(action)) {
             return res.status(400).json({
                 success: false,
@@ -299,7 +299,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Validate productId
+        
         if (!mongoose.Types.ObjectId.isValid(productId)) {
             return res.status(400).json({
                 success: false,
@@ -307,7 +307,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Find cart with populated product details
+        
         const cart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
@@ -325,7 +325,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Find product in cart
+        
         const itemIndex = cart.items.findIndex(
             item => item.productId && item.productId._id.toString() === productId
         );
@@ -337,7 +337,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Get product details
+        
         const product = cart.items[itemIndex].productId;
         if (!product) {
             return res.status(404).json({
@@ -346,7 +346,7 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Calculate new quantity based on action
+        
         let newQuantity;
         if (action === 'increment') {
             newQuantity = cart.items[itemIndex].quantity + 1;
@@ -356,7 +356,7 @@ const updateQuantity = async (req, res) => {
             newQuantity = Number(quantity);
         }
 
-        // Validate quantity
+        
         if (isNaN(newQuantity) || newQuantity < 1) {
             return res.status(400).json({
                 success: false,
@@ -378,13 +378,13 @@ const updateQuantity = async (req, res) => {
             });
         }
 
-        // Update item quantity
+       
         cart.items[itemIndex].quantity = newQuantity;
 
-        // Save the cart - this will trigger calculateTotals via pre-save hook
+        
         await cart.save();
 
-        // Re-fetch the cart with updated totals
+        
         const updatedCart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
@@ -418,7 +418,7 @@ const removeItem = async (req, res) => {
         const userId = req.session.user.id;
         const { productId } = req.body;
         
-        // First find the cart to get current state
+        
         let cart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
@@ -435,14 +435,14 @@ const removeItem = async (req, res) => {
             });
         }
 
-        // Remove the item from the cart items array
+        
         cart.items = cart.items.filter(item => item.productId._id.toString() !== productId);
 
-        // Recalculate totals
+        
         await cart.calculateTotals();
         await cart.save();
 
-        // Get fresh cart data with populated products
+        
         const updatedCart = await Cart.findOne({ userId })
             .populate({
                 path: 'items.productId',
@@ -470,12 +470,12 @@ const removeItem = async (req, res) => {
 }
     
 
-// Clear cart
+
 const clearCart = async (req, res) => {
     try {
         const userId = req.session.user.id;
         
-        // Clear all items from cart
+        
         const result = await Cart.findOneAndUpdate(
             { userId },
             { 

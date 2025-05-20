@@ -348,10 +348,10 @@ const updateProfileImage = async (req, res) => {
             throw new Error('User not found in database');
         }
 
-        // Check if a file was uploaded
+        
         const file = req.file;
         if (!file) {
-            // Handle Multer's file filter error or no file uploaded
+           
             const errorMessage = req.fileValidationError || 'No file uploaded';
             return res.status(400).render('profile', {
                 user,
@@ -367,7 +367,7 @@ const updateProfileImage = async (req, res) => {
             });
         }
 
-        // Delete old profile image if it exists
+        
         if (user.profileImage) {
             const oldImagePath = path.join(__dirname, '../../public/uploads/profile-images', user.profileImage);
             try {
@@ -381,7 +381,7 @@ const updateProfileImage = async (req, res) => {
             }
         }
 
-        // Process the image with Sharp - including auto-rotation
+        
         const inputFilePath = path.join(__dirname, '../../public/uploads/profile-images', file.filename);
         const tempFilePath = path.join(__dirname, '../../public/uploads/profile-images', `temp-${file.filename}`);
 
@@ -395,7 +395,7 @@ const updateProfileImage = async (req, res) => {
 
         await fs.rename(tempFilePath, inputFilePath);
 
-        // Update user with new profile image
+        
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { profileImage: file.filename },

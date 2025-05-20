@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-    <!-- script -->
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/js/modernizr.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
@@ -26,12 +26,12 @@
   </head>
   <body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-root-margin="0px 0px -40%" data-bs-smooth-scroll="true" tabindex="0">
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-      <!-- Existing SVG symbols remain unchanged -->
+      
       <symbol id="search" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
         <title>Search</title>
         <path fill="currentColor" d="M19 3C13.488 3 9 7.488 9 13c0 2.395.84 4.59 2.25 6.313L3.281 27.28l1.439 1.44l7.968-7.969A9.922 9.922 0 0 0 19 23c5.512 0 10-4.488 10-10S24.512 3 19 3zm0 2c4.43 0 8 3.57 8 8s-3.57 8-8 8s-8-3.57-8-8s3.57-8 8-8z" />
       </symbol>
-      <!-- ... other symbols ... -->
+      
     </svg>  
 
     <header id="header" class="site-header header-scrolled position-fixed text-black bg-light">
@@ -53,7 +53,7 @@
               <button type="button" class="btn-close btn-close-black" data-bs-dismiss="offcanvas" aria-label="Close" data-bs-target="#bdNavbar"></button>
             </div>
             <div class="offcanvas-body">
-              <!-- Centered Navigation Links -->
+              
               <ul class="navbar-nav mx-auto text-uppercase align-items-center">
                 <li class="nav-item">
                   <a class="nav-link me-4 active" href="/">Home</a>
@@ -63,9 +63,9 @@
                 </li>
               </ul>
     
-              <!-- Right-Aligned Icons -->
+              
               <ul class="navbar-nav text-uppercase align-items-center">
-                <!-- Profile Dropdown -->
+                
                 <% if (locals.user) { %>
                   <li class="nav-item" style="display: inline-block; margin-right: 15px;">
                     <div class="dropdown">
@@ -92,7 +92,7 @@
                   </li>
                 <% } %>
     
-                <!-- Wishlist Item -->
+                
                 <li class="nav-item" style="display: inline-block; margin-right: 15px;">
                   <a class="nav-link position-relative" href="/wishlist">
                     <i class="fas fa-heart" style="color: black;"></i>
@@ -104,7 +104,7 @@
                   </a>
                 </li>
     
-                <!-- Cart Item -->
+                
                 <li class="nav-item" style="display: inline-block;">
                   <a class="nav-link position-relative" href="/cart">
                     <i class="fas fa-shopping-cart" style="color: black;"></i>
