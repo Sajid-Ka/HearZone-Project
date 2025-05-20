@@ -2,14 +2,12 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-    
     .order-details-container {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         min-height: 100vh;
         padding: 40px 15px;
     }
 
-    
     .order-card {
         background: white;
         border-radius: 15px;
@@ -37,7 +35,6 @@
         border-radius: 2px;
     }
 
-    
     .btn-back {
         background: #636e72;
         border: none;
@@ -63,7 +60,6 @@
         margin-right: 8px;
     }
 
-    
     .order-info p {
         color: #636e72;
         margin-bottom: 15px;
@@ -77,7 +73,6 @@
         display: inline-block;
     }
 
-    
     .items-section {
         margin: 20px 0;
     }
@@ -90,18 +85,19 @@
 
     .item-row {
         display: grid;
-        grid-template-columns: 60px 2fr 1fr 1fr 1.5fr;
-        align-items: center;
+        grid-template-columns: 80px 2fr 1fr 1fr 1.5fr;
+        align-items: start;
         gap: 15px;
         padding: 15px 0;
         border-bottom: 1px solid #eee;
     }
 
     .item-row img {
-        width: 60px;
-        height: 60px;
+        width: 80px;
+        height: 80px;
         object-fit: cover;
         border-radius: 8px;
+        display: block;
     }
 
     .item-row span {
@@ -116,11 +112,33 @@
         color: #2c3e50;
     }
 
-    .item-row .item-actions {
+    .item-actions {
         display: flex;
-        justify-content: flex-end;
+        flex-wrap: nowrap;
         gap: 8px;
-        margin-top: 5px;
+        margin-top: 10px;
+        justify-content: flex-start;
+        grid-column: 1 / 2;
+        grid-row: 2 / 3;
+    }
+
+    .item-actions .btn {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        border-radius: 15px;
+        min-width: 120px; 
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .rejection-message {
+        color: #dc3545 !important;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 10px;
+        grid-column: 1 / 2;
+        grid-row: 2 / 3;
+        white-space: nowrap;
     }
 
     .badge {
@@ -133,24 +151,42 @@
         white-space: nowrap;
     }
 
-    
     @media (max-width: 768px) {
         .item-row {
             grid-template-columns: 1fr;
             gap: 10px;
         }
-        
+
         .item-row a {
             display: flex;
             justify-content: center;
         }
-        
+
         .item-row .itemSamll {
             justify-content: center;
         }
+
+        .item-actions {
+            justify-content: center;
+            grid-column: 1 / 2;
+            grid-row: auto;
+            flex-wrap: wrap;
+        }
+
+        .item-actions .btn {
+            min-width: 100%; 
+            padding: 10px 20px; 
+        }
+
+        .rejection-message {
+            grid-column: 1 / 2;
+            grid-row: auto;
+            text-align: center;
+            white-space: normal;
+            color: #dc3545 !important; 
+        }
     }
 
-    
     .pricing-section hr {
         margin: 25px 0;
         border-color: #eee;
@@ -168,7 +204,6 @@
         font-size: 1.2rem;
     }
 
-    
     .action-buttons {
         margin-top: 25px;
         display: flex;
@@ -266,23 +301,27 @@
             padding: 20px;
             margin: 15px;
         }
+
         .item-row {
-            flex-direction: column;
-            align-items: flex-start;
+            grid-template-columns: 1fr;
             gap: 10px;
         }
+
         .item-row img {
             margin-bottom: 10px;
         }
+
         .action-buttons {
             flex-direction: column;
             gap: 10px;
         }
+
         .btn-back, .btn-danger, .btn-primary, .btn-warning {
             width: 100%;
         }
     }
 </style>
+
 
 <br>
 <br>
@@ -332,28 +371,28 @@
                     </span>
                     <div class="item-actions">
                         <% if (order.paymentStatus !== 'Failed' && 
-                              item.cancellationStatus === 'None' && 
-                              item.returnStatus === 'None' && 
-                              order.status === 'Pending') { %>
+                            item.cancellationStatus === 'None' && 
+                            item.returnStatus === 'None' && 
+                            order.status === 'Pending') { %>
                             <% if (!item.cancellationRejected) { %>
                                 <button class="btn btn-sm btn-danger cancel-item-btn" 
                                         data-item-index="<%= index %>">
                                     Cancel Item
                                 </button>
                             <% } else { %>
-                                <span class="text-danger small">Cancel request was rejected</span>
+                                <span class="rejection-message">Cancel request was rejected</span>
                             <% } %>
                         <% } %>
                         <% if (order.status === 'Delivered' && 
-                              item.cancellationStatus === 'None' && 
-                              item.returnStatus === 'None') { %>
+                            item.cancellationStatus === 'None' && 
+                            item.returnStatus === 'None') { %>
                             <% if (!item.returnRejected) { %>
                                 <button class="btn btn-sm btn-warning return-item-btn" 
                                         data-item-index="<%= index %>">
                                     Return Item
                                 </button>
                             <% } else { %>
-                                <span class="text-danger small">Return request was rejected</span>
+                                <span class="rejection-message">Return request was rejected</span>
                             <% } %>
                         <% } %>
                         <% if (item.returnStatus === 'Return Request') { %>
