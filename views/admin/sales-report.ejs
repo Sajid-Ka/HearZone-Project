@@ -202,7 +202,7 @@
       <div class="col-md-3">
         <label for="reportType" class="form-label">Report Type</label>
         <select name="reportType" id="reportType" class="form-select" onchange="toggleCustomDate()">
-          <option value="" disabled <%= !reportType ? 'selected' : '' %>>Select Report Type</option>
+          <option value="" disabled>Select Report Type</option>
           <option value="daily" <%= reportType === 'daily' ? 'selected' : '' %>>Daily</option>
           <option value="weekly" <%= reportType === 'weekly' ? 'selected' : '' %>>Weekly</option>
           <option value="monthly" <%= reportType === 'monthly' ? 'selected' : '' %>>Monthly</option>
@@ -212,16 +212,19 @@
       <div class="col-md-3 custom-date">
         <label for="dateFrom" class="form-label">From Date</label>
         <input type="date" name="dateFrom" id="dateFrom" class="form-control" value="<%= dateFrom %>">
+        <% if (error && (error.includes('From Date cannot be later than To Date') || error.includes('From Date and To Date cannot be the same'))) { %>
+          <div class="error"><%= error %></div>
+        <% } %>
       </div>
       <div class="col-md-3 custom-date">
         <label for="dateTo" class="form-label">To Date</label>
         <input type="date" name="dateTo" id="dateTo" class="form-control" value="<%= dateTo %>">
       </div>
       <div class="col-md-3">
-        <label class="form-label"> </label>
+        <label class="form-label"> </label>
         <button type="submit" class="btn btn-primary w-100">Generate Report</button>
       </div>
-      <% if (error) { %>
+      <% if (error && !error.includes('From Date') && !error.includes('To Date')) { %>
         <div class="col-12">
           <div class="error"><%= error %></div>
         </div>
@@ -261,7 +264,7 @@
           <a href="/admin/sales-report/download/pdf?reportType=<%= reportType %>&dateFrom=<%= dateFrom %>&dateTo=<%= dateTo %>" class="btn btn-sm btn-outline-success">
             <i class="fas fa-file-pdf"></i> Download PDF
           </a>
-          <a href="/admin/sales-report/download/excel?reportType=<%= reportType %>&dateFrom=<%= dateFrom %>&dateTo=<%= dateTo %>" class="btn btn-sm btn-outline-success">
+          <a href="/admin/sales-report/download/excel?reportType=<%= reportType %>&dateFrom=<%= dateTo %>&dateTo=<%= dateTo %>" class="btn btn-sm btn-outline-success">
             <i class="fas fa-file-excel"></i> Download Excel
           </a>
         </div>
@@ -284,7 +287,7 @@
               <td>
                 <a href="/admin/orders/details/<%= order.orderId %>"><%= order.orderId %></a>
               </td>
-              <td><%= order.userId.name %></td>
+              <td><%= order.userId?.name || 'Unknown' %></td>
               <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
               <td>₹<%= order.finalAmount.toFixed(2) %></td>
               <td>₹<%= order.discount.toFixed(2) %></td>

@@ -26,11 +26,74 @@ const getDateRange = (reportType, customStart, customEnd) => {
 
 const loadSalesReportPage = async (req, res) => {
   try {
+    const reportType = 'daily';
+    const { start, end } = getDateRange(reportType);
+
+    // Fetch report data for daily
+    const report = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: { $nin: ['Cancelled', 'Returned'] },
+          isVisibleToAdmin: true
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSalesAmount: { $sum: '$finalAmount' },
+          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
+          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
+        }
+      }
+    ]);
+
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: { $nin: ['Cancelled', 'Returned'] },
+          isVisibleToAdmin: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId'
+        }
+      },
+      {
+        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          orderId: 1,
+          createdAt: 1,
+          finalAmount: { $ifNull: ['$finalAmount', 0] },
+          discount: { $ifNull: ['$discount', 0] },
+          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
+          status: 1,
+          'userId.name': 1,
+          'userId.email': 1
+        }
+      }
+    ]);
+
+    const reportData = report[0] || {
+      totalOrders: 0,
+      totalSalesAmount: 0,
+      totalDiscount: 0,
+      totalCouponDiscount: 0
+    };
+
     res.render('admin/sales-report', {
-      reportType: '',
-      dateFrom: '',
-      dateTo: '',
-      report: null,
+      report: { ...reportData, orders },
+      reportType,
+      dateFrom: moment(start).format('YYYY-MM-DD'),
+      dateTo: moment(end).format('YYYY-MM-DD'),
       error: null
     });
   } catch (error) {
@@ -53,14 +116,40 @@ const generateSalesReport = async (req, res) => {
       });
     }
 
-    if (reportType === 'custom' && (!dateFrom || !dateTo)) {
-      return res.render('admin/sales-report', {
-        error: 'Custom date range requires both start and end dates',
-        reportType,
-        dateFrom,
-        dateTo,
-        report: null
-      });
+    if (reportType === 'custom') {
+      if (!dateFrom || !dateTo) {
+        return res.render('admin/sales-report', {
+          error: 'Custom date range requires both start and end dates',
+          reportType,
+          dateFrom,
+          dateTo,
+          report: null
+        });
+      }
+
+      // Validate date range
+      const start = moment(dateFrom);
+      const end = moment(dateTo);
+
+      if (start.isAfter(end)) {
+        return res.render('admin/sales-report', {
+          error: 'From Date cannot be later than To Date',
+          reportType,
+          dateFrom,
+          dateTo,
+          report: null
+        });
+      }
+
+      if (start.isSame(end, 'day')) {
+        return res.render('admin/sales-report', {
+          error: 'From Date and To Date cannot be the same',
+          reportType,
+          dateFrom,
+          dateTo,
+          report: null
+        });
+      }
     }
 
     const { start, end } = getDateRange(reportType, dateFrom, dateTo);
@@ -78,19 +167,44 @@ const generateSalesReport = async (req, res) => {
           _id: null,
           totalOrders: { $sum: 1 },
           totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: '$discount' },
-          totalCouponDiscount: { $sum: '$couponDiscount' }
+          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
+          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
         }
       }
     ]);
 
-    const orders = await Order.find({
-      createdAt: { $gte: start, $lte: end },
-      status: { $nin: ['Cancelled', 'Returned'] },
-      isVisibleToAdmin: true
-    })
-      .populate('userId', 'name email')
-      .lean();
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: { $nin: ['Cancelled', 'Returned'] },
+          isVisibleToAdmin: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId'
+        }
+      },
+      {
+        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          orderId: 1,
+          createdAt: 1,
+          finalAmount: { $ifNull: ['$finalAmount', 0] },
+          discount: { $ifNull: ['$discount', 0] },
+          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
+          status: 1,
+          'userId.name': 1,
+          'userId.email': 1
+        }
+      }
+    ]);
 
     const reportData = report[0] || {
       totalOrders: 0,
@@ -123,10 +237,8 @@ const downloadSalesReportPDF = async (req, res) => {
   try {
     const { reportType, dateFrom, dateTo } = req.query;
 
-    
     const { start, end } = getDateRange(reportType, dateFrom, dateTo);
 
-    
     const report = await Order.aggregate([
       {
         $match: {
@@ -140,19 +252,43 @@ const downloadSalesReportPDF = async (req, res) => {
           _id: null,
           totalOrders: { $sum: 1 },
           totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: '$discount' },
-          totalCouponDiscount: { $sum: '$couponDiscount' }
+          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
+          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
         }
       }
     ]);
 
-    const orders = await Order.find({
-      createdAt: { $gte: start, $lte: end },
-      status: { $nin: ['Cancelled', 'Returned'] },
-      isVisibleToAdmin: true
-    })
-      .populate('userId', 'name')
-      .lean();
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: { $nin: ['Cancelled', 'Returned'] },
+          isVisibleToAdmin: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId'
+        }
+      },
+      {
+        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          orderId: 1,
+          createdAt: 1,
+          finalAmount: { $ifNull: ['$finalAmount', 0] },
+          discount: { $ifNull: ['$discount', 0] },
+          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
+          status: 1,
+          'userId.name': 1
+        }
+      }
+    ]);
 
     const reportData = report[0] || {
       totalOrders: 0,
@@ -161,7 +297,6 @@ const downloadSalesReportPDF = async (req, res) => {
       totalCouponDiscount: 0
     };
 
-    
     const doc = new PDFDocument({ margin: 50 });
     const fileName = `sales_report_${moment().format('YYYYMMDD')}.pdf`;
 
@@ -170,11 +305,9 @@ const downloadSalesReportPDF = async (req, res) => {
 
     doc.pipe(res);
 
-    
     doc.fontSize(20).text('Sales Report', 50, 50, { align: 'center' });
     doc.fontSize(12).text(`Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`, 50, 80, { align: 'center' });
 
-    
     doc.fontSize(14).text('Summary', 50, 120);
     doc.fontSize(10)
        .text(`Total Orders: ${reportData.totalOrders}`, 50, 140)
@@ -182,7 +315,6 @@ const downloadSalesReportPDF = async (req, res) => {
        .text(`Total Discount: ₹${reportData.totalDiscount.toFixed(2)}`, 50, 170)
        .text(`Total Coupon Discount: ₹${reportData.totalCouponDiscount.toFixed(2)}`, 50, 185);
 
-    
     const tableTop = 220;
     doc.font('Helvetica-Bold').fontSize(10)
        .text('Order ID', 50, tableTop)
@@ -192,18 +324,16 @@ const downloadSalesReportPDF = async (req, res) => {
        .text('Discount', 450, tableTop, { align: 'right' });
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
-   
     orders.forEach((order, index) => {
       const y = tableTop + 30 + (index * 20);
       doc.font('Helvetica').fontSize(10)
          .text(order.orderId, 50, y)
-         .text(order.userId.name, 150, y)
+         .text(order.userId?.name || 'Unknown', 150, y) // Handle missing user
          .text(moment(order.createdAt).format('DD/MM/YYYY'), 250, y)
          .text(`₹${order.finalAmount.toFixed(2)}`, 350, y, { align: 'right' })
          .text(`₹${order.discount.toFixed(2)}`, 450, y, { align: 'right' });
     });
 
-    
     doc.fontSize(10).text('Generated by Your E-commerce Platform', 50, 700, { align: 'center' });
 
     doc.end();
