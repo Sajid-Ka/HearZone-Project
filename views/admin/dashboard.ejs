@@ -271,16 +271,24 @@
     ::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
     }
+    .error-message {
+        color: #dc3545;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+    .error-message.show {
+        display: block;
+    }
 </style>
 
 <section class="content-main dashboard-container">
-    
     <div class="content-header">
         <h2 class="content-title">Dashboard Overview</h2>
     </div>
 
-    
     <div class="row">
+        <!-- Summary Cards (unchanged) -->
         <div class="col-md-4">
             <div class="summary-card card-revenue">
                 <div class="summary-icon icon-revenue">
@@ -289,7 +297,7 @@
                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
                 </div>
-                <h5>Total Revenue</h5>
+                <h5>Revenue</h5>
                 <div class="summary-value">₹<%= dashboardData.summary.totalRevenue.toFixed(2) %></div>
                 <div class="summary-growth <%= dashboardData.summary.revenueGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
                     <% if (dashboardData.summary.revenueGrowth >= 0) { %>
@@ -316,7 +324,7 @@
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
                 </div>
-                <h5>Total Customers</h5>
+                <h5>Customers</h5>
                 <div class="summary-value"><%= dashboardData.summary.totalCustomers %></div>
                 <div class="summary-growth <%= dashboardData.summary.customerGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
                     <% if (dashboardData.summary.customerGrowth >= 0) { %>
@@ -342,7 +350,7 @@
                         <path d="M16 10a4 4 0 0 1-8 0"></path>
                     </svg>
                 </div>
-                <h5>Total Orders</h5>
+                <h5>Orders</h5>
                 <div class="summary-value"><%= dashboardData.summary.totalOrders %></div>
                 <div class="summary-growth <%= dashboardData.summary.orderGrowth >= 0 ? 'growth-positive' : 'growth-negative' %>">
                     <% if (dashboardData.summary.orderGrowth >= 0) { %>
@@ -360,16 +368,25 @@
         </div>
     </div>
 
-    
-    <div class="filter-card">
-        <select class="filter-select" onchange="window.location.href='?timeFilter=' + this.value">
+    <div class="filter-card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <input type="date" id="startDate" name="startDate" value="<%= startDate %>" class="filter-select">
+            <span style="margin: 0 10px;">to</span>
+            <input type="date" id="endDate" name="endDate" value="<%= endDate %>" class="filter-select">
+            <button onclick="applyDateFilter()" class="filter-select" style="margin-left: 10px; background-color: #4361ee; color: white;">Apply</button>
+            <div id="dateError" class="error-message <%= dateError ? 'show' : '' %>">
+                <%= dateError || '' %>
+            </div>
+        </div>
+        <select id="timeFilterSelect" class="filter-select">
             <option value="weekly" <%= timeFilter === 'weekly' ? 'selected' : '' %>>Weekly</option>
             <option value="monthly" <%= timeFilter === 'monthly' ? 'selected' : '' %>>Monthly</option>
             <option value="yearly" <%= timeFilter === 'yearly' ? 'selected' : '' %>>Yearly</option>
+            <option value="custom" <%= timeFilter === 'custom' ? 'selected' : '' %>>Custom</option>
         </select>
     </div>
 
-    
+    <!-- Charts and Tables (unchanged, as they already use dashboardData) -->
     <div class="row">
         <div class="col-md-6">
             <div class="chart-card">
@@ -410,7 +427,6 @@
         </div>
     </div>
 
-    
     <div class="row">
         <div class="col-md-12">
             <div class="table-card">
@@ -429,9 +445,9 @@
                                 <tr>
                                     <td><%= index + 1 %></td>
                                     <td class="product-cell">
-                                       <img src="<%= product.productImage && product.productImage.length ? '/Uploads/product-images/' + product.productImage[0] : '/Uploads/product-images/default-product.jpg' %>" 
-                                         alt="<%= product.productName || 'Product image' %>" 
-                                         class="product-image">
+                                        <img src="<%= product.productImage && product.productImage.length ? '/Uploads/product-images/' + product.productImage[0] : '/Uploads/product-images/default-product.jpg' %>" 
+                                             alt="<%= product.productName || 'Product image' %>" 
+                                             class="product-image">
                                         <strong><%= product.productName %></strong>
                                     </td>
                                     <td>
@@ -504,7 +520,7 @@
                                 <tr>
                                     <td><%= index + 1 %></td>
                                     <td class="product-cell">
-                                        <img src="<%= brand.brandImage|| '/images/default-brand.jpg' %>" alt="<%= brand.brandName %>" class="brand-image">
+                                        <img src="<%= brand.brandImage || '/images/default-brand.jpg' %>" alt="<%= brand.brandName %>" class="brand-image">
                                         <strong><%= brand.brandName %></strong>
                                     </td>
                                     <td>
@@ -583,7 +599,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        
+        // Chart rendering (unchanged)
         const salesOptions = {
             series: [{
                 name: 'Revenue',
@@ -638,7 +654,6 @@
         const salesChart = new ApexCharts(document.querySelector("#salesChart"), salesOptions);
         salesChart.render();
 
-        
         const customersOptions = {
             series: [{
                 name: 'New Customers',
@@ -687,7 +702,6 @@
         const customersChart = new ApexCharts(document.querySelector("#customersChart"), customersOptions);
         customersChart.render();
 
-        
         const ordersOptions = {
             series: [{
                 name: 'Orders',
@@ -736,7 +750,6 @@
         const ordersChart = new ApexCharts(document.querySelector("#ordersChart"), ordersOptions);
         ordersChart.render();
 
-       
         const categoriesOptions = {
             series: [{
                 name: 'Sales',
@@ -777,6 +790,53 @@
         };
         const categoriesChart = new ApexCharts(document.querySelector("#categoriesChart"), categoriesOptions);
         categoriesChart.render();
+    });
+
+    function applyDateFilter() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const dateError = document.getElementById('dateError');
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (end < start) {
+                dateError.textContent = 'End date must be after start date';
+                dateError.classList.add('show');
+                return;
+            }
+            if (start.toDateString() === end.toDateString()) {
+                dateError.textContent = 'Start date and end date cannot be the same';
+                dateError.classList.add('show');
+                return;
+            }
+            dateError.classList.remove('show');
+            dateError.textContent = '';
+            window.location.href = `?startDate=${startDate}&endDate=${endDate}`;
+        } else {
+            dateError.textContent = 'Please select both start and end dates';
+            dateError.classList.add('show');
+        }
+    }
+
+    document.getElementById('timeFilterSelect').addEventListener('change', function() {
+        const timeFilter = this.value;
+        const dateError = document.getElementById('dateError');
+        dateError.classList.remove('show');
+        dateError.textContent = '';
+
+        if (timeFilter !== 'custom') {
+            window.location.href = `?timeFilter=${timeFilter}`;
+        } else {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            if (startDate && endDate && new Date(endDate) >= new Date(startDate)) {
+                window.location.href = `?startDate=${startDate}&endDate=${endDate}`;
+            } else {
+                document.getElementById('startDate').value = moment().subtract(6, 'days').format('YYYY-MM-DD');
+                document.getElementById('endDate').value = moment().format('YYYY-MM-DD');
+            }
+        }
     });
 </script>
 <%- include("../partials/admin/footer") %>
