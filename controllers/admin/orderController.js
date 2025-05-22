@@ -77,7 +77,7 @@ const generateItemsTable = (doc, order, y) => {
         }
     });
 
-    
+   
     const subtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
 
     
@@ -95,11 +95,7 @@ const generateItemsTable = (doc, order, y) => {
     generateTotalRow(doc, couponDiscountPosition, 'Coupon Discount', `-₹${(order.couponDiscount || 0).toFixed(2)}`);
 
     
-    const taxPosition = couponDiscountPosition + 20;
-    generateTotalRow(doc, taxPosition, 'Tax', `₹${order.taxes.toFixed(2)}`);
-
-    
-    const shippingPosition = taxPosition + 20;
+    const shippingPosition = couponDiscountPosition + 20;
     generateTotalRow(doc, shippingPosition, 'Shipping', `₹${order.shippingCost.toFixed(2)}`);
 
     
