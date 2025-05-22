@@ -71,12 +71,11 @@ async function getDashboardData(timeFilter, startDate, endDate) {
     let dateRange, labels, format;
     const now = moment();
 
-    
+    // Date range and labels logic remains unchanged
     if (startDate && endDate) {
         timeFilter = 'custom';
     }
 
-    
     switch (timeFilter) {
         case 'weekly':
             startDate = moment().subtract(6, 'days').startOf('day').toDate();
@@ -126,7 +125,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
 
     dateRange = { startDate, endDate };
 
-    
+    // Previous period logic remains unchanged
     let previousStartDate, previousEndDate;
     if (startDate && endDate) {
         const daysDiff = moment(endDate).diff(moment(startDate), 'days');
@@ -149,7 +148,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
         }
     }
 
-    
+    // Modified aggregations to exclude cancelled items
     const [
         totalRevenue,
         totalCustomers,
@@ -169,7 +168,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
         topSellingCategories,
         topSellingBrands
     ] = await Promise.all([
-        
+        // Total Revenue: Exclude cancelled items
         Order.aggregate([
             {
                 $match: {
@@ -179,33 +178,33 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $unwind: '$orderedItems' },
             {
+                $match: {
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
+                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                }
+            },
+            {
                 $group: {
                     _id: null,
                     total: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
-                                0,
-                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
-                            ]
-                        }
+                        $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
                     }
                 }
             }
         ]),
-        
+        // Total Customers (unchanged)
         timeFilter === 'yearly'
             ? User.countDocuments({ isAdmin: false })
             : User.countDocuments({
                   createdAt: { $gte: startDate, $lte: endDate },
                   isAdmin: false
               }),
-        
+        // Total Orders (unchanged)
         Order.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             status: { $nin: ['cancelled', 'failed'] }
         }),
-        
+        // Current Period Revenue: Exclude cancelled items
         Order.aggregate([
             {
                 $match: {
@@ -215,21 +214,21 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $unwind: '$orderedItems' },
             {
+                $match: {
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
+                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                }
+            },
+            {
                 $group: {
                     _id: null,
                     total: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
-                                0,
-                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
-                            ]
-                        }
+                        $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
                     }
                 }
             }
         ]),
-        
+        // Previous Period Revenue: Exclude cancelled items
         Order.aggregate([
             {
                 $match: {
@@ -239,41 +238,41 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $unwind: '$orderedItems' },
             {
+                $match: {
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
+                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                }
+            },
+            {
                 $group: {
                     _id: null,
                     total: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
-                                0,
-                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
-                            ]
-                        }
+                        $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
                     }
                 }
             }
         ]),
-        
+        // Current Period Customers (unchanged)
         User.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             isAdmin: false
         }),
-        
+        // Previous Period Customers (unchanged)
         User.countDocuments({
             createdAt: { $gte: previousStartDate, $lte: previousEndDate },
             isAdmin: false
         }),
-        
+        // Current Period Orders (unchanged)
         Order.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             status: { $nin: ['cancelled', 'failed'] }
         }),
-        
+        // Previous Period Orders (unchanged)
         Order.countDocuments({
             createdAt: { $gte: previousStartDate, $lte: previousEndDate },
             status: { $nin: ['cancelled', 'failed'] }
         }),
-        
+        // Sales by Period: Exclude cancelled items
         Order.aggregate([
             {
                 $match: {
@@ -283,6 +282,12 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $unwind: '$orderedItems' },
             {
+                $match: {
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
+                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                }
+            },
+            {
                 $group: {
                     _id: timeFilter === 'custom' || timeFilter === 'weekly'
                         ? { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
@@ -290,19 +295,13 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                             ? { $dateToString: { format: '%Y', date: '$createdAt' } }
                             : { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
                     total: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$orderedItems.returnStatus', 'Returned'] },
-                                0,
-                                { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
-                            ]
-                        }
+                        $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
                     }
                 }
             },
             { $sort: { '_id': 1 } }
         ]),
-        
+        // Customers by Period (unchanged)
         User.aggregate([
             {
                 $match: {
@@ -322,7 +321,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $sort: { '_id': 1 } }
         ]),
-        
+        // Orders by Period (unchanged)
         Order.aggregate([
             {
                 $match: {
@@ -342,7 +341,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $sort: { '_id': 1 } }
         ]),
-        
+        // Category Performance (unchanged)
         Order.aggregate([
             {
                 $match: {
@@ -387,16 +386,20 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $sort: { totalSales: -1 } },
             { $limit: 5 }
         ]),
-        
-        Order.aggregate([
+        // Recent Orders (unchanged)
+       Order.aggregate([
             {
                 $match: {
                     createdAt: { $gte: startDate, $lte: endDate },
                     status: 'Delivered'
                 }
             },
-            { $sort: { createdAt: -1 } },
-            { $limit: 5 },
+            { $unwind: '$orderedItems' }, // Unwind orderedItems to process each item individually
+            {
+                $match: {
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' } // Exclude cancelled items
+                }
+            },
             {
                 $lookup: {
                     from: 'users',
@@ -414,12 +417,25 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                     as: 'productDetails'
                 }
             },
+            { $unwind: '$productDetails' },
+            {
+                $group: {
+                    _id: '$_id', // Group by order ID to reconstruct the order
+                    orderId: { $first: '$orderId' },
+                    customer: { $first: '$userDetails.name' },
+                    product: { $first: '$productDetails.productName' }, // Take first product name for display
+                    date: { $first: '$createdAt' },
+                    status: { $first: '$status' },
+                    orderedItems: { $push: '$orderedItems' } // Collect non-cancelled items
+                }
+            },
             {
                 $project: {
                     orderId: 1,
-                    customer: '$userDetails.name',
-                    product: { $arrayElemAt: ['$productDetails.productName', 0] },
-                    date: '$createdAt',
+                    customer: 1,
+                    product: 1,
+                    date: 1,
+                    status: 1,
                     totalPrice: {
                         $reduce: {
                             input: '$orderedItems',
@@ -437,12 +453,13 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                                 ]
                             }
                         }
-                    },
-                    status: 1
+                    }
                 }
-            }
+            },
+            { $sort: { date: -1 } },
+            { $limit: 5 }
         ]),
-        
+        // Top Selling Products (unchanged)
         Order.aggregate([
             {
                 $match: {
@@ -476,7 +493,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                 }
             }
         ]),
-        
+        // Top Selling Categories (unchanged)
         Order.aggregate([
             {
                 $match: {
@@ -513,7 +530,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $sort: { totalSold: -1 } },
             { $limit: 5 }
         ]),
-        
+        // Top Selling Brands (unchanged)
         Order.aggregate([
             {
                 $match: {

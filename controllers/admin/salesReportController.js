@@ -33,17 +33,34 @@ const loadSalesReportPage = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          totalSalesAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
         }
       },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
-          totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
-          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
+          totalSalesAmount: { $sum: '$totalSalesAmount' },
+          totalDiscount: { $sum: '$discount' },
+          totalCouponDiscount: { $sum: '$couponDiscount' }
         }
       }
     ]);
@@ -52,8 +69,15 @@ const loadSalesReportPage = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
         }
       },
       {
@@ -64,20 +88,38 @@ const loadSalesReportPage = async (req, res) => {
           as: 'userId'
         }
       },
+      { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } },
       {
-        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+        $group: {
+          _id: '$_id',
+          orderId: { $first: '$orderId' },
+          createdAt: { $first: '$createdAt' },
+          status: { $first: '$status' },
+          userName: { $first: '$userId.name' },
+          userEmail: { $first: '$userId.email' },
+          itemAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
+        }
       },
       {
         $project: {
           orderId: 1,
           createdAt: 1,
-          finalAmount: { $ifNull: ['$finalAmount', 0] },
-          discount: { $ifNull: ['$discount', 0] },
-          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
-          totalAmountWithDiscount: { $add: [{ $ifNull: ['$finalAmount', 0] }, { $ifNull: ['$discount', 0] }] }, // Add new field
+          finalAmount: {
+            $subtract: [
+              '$itemAmount',
+              { $add: ['$discount', '$couponDiscount'] }
+            ]
+          },
+          discount: 1,
+          couponDiscount: 1,
+          totalAmountWithDiscount: '$itemAmount',
           status: 1,
-          'userId.name': 1,
-          'userId.email': 1
+          'userId.name': '$userName',
+          'userId.email': '$userEmail'
         }
       }
     ]);
@@ -88,9 +130,6 @@ const loadSalesReportPage = async (req, res) => {
       totalDiscount: 0,
       totalCouponDiscount: 0
     };
-
-    // Adjust totalSalesAmount to include totalDiscount
-    reportData.totalSalesAmount = (reportData.totalSalesAmount || 0) + (reportData.totalDiscount || 0);
 
     res.render('admin/sales-report', {
       report: { ...reportData, orders },
@@ -160,17 +199,34 @@ const generateSalesReport = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          totalSalesAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
         }
       },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
-          totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
-          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
+          totalSalesAmount: { $sum: '$totalSalesAmount' },
+          totalDiscount: { $sum: '$discount' },
+          totalCouponDiscount: { $sum: '$couponDiscount' }
         }
       }
     ]);
@@ -179,8 +235,15 @@ const generateSalesReport = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
         }
       },
       {
@@ -191,20 +254,38 @@ const generateSalesReport = async (req, res) => {
           as: 'userId'
         }
       },
+      { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } },
       {
-        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+        $group: {
+          _id: '$_id',
+          orderId: { $first: '$orderId' },
+          createdAt: { $first: '$createdAt' },
+          status: { $first: '$status' },
+          userName: { $first: '$userId.name' },
+          userEmail: { $first: '$userId.email' },
+          itemAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
+        }
       },
       {
         $project: {
           orderId: 1,
           createdAt: 1,
-          finalAmount: { $ifNull: ['$finalAmount', 0] },
-          discount: { $ifNull: ['$discount', 0] },
-          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
-          totalAmountWithDiscount: { $add: [{ $ifNull: ['$finalAmount', 0] }, { $ifNull: ['$discount', 0] }] }, // Add new field
+          finalAmount: {
+            $subtract: [
+              '$itemAmount',
+              { $add: ['$discount', '$couponDiscount'] }
+            ]
+          },
+          discount: 1,
+          couponDiscount: 1,
+          totalAmountWithDiscount: '$itemAmount',
           status: 1,
-          'userId.name': 1,
-          'userId.email': 1
+          'userId.name': '$userName',
+          'userId.email': '$userEmail'
         }
       }
     ]);
@@ -215,9 +296,6 @@ const generateSalesReport = async (req, res) => {
       totalDiscount: 0,
       totalCouponDiscount: 0
     };
-
-    // Adjust totalSalesAmount to include totalDiscount
-    reportData.totalSalesAmount = (reportData.totalSalesAmount || 0) + (reportData.totalDiscount || 0);
 
     res.render('admin/sales-report', {
       report: { ...reportData, orders },
@@ -238,7 +316,6 @@ const generateSalesReport = async (req, res) => {
   }
 };
 
-
 const downloadSalesReportPDF = async (req, res) => {
   try {
     const { reportType, dateFrom, dateTo } = req.query;
@@ -249,17 +326,34 @@ const downloadSalesReportPDF = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          totalSalesAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
         }
       },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
-          totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
-          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
+          totalSalesAmount: { $sum: '$totalSalesAmount' },
+          totalDiscount: { $sum: '$discount' },
+          totalCouponDiscount: { $sum: '$couponDiscount' }
         }
       }
     ]);
@@ -268,8 +362,15 @@ const downloadSalesReportPDF = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
         }
       },
       {
@@ -280,19 +381,36 @@ const downloadSalesReportPDF = async (req, res) => {
           as: 'userId'
         }
       },
+      { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } },
       {
-        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+        $group: {
+          _id: '$_id',
+          orderId: { $first: '$orderId' },
+          createdAt: { $first: '$createdAt' },
+          status: { $first: '$status' },
+          userName: { $first: '$userId.name' },
+          itemAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
+        }
       },
       {
         $project: {
           orderId: 1,
           createdAt: 1,
-          finalAmount: { $ifNull: ['$finalAmount', 0] },
-          discount: { $ifNull: ['$discount', 0] },
-          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
-          totalAmountWithDiscount: { $add: [{ $ifNull: ['$finalAmount', 0] }, { $ifNull: ['$discount', 0] }] }, // Add new field
+          finalAmount: {
+            $subtract: [
+              '$itemAmount',
+              { $add: ['$discount', '$couponDiscount'] }
+            ]
+          },
+          discount: 1,
+          couponDiscount: 1,
+          totalAmountWithDiscount: '$itemAmount',
           status: 1,
-          'userId.name': 1
+          'userId.name': '$userName'
         }
       }
     ]);
@@ -304,9 +422,6 @@ const downloadSalesReportPDF = async (req, res) => {
       totalCouponDiscount: 0
     };
 
-    // Adjust totalSalesAmount to include totalDiscount
-    reportData.totalSalesAmount = (reportData.totalSalesAmount || 0) + (reportData.totalDiscount || 0);
-
     const doc = new PDFDocument({ margin: 50 });
     const fileName = `sales_report_${moment().format('YYYYMMDD')}.pdf`;
 
@@ -316,7 +431,7 @@ const downloadSalesReportPDF = async (req, res) => {
     doc.pipe(res);
 
     doc.fontSize(20).text('Sales Report', 50, 50, { align: 'center' });
-    doc.fontSize(12).text(`Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`, 50, 80, { align: 'center' });
+    doc.fontSize(12).font('Courier').text(`Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`, 50, 80, { align: 'center' });
 
     doc.fontSize(14).text('Summary', 50, 120);
     doc.fontSize(10)
@@ -340,7 +455,7 @@ const downloadSalesReportPDF = async (req, res) => {
          .text(order.orderId, 50, y)
          .text(order.userId?.name || 'Unknown', 150, y)
          .text(moment(order.createdAt).format('DD/MM/YYYY'), 250, y)
-         .text(`₹${order.totalAmountWithDiscount.toFixed(2)}`, 350, y) 
+         .text(`₹${order.finalAmount.toFixed(2)}`, 350, y)
          .text(`₹${order.discount.toFixed(2)}`, 450, y);
     });
 
@@ -353,7 +468,6 @@ const downloadSalesReportPDF = async (req, res) => {
   }
 };
 
-
 const downloadSalesReportExcel = async (req, res) => {
   try {
     const { reportType, dateFrom, dateTo } = req.query;
@@ -364,17 +478,34 @@ const downloadSalesReportExcel = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          totalSalesAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
         }
       },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
-          totalSalesAmount: { $sum: '$finalAmount' },
-          totalDiscount: { $sum: { $ifNull: ['$discount', 0] } },
-          totalCouponDiscount: { $sum: { $ifNull: ['$couponDiscount', 0] } }
+          totalSalesAmount: { $sum: '$totalSalesAmount' },
+          totalDiscount: { $sum: '$discount' },
+          totalCouponDiscount: { $sum: '$couponDiscount' }
         }
       }
     ]);
@@ -383,8 +514,15 @@ const downloadSalesReportExcel = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          status: { $nin: ['Cancelled', 'Returned'] },
+          status: { $nin: ['Cancelled', 'Returned', 'pending', 'failed'] },
           isVisibleToAdmin: true
+        }
+      },
+      { $unwind: '$orderedItems' },
+      {
+        $match: {
+          'orderedItems.cancellationStatus': { $ne: 'Cancelled' },
+          'orderedItems.returnStatus': { $ne: 'Returned' }
         }
       },
       {
@@ -395,19 +533,36 @@ const downloadSalesReportExcel = async (req, res) => {
           as: 'userId'
         }
       },
+      { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } },
       {
-        $unwind: { path: '$userId', preserveNullAndEmptyArrays: true }
+        $group: {
+          _id: '$_id',
+          orderId: { $first: '$orderId' },
+          createdAt: { $first: '$createdAt' },
+          status: { $first: '$status' },
+          userName: { $first: '$userId.name' },
+          itemAmount: {
+            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+          },
+          discount: { $first: { $ifNull: ['$discount', 0] } },
+          couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
+        }
       },
       {
         $project: {
           orderId: 1,
           createdAt: 1,
-          finalAmount: { $ifNull: ['$finalAmount', 0] },
-          discount: { $ifNull: ['$discount', 0] },
-          couponDiscount: { $ifNull: ['$couponDiscount', 0] },
-          totalAmountWithDiscount: { $add: [{ $ifNull: ['$finalAmount', 0] }, { $ifNull: ['$discount', 0] }] }, // Add new field
+          finalAmount: {
+            $subtract: [
+              '$itemAmount',
+              { $add: ['$discount', '$couponDiscount'] }
+            ]
+          },
+          discount: 1,
+          couponDiscount: 1,
+          totalAmountWithDiscount: '$itemAmount',
           status: 1,
-          'userId.name': 1
+          'userId.name': '$userName'
         }
       }
     ]);
@@ -418,9 +573,6 @@ const downloadSalesReportExcel = async (req, res) => {
       totalDiscount: 0,
       totalCouponDiscount: 0
     };
-
-    // Adjust totalSalesAmount to include totalDiscount
-    reportData.totalSalesAmount = (reportData.totalSalesAmount || 0) + (reportData.totalDiscount || 0);
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sales Report');
@@ -443,7 +595,7 @@ const downloadSalesReportExcel = async (req, res) => {
         order.orderId,
         order.userId?.name || 'Unknown',
         moment(order.createdAt).format('DD/MM/YYYY'),
-        `₹${order.totalAmountWithDiscount.toFixed(2)}`, // Use totalAmountWithDiscount
+        `₹${order.finalAmount.toFixed(2)}`,
         `₹${order.discount.toFixed(2)}`,
         `₹${order.couponDiscount.toFixed(2)}`,
         order.status
