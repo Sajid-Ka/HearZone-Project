@@ -444,9 +444,10 @@ const downloadSalesReportPDF = async (req, res) => {
     doc.font('Helvetica-Bold').fontSize(10)
        .text('Order ID', 50, tableTop)
        .text('Customer', 150, tableTop)
-       .text('Date', 250, tableTop)
-       .text('Amount', 350, tableTop)
-       .text('Discount', 450, tableTop);
+       .text('Date', 230, tableTop)
+       .text('Amount', 300, tableTop)
+       .text('Discount', 380, tableTop)
+       .text('Coupondiscount', 460 , tableTop)
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
     orders.forEach((order, index) => {
@@ -454,9 +455,10 @@ const downloadSalesReportPDF = async (req, res) => {
       doc.font('Helvetica').fontSize(10)
          .text(order.orderId, 50, y)
          .text(order.userId?.name || 'Unknown', 150, y)
-         .text(moment(order.createdAt).format('DD/MM/YYYY'), 250, y)
-         .text(`₹${order.finalAmount.toFixed(2)}`, 350, y)
-         .text(`₹${order.discount.toFixed(2)}`, 450, y);
+         .text(moment(order.createdAt).format('DD/MM/YYYY'), 230, y)
+         .text(`₹${(order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2)}`, 300, y)
+         .text(`₹${order.discount.toFixed(2)}`, 380, y)
+         .text(`₹${ order.couponDiscount.toFixed(2)}`, 460, y)
     });
 
     doc.fontSize(10).text('by HearZone', 50, 700, { align: 'center' });
@@ -595,7 +597,7 @@ const downloadSalesReportExcel = async (req, res) => {
         order.orderId,
         order.userId?.name || 'Unknown',
         moment(order.createdAt).format('DD/MM/YYYY'),
-        `₹${order.finalAmount.toFixed(2)}`,
+        `₹${(order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2)}`,
         `₹${order.discount.toFixed(2)}`,
         `₹${order.couponDiscount.toFixed(2)}`,
         order.status
