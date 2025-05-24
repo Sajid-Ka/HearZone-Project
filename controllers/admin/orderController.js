@@ -108,7 +108,7 @@ const generateItemsTable = (doc, order, y) => {
     
     const totalPosition = returnedItemsTotal > 0 ? returnedItemsPosition + 20 : shippingPosition + 20;
     doc.font('Helvetica-Bold');
-    generateTotalRow(doc, totalPosition, 'Total', `₹${(order.totalPrice - returnedItemsTotal).toFixed(2)}`);
+    generateTotalRow(doc, totalPosition, 'Total', `₹${(order.totalPrice - (returnedItemsTotal + order.couponDiscount || 0)).toFixed(2)}`);
     doc.font('Helvetica');
 };
 

@@ -71,7 +71,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
     let dateRange, labels, format;
     const now = moment();
 
-    // Date range and labels logic remains unchanged
+    
     if (startDate && endDate) {
         timeFilter = 'custom';
     }
@@ -125,7 +125,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
 
     dateRange = { startDate, endDate };
 
-    // Previous period logic remains unchanged
+    
     let previousStartDate, previousEndDate;
     if (startDate && endDate) {
         const daysDiff = moment(endDate).diff(moment(startDate), 'days');
@@ -148,7 +148,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
         }
     }
 
-    // Modified aggregations to exclude cancelled items
+    
     const [
         totalRevenue,
         totalCustomers,
@@ -168,7 +168,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
         topSellingCategories,
         topSellingBrands
     ] = await Promise.all([
-        // Total Revenue: Exclude cancelled items
+        // Total Revenue
         Order.aggregate([
             {
                 $match: {
@@ -179,8 +179,8 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $unwind: '$orderedItems' },
             {
                 $match: {
-                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
-                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, 
+                    'orderedItems.returnStatus': { $ne: 'Returned' } 
                 }
             },
             {
@@ -192,19 +192,19 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                 }
             }
         ]),
-        // Total Customers (unchanged)
+        // Total Customers 
         timeFilter === 'yearly'
             ? User.countDocuments({ isAdmin: false })
             : User.countDocuments({
                   createdAt: { $gte: startDate, $lte: endDate },
                   isAdmin: false
               }),
-        // Total Orders (unchanged)
+        // Total Orders 
         Order.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             status: { $nin: ['cancelled', 'failed'] }
         }),
-        // Current Period Revenue: Exclude cancelled items
+        // Current Period Revenue
         Order.aggregate([
             {
                 $match: {
@@ -215,8 +215,8 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $unwind: '$orderedItems' },
             {
                 $match: {
-                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
-                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, 
+                    'orderedItems.returnStatus': { $ne: 'Returned' } 
                 }
             },
             {
@@ -228,7 +228,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                 }
             }
         ]),
-        // Previous Period Revenue: Exclude cancelled items
+        // Previous Period Revenue
         Order.aggregate([
             {
                 $match: {
@@ -239,8 +239,8 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $unwind: '$orderedItems' },
             {
                 $match: {
-                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
-                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, 
+                    'orderedItems.returnStatus': { $ne: 'Returned' } 
                 }
             },
             {
@@ -252,22 +252,22 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                 }
             }
         ]),
-        // Current Period Customers (unchanged)
+        // Current Period Customers 
         User.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             isAdmin: false
         }),
-        // Previous Period Customers (unchanged)
+        // Previous Period Customers 
         User.countDocuments({
             createdAt: { $gte: previousStartDate, $lte: previousEndDate },
             isAdmin: false
         }),
-        // Current Period Orders (unchanged)
+        // Current Period Orders 
         Order.countDocuments({
             createdAt: { $gte: startDate, $lte: endDate },
             status: { $nin: ['cancelled', 'failed'] }
         }),
-        // Previous Period Orders (unchanged)
+        // Previous Period Orders 
         Order.countDocuments({
             createdAt: { $gte: previousStartDate, $lte: previousEndDate },
             status: { $nin: ['cancelled', 'failed'] }
@@ -283,8 +283,8 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $unwind: '$orderedItems' },
             {
                 $match: {
-                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, // Exclude cancelled items
-                    'orderedItems.returnStatus': { $ne: 'Returned' } // Exclude returned items
+                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' }, 
+                    'orderedItems.returnStatus': { $ne: 'Returned' } 
                 }
             },
             {
@@ -301,7 +301,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $sort: { '_id': 1 } }
         ]),
-        // Customers by Period (unchanged)
+        // Customers by Period 
         User.aggregate([
             {
                 $match: {
@@ -321,7 +321,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $sort: { '_id': 1 } }
         ]),
-        // Orders by Period (unchanged)
+        // Orders by Period 
         Order.aggregate([
             {
                 $match: {
@@ -341,7 +341,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             },
             { $sort: { '_id': 1 } }
         ]),
-        // Category Performance (unchanged)
+        // Category Performance 
         Order.aggregate([
             {
                 $match: {
@@ -386,7 +386,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $sort: { totalSales: -1 } },
             { $limit: 5 }
         ]),
-       // In your getDashboardData function, update the recentOrders aggregation:
+       
   Order.aggregate([
     {
         $match: {
@@ -439,7 +439,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
     { $sort: { date: -1 } },
     { $limit: 5 }
 ]),
-        // Top Selling Products (unchanged)
+        // Top Selling Products 
         Order.aggregate([
             {
                 $match: {
@@ -473,7 +473,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
                 }
             }
         ]),
-        // Top Selling Categories (unchanged)
+        // Top Selling Categories 
         Order.aggregate([
             {
                 $match: {
@@ -510,7 +510,7 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $sort: { totalSold: -1 } },
             { $limit: 5 }
         ]),
-        // Top Selling Brands (unchanged)
+        // Top Selling Brands 
         Order.aggregate([
             {
                 $match: {

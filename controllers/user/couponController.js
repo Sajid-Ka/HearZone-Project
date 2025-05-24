@@ -48,7 +48,7 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
         }
 
-        // Add user to usersUsed array and increment usedCount
+        
         coupon.usersUsed.push(userId);
         coupon.usedCount += 1;
         await coupon.save();
@@ -196,7 +196,7 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
-            // Use findOneAndUpdate with atomic operations
+            
             const coupon = await Coupon.findOneAndUpdate(
                 { 
                     code: buyNowOrder.couponCode,
@@ -258,7 +258,7 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
-            // Use findOneAndUpdate with atomic operations
+            
             const coupon = await Coupon.findOneAndUpdate(
                 { 
                     code: cart.couponCode,
