@@ -200,9 +200,9 @@ const getOrderDetails = async (req, res) => {
         }
 
         
-        const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0);
+        const newSubtotal = (order.totalPrice || 0) + (order.discount || 0) ;
 
-        let totalPrice = order.totalPrice;
+        let totalPrice = order.totalPrice - (order.couponDiscount || 0);
 
         res.render('user/order-details', {
             totalPrice,

@@ -564,7 +564,7 @@
                                     <td><a href="/admin/orders/details/<%= order.orderId %>" style="color: var(--primary-color); text-decoration: none;">#<%= order.orderId.toString().padStart(5, '0') %></a></td>
                                     <td><%= order.customer %></td>
                                     <td><%= new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></td>
-                                    <td>₹<%= order.totalPrice.toFixed(2) %></td>
+                                    <td>₹<%= (order.finalAmount || order.totalPrice || 0).toFixed(2) %></td>
                                     <td>
                                         <% 
                                         let statusClass = '';

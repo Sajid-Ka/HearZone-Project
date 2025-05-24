@@ -386,79 +386,59 @@ async function getDashboardData(timeFilter, startDate, endDate) {
             { $sort: { totalSales: -1 } },
             { $limit: 5 }
         ]),
-        // Recent Orders (unchanged)
-       Order.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: startDate, $lte: endDate },
-                    status: 'Delivered'
+       // In your getDashboardData function, update the recentOrders aggregation:
+  Order.aggregate([
+    {
+        $match: {
+            createdAt: { $gte: startDate, $lte: endDate },
+            status: 'Delivered'
+        }
+    },
+    {
+        $project: {
+            orderId: 1,
+            userId: 1,
+            totalPrice: 1,
+            couponDiscount: { $ifNull: ["$couponDiscount", 0] },
+            status: 1,
+            createdAt: 1,
+            orderedItems: {
+                $filter: {
+                    input: "$orderedItems",
+                    as: "item",
+                    cond: { $ne: ["$$item.cancellationStatus", "Cancelled"] }
                 }
-            },
-            { $unwind: '$orderedItems' }, // Unwind orderedItems to process each item individually
-            {
-                $match: {
-                    'orderedItems.cancellationStatus': { $ne: 'Cancelled' } // Exclude cancelled items
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'userId',
-                    foreignField: '_id',
-                    as: 'userDetails'
-                }
-            },
-            { $unwind: '$userDetails' },
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: 'orderedItems.product',
-                    foreignField: '_id',
-                    as: 'productDetails'
-                }
-            },
-            { $unwind: '$productDetails' },
-            {
-                $group: {
-                    _id: '$_id', // Group by order ID to reconstruct the order
-                    orderId: { $first: '$orderId' },
-                    customer: { $first: '$userDetails.name' },
-                    product: { $first: '$productDetails.productName' }, // Take first product name for display
-                    date: { $first: '$createdAt' },
-                    status: { $first: '$status' },
-                    orderedItems: { $push: '$orderedItems' } // Collect non-cancelled items
-                }
-            },
-            {
-                $project: {
-                    orderId: 1,
-                    customer: 1,
-                    product: 1,
-                    date: 1,
-                    status: 1,
-                    totalPrice: {
-                        $reduce: {
-                            input: '$orderedItems',
-                            initialValue: 0,
-                            in: {
-                                $add: [
-                                    '$$value',
-                                    {
-                                        $cond: [
-                                            { $eq: ['$$this.returnStatus', 'Returned'] },
-                                            0,
-                                            { $multiply: ['$$this.price', '$$this.quantity'] }
-                                        ]
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            { $sort: { date: -1 } },
-            { $limit: 5 }
-        ]),
+            }
+        }
+    },
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'user'
+        }
+    },
+    { $unwind: '$user' },
+    {
+        $project: {
+            orderId: 1,
+            customer: '$user.name',
+            date: '$createdAt',
+            status: 1,
+            totalPrice: 1,
+            couponDiscount: 1,
+            finalAmount: {
+                $subtract: [
+                    '$totalPrice',
+                    '$couponDiscount'
+                ]
+            }
+        }
+    },
+    { $sort: { date: -1 } },
+    { $limit: 5 }
+]),
         // Top Selling Products (unchanged)
         Order.aggregate([
             {

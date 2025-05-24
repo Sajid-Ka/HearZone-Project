@@ -393,7 +393,7 @@
                                 }
                             });
                             %>
-                            ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
+                            ₹<%= (order.totalPrice - (order.couponDiscount || 0 + returnedItemsTotal)).toFixed(2) %>
                         </div>
                     </div>
                     

@@ -273,7 +273,7 @@
                                     }
                                 });
                                 %>
-                                <p>Total: ₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %>
+                                <p>Total: ₹<%= (order.totalPrice - (order.couponDiscount || 0 + returnedItemsTotal)).toFixed(2) %>
                                 </p>
                                 <a href="/orders/<%= order.orderId %>" class="btn btn-link">View Details</a>
                             </div>

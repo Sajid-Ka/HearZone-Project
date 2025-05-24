@@ -393,7 +393,7 @@
         <div style="max-width: 400px; margin-left: auto;">
             <div class="summary-row">
                 <span class="summary-label">Subtotal</span>
-                <span class="summary-value">₹<%= ((order.totalPrice || 0) + (order.discount || 0) + (order.couponDiscount || 0)).toFixed(2) %></span>
+                <span class="summary-value">₹<%= ((order.totalPrice || 0) + (order.discount || 0)).toFixed(2) %></span>
             </div>
             
             <% if (order.discount > 0) { %>
@@ -430,7 +430,7 @@
             
             <div class="summary-row total-row">
                 <span>Total</span>
-                <span>₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %></span>
+                <span>₹<%= (order.totalPrice - (order.couponDiscount || 0 + returnedItemsTotal)).toFixed(2) %></span>
             </div>
         </div>
     </div>

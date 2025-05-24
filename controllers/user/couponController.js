@@ -48,6 +48,11 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
         }
 
+        // Add user to usersUsed array and increment usedCount
+        coupon.usersUsed.push(userId);
+        coupon.usedCount += 1;
+        await coupon.save();
+
         let subTotal = 0;
         let discountAmount = 0;
         let couponDiscount = 0;
@@ -191,6 +196,23 @@ const removeCoupon = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
 
+            // Use findOneAndUpdate with atomic operations
+            const coupon = await Coupon.findOneAndUpdate(
+                { 
+                    code: buyNowOrder.couponCode,
+                    usersUsed: userId 
+                },
+                { 
+                    $pull: { usersUsed: userId },
+                    $inc: { usedCount: -1 }
+                },
+                { new: true }
+            );
+
+            if (!coupon) {
+                console.error('Coupon not found or user not in usersUsed array');
+            }
+
             const product = await Product.findById(buyNowOrder.productId)
                 .populate('category')
                 .populate('offer');
@@ -235,6 +257,20 @@ const removeCoupon = async (req, res) => {
             if (!cart.couponCode) {
                 return res.status(400).json({ success: false, message: 'No coupon applied' });
             }
+
+            // Use findOneAndUpdate with atomic operations
+            const coupon = await Coupon.findOneAndUpdate(
+                { 
+                    code: cart.couponCode,
+                    usersUsed: userId 
+                },
+                { 
+                    $pull: { usersUsed: userId },
+                    $inc: { usedCount: -1 }
+                },
+                { new: true }
+            );
+
 
             await cart.calculateTotals();
             cart.couponCode = null;

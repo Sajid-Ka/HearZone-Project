@@ -432,7 +432,7 @@
                 <p>Returned Items: <span style="color: #dc3545;">-₹<%= returnedItemsTotal.toFixed(2) %></span></p>
             <% } %>
 
-            <p><strong>Total:</strong> <strong>₹<%= (order.totalPrice - returnedItemsTotal).toFixed(2) %></strong></p>
+            <p><strong>Total:</strong> <strong>₹<%= (totalPrice - returnedItemsTotal).toFixed(2) %></strong></p>
         </div>
         <div class="action-buttons">
             <% if (order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending') { %>
