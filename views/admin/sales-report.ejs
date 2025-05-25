@@ -289,7 +289,7 @@
               </td>
               <td><%= order.userId?.name || 'Unknown' %></td>
               <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
-              <td>₹<%= (order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2) %></td> <!-- Use totalAmountWithDiscount -->
+              <td>₹<%= (order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2) %></td> 
               <td>₹<%= order.discount.toFixed(2) %></td>
               <td>₹<%= order.couponDiscount.toFixed(2) %></td>
               <td>

@@ -797,26 +797,43 @@
         const endDate = document.getElementById('endDate').value;
         const dateError = document.getElementById('dateError');
 
-        if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            if (end < start) {
-                dateError.textContent = 'End date must be after start date';
-                dateError.classList.add('show');
-                return;
-            }
-            if (start.toDateString() === end.toDateString()) {
-                dateError.textContent = 'Start date and end date cannot be the same';
-                dateError.classList.add('show');
-                return;
-            }
-            dateError.classList.remove('show');
-            dateError.textContent = '';
-            window.location.href = `?startDate=${startDate}&endDate=${endDate}`;
-        } else {
+        if (!startDate || !endDate) {
             dateError.textContent = 'Please select both start and end dates';
             dateError.classList.add('show');
+            return;
         }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const today = new Date();
+        
+        if (end < start) {
+            dateError.textContent = 'End date must be after start date';
+            dateError.classList.add('show');
+            return;
+        }
+        
+        if (start > today) {
+            dateError.textContent = 'Start date cannot be in the future';
+            dateError.classList.add('show');
+            return;
+        }
+        
+        if (end > today) {
+            dateError.textContent = 'End date cannot be in the future';
+            dateError.classList.add('show');
+            return;
+        }
+        
+        if (start.toDateString() === end.toDateString()) {
+            dateError.textContent = 'Start date and end date cannot be the same';
+            dateError.classList.add('show');
+            return;
+        }
+
+        dateError.classList.remove('show');
+        dateError.textContent = '';
+        window.location.href = `?startDate=${startDate}&endDate=${endDate}&timeFilter=custom`;
     }
 
     document.getElementById('timeFilterSelect').addEventListener('change', function() {
@@ -828,14 +845,18 @@
         if (timeFilter !== 'custom') {
             window.location.href = `?timeFilter=${timeFilter}`;
         } else {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            if (startDate && endDate && new Date(endDate) >= new Date(startDate)) {
-                window.location.href = `?startDate=${startDate}&endDate=${endDate}`;
-            } else {
-                document.getElementById('startDate').value = moment().subtract(6, 'days').format('YYYY-MM-DD');
-                document.getElementById('endDate').value = moment().format('YYYY-MM-DD');
+            // For custom, ensure we have valid dates
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            if (!startDateInput.value || !endDateInput.value) {
+            // Set default range of last 7 days if no dates selected
+            startDateInput.value = moment().subtract(6, 'days').format('YYYY-MM-DD');
+            endDateInput.value = moment().format('YYYY-MM-DD');
             }
+            
+            // Trigger apply filter
+            applyDateFilter();
         }
     });
 </script>

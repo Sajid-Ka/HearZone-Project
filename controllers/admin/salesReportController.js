@@ -12,8 +12,8 @@ const getDateRange = (reportType, customStart, customEnd) => {
       return { start: startDate.toDate(), end: endDate.toDate() };
     case 'weekly':
       return {
-        start: moment().startOf('week').toDate(),
-        end: moment().endOf('week').toDate()
+        start: moment().subtract(6, 'days').startOf('day').toDate(), // Last 7 days including today
+        end: moment().endOf('day').toDate()
       };
     case 'monthly':
       return {

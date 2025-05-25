@@ -118,10 +118,8 @@ async function getDashboardData(timeFilter, startDate, endDate) {
     case 'yearly':
       startDate = moment().subtract(5, 'years').startOf('year').toDate();
       endDate = now.endOf('day').toDate();
-      labels = Array.from({ length: 6 }, (_, i) =>
-        moment()
-          .subtract(5 - i, 'years')
-          .format('YYYY')
+      labels = Array.from({ length: 6 }, (_, i) => 
+        moment().subtract(5 - i, 'years').format('YYYY')
       );
       format = '%Y';
       break;
@@ -156,29 +154,22 @@ async function getDashboardData(timeFilter, startDate, endDate) {
   if (startDate && endDate) {
     const daysDiff = moment(endDate).diff(moment(startDate), 'days');
     previousEndDate = moment(startDate).subtract(1, 'days').toDate();
-    previousStartDate = moment(previousEndDate)
-      .subtract(daysDiff, 'days')
-      .toDate();
+    previousStartDate = moment(previousEndDate).subtract(daysDiff, 'days').toDate();
   } else {
     switch (timeFilter) {
       case 'weekly':
         previousEndDate = moment(startDate).subtract(1, 'days').toDate();
-        previousStartDate = moment(previousEndDate)
-          .subtract(6, 'days')
-          .toDate();
+        previousStartDate = moment(previousEndDate).subtract(6, 'days').toDate();
         break;
       case 'yearly':
+        // For yearly, compare with previous 6-year period
         previousEndDate = moment(startDate).subtract(1, 'days').toDate();
-        previousStartDate = moment(previousEndDate)
-          .subtract(5, 'years')
-          .toDate();
+        previousStartDate = moment(startDate).subtract(6, 'years').toDate();
         break;
       case 'monthly':
       default:
         previousEndDate = moment(startDate).subtract(1, 'days').toDate();
-        previousStartDate = moment(previousEndDate)
-          .subtract(5, 'months')
-          .toDate();
+        previousStartDate = moment(previousEndDate).subtract(5, 'months').toDate();
     }
   }
 
@@ -679,7 +670,7 @@ const mapDataToLabels = (data, labels, timeFilter, valueField) => {
     } else if (timeFilter === 'custom') {
       key = moment(item._id, 'YYYY-MM-DD').format('MMM D');
     } else if (timeFilter === 'yearly') {
-      key = item._id;
+      key = item._id; // Keep as full year (YYYY)
     } else {
       key = moment(item._id, 'YYYY-MM').format('MMM');
     }
@@ -687,7 +678,12 @@ const mapDataToLabels = (data, labels, timeFilter, valueField) => {
   });
 
   labels.forEach((label) => {
-    result.push(dataMap.get(label) || 0);
+    // For yearly, compare full year strings
+    if (timeFilter === 'yearly') {
+      result.push(dataMap.get(label.toString()) || 0);
+    } else {
+      result.push(dataMap.get(label) || 0);
+    }
   });
 
   return result;
