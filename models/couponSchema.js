@@ -1,69 +1,74 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const couponSchema = new Schema({
+const couponSchema = new Schema(
+  {
     code: {
-        type: String,
-        required: true,
-        unique: true,
-        uppercase: true,
-        trim: true
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true
     },
     discountType: {
-        type: String,
-        enum: ['percentage', 'fixed'],
-        required: true
+      type: String,
+      enum: ['percentage', 'fixed'],
+      required: true
     },
     value: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     maxDiscount: {
-        type: Number,
-        min: 0
+      type: Number,
+      min: 0
     },
     minPurchase: {
-        type: Number,
-        min: 0,
-        default: 0
+      type: Number,
+      min: 0,
+      default: 0
     },
     startDate: {
-        type: Date,
-        required: true,
-        default: Date.now
+      type: Date,
+      required: true,
+      default: Date.now
     },
     expiryDate: {
-        type: Date,
-        required: true
+      type: Date,
+      required: true
     },
     usageLimit: {
-        type: Number,
-        required: true,
-        min: 1
+      type: Number,
+      required: true,
+      min: 1
     },
     usedCount: {
-        type: Number,
-        default: 0
+      type: Number,
+      default: 0
     },
     isActive: {
-        type: Boolean,
-        default: true
+      type: Boolean,
+      default: true
     },
     userId: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: false
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: false
     },
-    usersUsed: [{
+    usersUsed: [
+      {
         type: Schema.Types.ObjectId,
         ref: 'User'
-    }],
+      }
+    ],
     isReferral: {
-        type: Boolean,
-        default: false
+      type: Boolean,
+      default: false
     }
-}, { timestamps: true });
+  },
+  { timestamps: true }
+);
 
 couponSchema.index({ code: 1, isActive: 1, expiryDate: 1 });
 

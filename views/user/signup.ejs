@@ -28,6 +28,7 @@
     }
     .image-section {
       width: 40%;
+      height: 702px;
       background: url('https://via.placeholder.com/280x400?text=Headphones') no-repeat center center;
       background-size: cover;
     }
@@ -82,13 +83,27 @@
       width: 30px;
       height: 30px;
     }
+    .text-center{
+      color: white;
+    }
+    .heading-sec{
+      color: white;
+    }
+    .or{
+      color: white;
+    }
+    .alert{
+      background-color: red;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="image-section"></div>
+    <div class="image-section">
+      <img src="/images/headphones-background.png" alt="Website Image"> 
+    </div>
     <div class="form-section">
-      <h2>Create Your Account</h2>
+      <h2 class="heading-sec">Create Your Account</h2>
       <form id="signForm" method="post" action="/signup">
         <input type="text" name="name" id="name" placeholder="Full Name">
         <div id="error1" class="error-message"></div>

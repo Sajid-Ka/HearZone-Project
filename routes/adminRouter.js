@@ -27,7 +27,6 @@ router.use(isAdminAuth);
 
 router.get('/dashboard-data', adminController.getDashboardDataAPI);
 
-
 // Offer routes
 router.get('/offers', offerController.getOfferPage);
 router.post('/offers/create', offerController.createOffer);
@@ -45,23 +44,37 @@ router.post('/unblockCustomer', customerController.customerUnblocked);
 
 // Order management routes
 router.get('/orders', orderController.listOrders);
-router.get('/orders/details/:orderId', orderController.viewOrderDetails); 
-router.post('/orders/update-status/:orderId', orderController.updateOrderStatus);
+router.get('/orders/details/:orderId', orderController.viewOrderDetails);
+router.post(
+  '/orders/update-status/:orderId',
+  orderController.updateOrderStatus
+);
 router.post('/orders/cancel/:orderId', orderController.processCancelRequest);
 router.post('/orders/:orderId/return', orderController.processReturnRequest);
-router.get('/orders/invoice/:orderId', orderController.downloadInvoice); 
+router.get('/orders/invoice/:orderId', orderController.downloadInvoice);
 router.get('/orders/timeline/:orderId', orderController.getOrderStatusTimeline);
-router.post('/orders/cancel-item/:orderId', orderController.processCancelItemRequest);
-router.post('/orders/return-item/:orderId', orderController.processReturnItemRequest);
-
+router.post(
+  '/orders/cancel-item/:orderId',
+  orderController.processCancelItemRequest
+);
+router.post(
+  '/orders/return-item/:orderId',
+  orderController.processReturnItemRequest
+);
 
 // Order request routes
 router.get('/pending-requests', orderController.getPendingRequests);
 router.get('/orders/request-counts', orderController.getRequestCounts);
 router.get('/orders/cancel-requests', orderController.getCancelRequests);
 router.get('/orders/return-requests', orderController.getReturnRequests);
-router.post('/orders/cancel-request/:orderId', orderController.handleCancelRequest);
-router.post('/orders/return-request/:orderId', orderController.handleReturnRequest);
+router.post(
+  '/orders/cancel-request/:orderId',
+  orderController.handleCancelRequest
+);
+router.post(
+  '/orders/return-request/:orderId',
+  orderController.handleReturnRequest
+);
 
 //category
 router.get('/category', categoryController.categoryInfo);
@@ -74,55 +87,65 @@ router.get('/deleteCategory', categoryController.deleteCategory);
 
 //brand
 router.get('/brands', brandController.getAllBrands);
-router.post('/brands/add', 
-    multer.upload.single('brandImage'),
-    (req, res, next) => {
-        if (!req.file) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No brand image was uploaded' 
-            });
-        }
-        next();
-    },
-    brandController.addBrand
+router.post(
+  '/brands/add',
+  multer.upload.single('brandImage'),
+  (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No brand image was uploaded'
+      });
+    }
+    next();
+  },
+  brandController.addBrand
 );
-router.post('/brands/update', multer
-    .upload.single('brandImage'), brandController.updateBrand);
+router.post(
+  '/brands/update',
+  multer.upload.single('brandImage'),
+  brandController.updateBrand
+);
 router.post('/brands/toggle', brandController.toggleBrandStatus);
 router.post('/brands/delete', brandController.deleteBrand);
 
-//product 
+//product
 router.get('/addProducts', productController.getProductAddPage);
 
-router.post('/addProducts', 
-    multer.upload.array('images', 4),
-    (req, res, next) => {
-        if (!req.files) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No files were uploaded' 
-            });
-        }
-        next();
-    },
-    productController.addProducts
+router.post(
+  '/addProducts',
+  multer.upload.array('images', 4),
+  (req, res, next) => {
+    if (!req.files) {
+      return res.status(400).json({
+        success: false,
+        message: 'No files were uploaded'
+      });
+    }
+    next();
+  },
+  productController.addProducts
 );
 
-router.get('/checkProductName', isAdminAuth, productController.checkProductName);
+router.get(
+  '/checkProductName',
+  isAdminAuth,
+  productController.checkProductName
+);
 router.get('/products', productController.getAllProducts);
 router.post('/blockProduct', productController.blockProduct);
 router.post('/unblockProduct', productController.unblockProduct);
 router.get('/editProduct', productController.getEditProduct);
-router.post('/editProduct/:id', 
-    multer.upload.array('images', 4),
-    (req, res, next) => {
-        if (!req.files && req.files.length === 0) {
-            return next();
-        }
-        next();
-    },
-    productController.editProduct
+router.post(
+  '/editProduct/:id',
+  multer.upload.array('images', 4),
+  (req, res, next) => {
+    if (!req.files && req.files.length === 0) {
+      return next();
+    }
+    next();
+  },
+  productController.editProduct
 );
 router.post('/deleteImage', productController.deleteSingleImage);
 
@@ -136,12 +159,24 @@ router.post('/coupons/toggle/:id', couponController.toggleCouponStatus);
 //Wallet routes
 router.get('/wallets', walletController.getAllWallets);
 router.get('/wallets/:userId', walletController.getWalletDetails);
-router.post('/orders/:orderId/wallet-payment', orderController.processWalletPayment);
+router.post(
+  '/orders/:orderId/wallet-payment',
+  orderController.processWalletPayment
+);
 
 // Sales Report Routes
 router.get('/sales-report', salesReportController.loadSalesReportPage);
-router.post('/sales-report/generate', salesReportController.generateSalesReport);
-router.get('/sales-report/download/pdf', salesReportController.downloadSalesReportPDF);
-router.get('/sales-report/download/excel', salesReportController.downloadSalesReportExcel);
+router.post(
+  '/sales-report/generate',
+  salesReportController.generateSalesReport
+);
+router.get(
+  '/sales-report/download/pdf',
+  salesReportController.downloadSalesReportPDF
+);
+router.get(
+  '/sales-report/download/excel',
+  salesReportController.downloadSalesReportExcel
+);
 
 module.exports = router;

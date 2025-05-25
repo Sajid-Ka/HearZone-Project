@@ -11,9 +11,15 @@ const getDateRange = (reportType, customStart, customEnd) => {
     case 'daily':
       return { start: startDate.toDate(), end: endDate.toDate() };
     case 'weekly':
-      return { start: moment().startOf('week').toDate(), end: moment().endOf('week').toDate() };
+      return {
+        start: moment().startOf('week').toDate(),
+        end: moment().endOf('week').toDate()
+      };
     case 'monthly':
-      return { start: moment().startOf('month').toDate(), end: moment().endOf('month').toDate() };
+      return {
+        start: moment().startOf('month').toDate(),
+        end: moment().endOf('month').toDate()
+      };
     case 'custom':
       return {
         start: moment(customStart).startOf('day').toDate(),
@@ -48,7 +54,9 @@ const loadSalesReportPage = async (req, res) => {
         $group: {
           _id: '$_id',
           totalSalesAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -98,7 +106,9 @@ const loadSalesReportPage = async (req, res) => {
           userName: { $first: '$userId.name' },
           userEmail: { $first: '$userId.email' },
           itemAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -148,7 +158,10 @@ const generateSalesReport = async (req, res) => {
   try {
     const { reportType, dateFrom, dateTo } = req.body;
 
-    if (!reportType || !['daily', 'weekly', 'monthly', 'custom'].includes(reportType)) {
+    if (
+      !reportType ||
+      !['daily', 'weekly', 'monthly', 'custom'].includes(reportType)
+    ) {
       return res.render('admin/sales-report', {
         error: 'Invalid report type',
         reportType,
@@ -214,7 +227,9 @@ const generateSalesReport = async (req, res) => {
         $group: {
           _id: '$_id',
           totalSalesAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -264,7 +279,9 @@ const generateSalesReport = async (req, res) => {
           userName: { $first: '$userId.name' },
           userEmail: { $first: '$userId.email' },
           itemAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -341,7 +358,9 @@ const downloadSalesReportPDF = async (req, res) => {
         $group: {
           _id: '$_id',
           totalSalesAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -390,7 +409,9 @@ const downloadSalesReportPDF = async (req, res) => {
           status: { $first: '$status' },
           userName: { $first: '$userId.name' },
           itemAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -431,34 +452,64 @@ const downloadSalesReportPDF = async (req, res) => {
     doc.pipe(res);
 
     doc.fontSize(20).text('Sales Report', 50, 50, { align: 'center' });
-    doc.fontSize(12).font('Courier').text(`Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`, 50, 80, { align: 'center' });
+    doc
+      .fontSize(12)
+      .font('Courier')
+      .text(
+        `Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`,
+        50,
+        80,
+        { align: 'center' }
+      );
 
     doc.fontSize(14).text('Summary', 50, 120);
-    doc.fontSize(10)
-       .text(`Total Orders: ${reportData.totalOrders}`, 50, 140)
-       .text(`Total Sales Amount: ₹${reportData.totalSalesAmount.toFixed(2)}`, 50, 155)
-       .text(`Total Discount: ₹${reportData.totalDiscount.toFixed(2)}`, 50, 170)
-       .text(`Total Coupon Discount: ₹${reportData.totalCouponDiscount.toFixed(2)}`, 50, 185);
+    doc
+      .fontSize(10)
+      .text(`Total Orders: ${reportData.totalOrders}`, 50, 140)
+      .text(
+        `Total Sales Amount: ₹${reportData.totalSalesAmount.toFixed(2)}`,
+        50,
+        155
+      )
+      .text(`Total Discount: ₹${reportData.totalDiscount.toFixed(2)}`, 50, 170)
+      .text(
+        `Total Coupon Discount: ₹${reportData.totalCouponDiscount.toFixed(2)}`,
+        50,
+        185
+      );
 
     const tableTop = 220;
-    doc.font('Helvetica-Bold').fontSize(10)
-       .text('Order ID', 50, tableTop)
-       .text('Customer', 150, tableTop)
-       .text('Date', 230, tableTop)
-       .text('Amount', 300, tableTop)
-       .text('Discount', 380, tableTop)
-       .text('Coupondiscount', 460 , tableTop)
-    doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .text('Order ID', 50, tableTop)
+      .text('Customer', 150, tableTop)
+      .text('Date', 230, tableTop)
+      .text('Amount', 300, tableTop)
+      .text('Discount', 380, tableTop)
+      .text('Coupondiscount', 460, tableTop);
+    doc
+      .strokeColor('#aaaaaa')
+      .lineWidth(1)
+      .moveTo(50, tableTop + 15)
+      .lineTo(550, tableTop + 15)
+      .stroke();
 
     orders.forEach((order, index) => {
-      const y = tableTop + 30 + (index * 20);
-      doc.font('Helvetica').fontSize(10)
-         .text(order.orderId, 50, y)
-         .text(order.userId?.name || 'Unknown', 150, y)
-         .text(moment(order.createdAt).format('DD/MM/YYYY'), 230, y)
-         .text(`₹${(order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2)}`, 300, y)
-         .text(`₹${order.discount.toFixed(2)}`, 380, y)
-         .text(`₹${ order.couponDiscount.toFixed(2)}`, 460, y)
+      const y = tableTop + 30 + index * 20;
+      doc
+        .font('Helvetica')
+        .fontSize(10)
+        .text(order.orderId, 50, y)
+        .text(order.userId?.name || 'Unknown', 150, y)
+        .text(moment(order.createdAt).format('DD/MM/YYYY'), 230, y)
+        .text(
+          `₹${(order.totalAmountWithDiscount - order.couponDiscount || 0).toFixed(2)}`,
+          300,
+          y
+        )
+        .text(`₹${order.discount.toFixed(2)}`, 380, y)
+        .text(`₹${order.couponDiscount.toFixed(2)}`, 460, y);
     });
 
     doc.fontSize(10).text('by HearZone', 50, 700, { align: 'center' });
@@ -495,7 +546,9 @@ const downloadSalesReportExcel = async (req, res) => {
         $group: {
           _id: '$_id',
           totalSalesAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -544,7 +597,9 @@ const downloadSalesReportExcel = async (req, res) => {
           status: { $first: '$status' },
           userName: { $first: '$userId.name' },
           itemAmount: {
-            $sum: { $multiply: ['$orderedItems.price', '$orderedItems.quantity'] }
+            $sum: {
+              $multiply: ['$orderedItems.price', '$orderedItems.quantity']
+            }
           },
           discount: { $first: { $ifNull: ['$discount', 0] } },
           couponDiscount: { $first: { $ifNull: ['$couponDiscount', 0] } }
@@ -580,19 +635,38 @@ const downloadSalesReportExcel = async (req, res) => {
     const worksheet = workbook.addWorksheet('Sales Report');
 
     worksheet.addRow(['Sales Report']);
-    worksheet.addRow([`Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`]);
+    worksheet.addRow([
+      `Period: ${moment(start).format('DD/MM/YYYY')} - ${moment(end).format('DD/MM/YYYY')}`
+    ]);
     worksheet.addRow([]);
     worksheet.addRow(['Summary']);
     worksheet.addRow(['Total Orders', reportData.totalOrders]);
-    worksheet.addRow(['Total Sales Amount', `₹${reportData.totalSalesAmount.toFixed(2)}`]);
-    worksheet.addRow(['Total Discount', `₹${reportData.totalDiscount.toFixed(2)}`]);
-    worksheet.addRow(['Total Coupon Discount', `₹${reportData.totalCouponDiscount.toFixed(2)}`]);
+    worksheet.addRow([
+      'Total Sales Amount',
+      `₹${reportData.totalSalesAmount.toFixed(2)}`
+    ]);
+    worksheet.addRow([
+      'Total Discount',
+      `₹${reportData.totalDiscount.toFixed(2)}`
+    ]);
+    worksheet.addRow([
+      'Total Coupon Discount',
+      `₹${reportData.totalCouponDiscount.toFixed(2)}`
+    ]);
     worksheet.addRow([]);
 
-    worksheet.addRow(['Order ID', 'Customer', 'Date', 'Amount', 'Discount', 'Coupon Discount', 'Status']);
+    worksheet.addRow([
+      'Order ID',
+      'Customer',
+      'Date',
+      'Amount',
+      'Discount',
+      'Coupon Discount',
+      'Status'
+    ]);
     worksheet.getRow(worksheet.lastRow.number).font = { bold: true };
 
-    orders.forEach(order => {
+    orders.forEach((order) => {
       worksheet.addRow([
         order.orderId,
         order.userId?.name || 'Unknown',
@@ -604,9 +678,9 @@ const downloadSalesReportExcel = async (req, res) => {
       ]);
     });
 
-    worksheet.columns.forEach(column => {
+    worksheet.columns.forEach((column) => {
       let maxLength = 0;
-      column.eachCell({ includeEmpty: true }, cell => {
+      column.eachCell({ includeEmpty: true }, (cell) => {
         const columnLength = cell.value ? cell.value.toString().length : 10;
         if (columnLength > maxLength) {
           maxLength = columnLength;
@@ -617,7 +691,10 @@ const downloadSalesReportExcel = async (req, res) => {
 
     const fileName = `sales_report_${moment().format('YYYYMMDD')}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
 
     await workbook.xlsx.write(res);
     res.end();
