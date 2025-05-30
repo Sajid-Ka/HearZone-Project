@@ -1,7 +1,77 @@
 const User = require('../../models/userSchema');
 const Wallet = require('../../models/walletSchema');
 const Order = require('../../models/orderSchema');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
+
+const createRazorpayOrder = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const userId = req.session.user.id;
+
+    if (!amount) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Amount is required' });
+    }
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Amount must be a valid number greater than 0',
+        });
+    }
+    if (!Number.isInteger(parsedAmount)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Amount must be a whole number' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    }
+
+    
+    const shortUserId = userId.toString().slice(-8); 
+    const timestamp = Date.now().toString().slice(-6); 
+    const receipt = `w_${shortUserId}_${timestamp}`; 
+
+    const options = {
+      amount: parsedAmount * 100, 
+      currency: 'INR',
+      receipt: receipt,
+      payment_capture: 1, 
+    };
+
+    const order = await razorpay.orders.create(options);
+    return res.status(200).json({
+      success: true,
+      orderId: order.id,
+      amount: parsedAmount,
+      key_id: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create payment order',
+    });
+  }
+};
+
 
 const getWallet = async (req, res) => {
   try {
@@ -227,27 +297,40 @@ const initiateWalletPayment = async (req, res) => {
 
 const addMoneyToWallet = async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
     const userId = req.session.user.id;
 
-    if (!amount) {
+    if (!amount || !razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
       return res
         .status(400)
-        .json({ success: false, message: 'Amount is required' });
+        .json({ success: false, message: 'Missing payment details' });
     }
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return res
         .status(400)
         .json({
           success: false,
-          message: 'Amount must be a valid number greater than 0'
+          message: 'Amount must be a valid number greater than 0',
         });
     }
     if (!Number.isInteger(parsedAmount)) {
       return res
         .status(400)
         .json({ success: false, message: 'Amount must be a whole number' });
+    }
+
+    // Verify Razorpay signature
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid payment signature' });
     }
 
     const user = await User.findById(userId);
@@ -262,8 +345,8 @@ const addMoneyToWallet = async (req, res) => {
       userId,
       amount: parsedAmount,
       type: 'credit',
-      description: 'Added money to wallet',
-      transactionId
+      description: `Added money to wallet via Razorpay (Payment ID: ${razorpay_payment_id})`,
+      transactionId,
     };
 
     await Wallet.create(walletTransaction);
@@ -279,12 +362,12 @@ const addMoneyToWallet = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Duplicate transaction detected. Please try again.'
+        message: 'Duplicate transaction detected. Please try again.',
       });
     }
     return res.status(500).json({
       success: false,
-      message: 'Failed to add money to wallet'
+      message: 'Failed to add money to wallet',
     });
   }
 };
@@ -292,5 +375,6 @@ const addMoneyToWallet = async (req, res) => {
 module.exports = {
   getWallet,
   initiateWalletPayment,
-  addMoneyToWallet
+  addMoneyToWallet,
+  createRazorpayOrder
 };

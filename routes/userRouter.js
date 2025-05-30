@@ -219,6 +219,7 @@ router.post('/coupon/remove', couponController.removeCoupon);
 
 // Wallet routes
 router.get('/wallet', walletController.getWallet);
+router.post('/wallet/create-razorpay-order', walletController.createRazorpayOrder);
 router.post('/wallet/pay/:orderId', walletController.initiateWalletPayment);
 router.post('/wallet/add-money', walletController.addMoneyToWallet);
 
