@@ -984,13 +984,13 @@
         <div class="col-md-6">
             <div class="product-gallery">
                 <div class="main-image" id="imageContainer">
-                    <img id="mainImage" src="/Uploads/re-image/<%= product.productImage[0] %>" alt="<%= product.productName %>">
-                    <img id="zoomedImage" class="zoomed" src="/Uploads/re-image/<%= product.productImage[0] %>" alt="<%= product.productName %>">
+                    <img id="mainImage" src="/uploads/re-image/<%= product.productImage[0] %>" alt="<%= product.productName %>">
+                    <img id="zoomedImage" class="zoomed" src="/uploads/re-image/<%= product.productImage[0] %>" alt="<%= product.productName %>">
                 </div>
                 <div class="thumbnail-container">
                     <% for(let i = 0; i < Math.min(4, product.productImage.length); i++) { %>
                         <div class="thumbnail <%= i === 0 ? 'active' : '' %>" onclick="changeImage('<%= i %>')">
-                            <img src="/Uploads/re-image/<%= product.productImage[i] %>" alt="thumbnail">
+                            <img src="/uploads/re-image/<%= product.productImage[i] %>" alt="thumbnail">
                         </div>
                     <% } %>
                 </div>
