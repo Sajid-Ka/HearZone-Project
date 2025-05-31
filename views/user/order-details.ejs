@@ -348,7 +348,7 @@
             <% order.orderedItems.forEach((item, index) => { %>
                 <div class="item-row" data-item-index="<%= index %>">
                     <a href="/product-details?id=<%= item.product._id %>">
-                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/Uploads/product-images/' + item.product.productImage[0] : '/Uploads/product-images/placeholder.jpg' %>" 
+                        <img src="<%= item.product && item.product.productImage && item.product.productImage.length ? '/uploads/product-images/' + item.product.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
                              alt="<%= item.product ? item.product.productName : 'Product' %>">
                     </a>
                     <span><%= item.product.productName %></span>

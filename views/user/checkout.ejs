@@ -879,7 +879,7 @@
             
             <% cart.items.forEach(item => { %>
                 <div class="product-item">
-                    <img src="<%= item.productId.productImage && item.productId.productImage.length ? '/Uploads/product-images/' + item.productId.productImage[0] : '/Uploads/product-images/placeholder.jpg' %>" 
+                    <img src="<%= item.productId.productImage && item.productId.productImage.length ? '/uploads/product-images/' + item.productId.productImage[0] : '/uploads/product-images/placeholder.jpg' %>" 
                         alt="<%= item.productId.productName %>">
                     <div class="product-details">
                         <div class="product-info">
